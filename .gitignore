@@ -16,3 +16,11 @@ yarn-error.log*
 .env
 playwright-report/
 test-results/
+
+# Per-developer Claude Code state (.claude/ itself is committed)
+.claude/settings.local.json
+.claude/worktrees/
+
+# Agent skills (installed per-developer)
+.agents/
+skills-lock.json

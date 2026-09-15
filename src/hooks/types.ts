@@ -1,12 +1,6 @@
 import type { Context } from "../context";
-
 import type { DependencyList } from "yract";
-import type { Child } from "../jsx";
 import type {
-  $$FORCE_UPDATE,
-  $$HALT,
-  $$HALTED,
-  $$RENDER,
   $CONTEXT,
   $EFFECT,
   $ID,
@@ -17,90 +11,65 @@ import type {
   $STATE,
   $WEAK_REF,
 } from "./constants";
-import { hookTypes } from "./constants";
+import type { AnyFn } from "../general-types";
 
-export type HookType = (typeof hookTypes)[number];
-
-export const HOOK_TYPES: ReadonlySet<HookType> = new Set<HookType>(hookTypes);
-
-export interface StateDescriptor {
+export interface StateHookDescriptor<T = unknown> {
   type: typeof $STATE;
-  initialValue: unknown;
+  initialValue: (() => T) | T;
   deps: DependencyList;
 }
 
-export interface RefDescriptor {
+export interface RefHookDescriptor {
   type: typeof $REF;
   initialValue: unknown;
 }
 
-export interface WeakRefDescriptor<T extends WeakKey = WeakKey> {
+export interface WeakRefHookDescriptor<T extends WeakKey = WeakKey> {
   type: typeof $WEAK_REF;
   initial?: T;
 }
 
-export interface IdDescriptor {
+export interface IdHookDescriptor {
   type: typeof $ID;
 }
 
-export interface MemoDescriptor {
+export interface MemoHookDescriptor<T = unknown, TArgs extends readonly any[] = DependencyList> {
   type: typeof $MEMO;
-  fn: (...args: unknown[]) => unknown;
-  deps: DependencyList;
+  fn(...args: TArgs): T;
+  deps: TArgs;
 }
 
-export interface StableDescriptor {
+export interface StableHookDescriptor<T extends AnyFn = AnyFn> {
   type: typeof $STABLE;
-  fn: (...args: unknown[]) => unknown;
+  fn: T;
 }
 
-export type EffectCallback = ((signal: AbortSignal) => void | Promise<void> | (() => unknown))
-export interface EffectDescriptor {
+export type EffectCallback = (signal: AbortSignal) => void | Promise<void> | (() => unknown);
+export interface EffectHookDescriptor {
   type: typeof $EFFECT;
   fn: EffectCallback;
   deps: DependencyList;
 }
 
-export interface ContextDescriptor {
+export interface ContextHookDescriptor {
   type: typeof $CONTEXT;
   ctx: Context;
   depsSelector?: (ctx: unknown) => unknown[];
   transform?: (...args: unknown[]) => unknown;
 }
 
-export interface LoadDescriptor {
+export interface LoadHookDescriptor {
   type: typeof $LOAD;
   promise?: Promise<any>;
 }
 
-export interface RenderDescriptor {
-  type: typeof $$RENDER;
-  child: Child;
-}
-
-export interface HaltDescriptor {
-  type: typeof $$HALT;
-  initialFallback?: Child;
-}
-
-export interface HaltedDescriptor {
-  type: typeof $$HALTED;
-}
-export interface ForceUpdateDescriptor {
-  type: typeof $$FORCE_UPDATE;
-}
-
 export type HookDescriptor =
-  | StateDescriptor
-  | RefDescriptor
-  | WeakRefDescriptor
-  | IdDescriptor
-  | MemoDescriptor
-  | StableDescriptor
-  | EffectDescriptor
-  | ContextDescriptor
-  | LoadDescriptor
-  | RenderDescriptor
-  | HaltDescriptor
-  | HaltedDescriptor
-  | ForceUpdateDescriptor;
+  | StateHookDescriptor
+  | RefHookDescriptor
+  | WeakRefHookDescriptor
+  | IdHookDescriptor
+  | MemoHookDescriptor
+  | StableHookDescriptor
+  | EffectHookDescriptor
+  | ContextHookDescriptor
+  | LoadHookDescriptor;

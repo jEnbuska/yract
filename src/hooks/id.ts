@@ -1,7 +1,5 @@
 import type { IdHookState } from "../render/types";
-import { type IdDescriptor } from "./types";
-
-import type { ComponentGenerator } from "../general-types";
+import { type IdHookDescriptor } from "./types";
 import { $ID } from "./constants";
 
 let idCounter = 0;
@@ -13,10 +11,10 @@ function nextId(): string {
 /**
  * Stable unique ID hook. Returns a string ID that is stable across re-renders.
  */
-export function* useId(): ComponentGenerator<string> {
-  const desc: IdDescriptor = { type: $ID };
-  const id = yield desc;
-  return id as string;
+export function* useId(): Generator<IdHookDescriptor, string, IdHookState> {
+  const desc: IdHookDescriptor = { type: $ID };
+  const result = yield desc;
+  return result.id;
 }
 
 /** @internal */

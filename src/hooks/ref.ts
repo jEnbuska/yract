@@ -1,7 +1,5 @@
 import type { RefHookState } from "../render/types";
-import { type RefDescriptor } from "./types";
-
-import type { ComponentGenerator } from "../general-types";
+import { type RefHookDescriptor } from "./types";
 import { $REF } from "./constants";
 
 /**
@@ -11,14 +9,16 @@ export interface RefObject<T> {
   current: T;
 }
 
-export function* useRef<T>(initialValue: T): ComponentGenerator<RefObject<T>> {
-  const desc: RefDescriptor = { type: $REF, initialValue };
-  const ref = yield desc;
-  return ref as RefObject<T>;
+export function* useRef<T>(
+  initialValue: T,
+): Generator<RefHookDescriptor, RefObject<T>, RefHookState<T>> {
+  const desc: RefHookDescriptor = { type: $REF, initialValue };
+  const result = yield desc;
+  return result.ref;
 }
 
 /** @internal */
-export function processRef(descriptor: RefDescriptor, prev?: RefHookState): RefHookState {
+export function processRef(descriptor: RefHookDescriptor, prev?: RefHookState): RefHookState {
   if (prev !== undefined) return prev;
-  return { type: $REF, current: descriptor.initialValue };
+  return { type: $REF, ref: { current: descriptor.initialValue } };
 }

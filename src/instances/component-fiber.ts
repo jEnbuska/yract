@@ -9,12 +9,13 @@ import type { WeakRefLike } from "../render/element-props";
 import type { AnyElement, TagNamespace } from "../render/elements/namespaces";
 import type { DependencyList, DraftBy } from "../general-types";
 import { depsChanged, shallowEqual, stripFrameworkProps } from "../general";
-import { runHooks } from "../hooks/utils";
 import { DeferContext } from "../hooks/defer";
+import { resolveComponentGenerator } from "../render/resolve-component-generator";
 
 export class ComponentFiber<TProps extends Record<string, unknown> = Record<string, any>> {
   public halted: boolean = false;
   public renders: number = 0;
+  public hookIndex: number = 0;
   public readonly ns: TagNamespace;
   public preparedSlots: Map<string, Slot> | undefined = undefined;
 
@@ -120,7 +121,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
       this.propsPrepared = true;
     }
     const generator = this.component(this.props);
-    const child = runHooks(generator, this);
+    const child = resolveComponentGenerator(generator, this);
     if (!this.slot) {
       this.pendingSlot = mountFiber(this, child);
     } else {

@@ -1,10 +1,10 @@
 import { createResolvable } from "../create-resolvable";
 import type { ComponentFiber } from "../instances/component-fiber";
 import type { HookState, StateHookState } from "../render/types";
-import { type StateDescriptor } from "./types";
+import { type StateHookDescriptor } from "./types";
 import { getStateReason } from "../render-reasons";
 import { depsChanged } from "../general";
-import type { ComponentGenerator, DependencyList } from "../general-types";
+import type { DependencyList, PartialBy } from "../general-types";
 import { HookRuleError } from "./HookRuleError";
 import { $STATE } from "./constants";
 
@@ -20,22 +20,28 @@ import { $STATE } from "./constants";
 export function* useState<T>(
   initialValue: T | (() => T),
   deps: DependencyList = [],
-): ComponentGenerator<[T, (value: T | ((prev: T) => T)) => Promise<void>]> {
-  const desc: StateDescriptor = { type: $STATE, initialValue, deps };
-  const stateTuple = yield desc;
-  return stateTuple as [T, (value: T | ((prev: T) => T)) => Promise<void>];
+): Generator<StateHookDescriptor<T>, [T, (value: T | ((prev: T) => T)) => Promise<void>]> {
+  const { value, setState }: StateHookState<T> = yield { type: $STATE, initialValue, deps };
+  return [value, setState] as const;
 }
 
-export function processState(descriptor: StateDescriptor, prev?: StateHookState): StateHookState {
+export function processState(
+  descriptor: StateHookDescriptor,
+  prev: StateHookState | undefined,
+  instance: ComponentFiber,
+): StateHookState {
   if (!prev) {
     const value = resolveValue(descriptor.initialValue);
-    return {
+    const state = {
       type: $STATE,
       value,
       identifier: getStateReason(),
       pendingValue: value,
       deps: descriptor.deps,
-    };
+      setState: undefined,
+    } satisfies PartialBy<StateHookState, "setState"> as any as StateHookState;
+    state.setState = createStateSetter(instance, state);
+    return state;
   }
 
   if (depsChanged(prev.deps, descriptor.deps)) {
@@ -54,11 +60,14 @@ function resolveValue<T>(initialValue: T | (() => T)): T {
   return typeof initialValue === "function" ? (initialValue as () => T)() : initialValue;
 }
 
+const cache = new WeakMap<Omit<StateHookState, "setState">, (newValue: unknown) => Promise<void>>();
 /** @internal */
 export function createStateSetter(
   instance: ComponentFiber,
-  state: StateHookState,
+  state: Omit<StateHookState, "setState">,
 ): (newValue: unknown) => Promise<void> {
+  const cached = cache.get(state);
+  if (cached) return cached;
   return (newValue: unknown): Promise<void> => {
     if (instance.rctx.scheduler.rendering) {
       throw new HookRuleError(

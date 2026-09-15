@@ -1,6 +1,6 @@
 import type { Context } from "../context";
 import type { ComponentFiber } from "../instances/component-fiber";
-import type { ContextDescriptor } from "./types";
+import type { ContextHookDescriptor } from "./types";
 import { getContextReason } from "../render-reasons";
 import { depsChanged } from "../general";
 import type { ComponentGenerator } from "../general-types";
@@ -22,34 +22,34 @@ const defaultSelector = (value: unknown): unknown[] => [value];
 export function useContext<T>(
   ctx: Context<T>,
   depsSelector?: (ctx: T) => unknown[],
-): ComponentGenerator<T>;
+): Generator<ContextHookDescriptor, T, ContextHookState<T>>;
 export function useContext<T, const D extends unknown[], R>(
   ctx: Context<T>,
   depsSelector: (ctx: T) => D,
   transform: (...args: D) => R,
-): ComponentGenerator<R>;
+): Generator<ContextHookDescriptor, R, ContextHookState<T, D>>;
 export function* useContext<T, D extends unknown[], R>(
   ctx: Context<T>,
   depsSelector: (ctx: T) => D = defaultSelector as (ctx: T) => D,
   transform?: (...args: D) => R,
 ): ComponentGenerator<T | R> {
-  const desc: ContextDescriptor = {
+  const desc: ContextHookDescriptor = {
     type: $CONTEXT,
     ctx: ctx as Context,
-    depsSelector: depsSelector as ContextDescriptor["depsSelector"],
-    transform: transform as ContextDescriptor["transform"],
+    depsSelector: depsSelector as ContextHookDescriptor["depsSelector"],
+    transform: transform as ContextHookDescriptor["transform"],
   };
   const value = yield desc;
   return value as T | R;
 }
 
-export interface ContextHookState {
+export interface ContextHookState<T = unknown, D = T> {
   type: typeof $CONTEXT;
   /** Unique symbol this hook uses when scheduling/unscheduling the instance. */
   reason: symbol;
-  ctx: Context;
+  ctx: Context<T>;
   depsSelector: (ctx: unknown) => unknown[];
-  transform?: (...args: unknown[]) => unknown;
+  transform?: (...args: unknown[]) => D;
   /** Selected deps at the time of the most recent successful render. */
   lastRenderedDepsSelected: unknown[];
   /** Selected deps observed by the subscribe callback since the last render. */
@@ -75,7 +75,7 @@ export interface ContextHookState {
  */
 export function processContext(
   instance: ComponentFiber,
-  descriptor: ContextDescriptor,
+  descriptor: ContextHookDescriptor,
   prev: ContextHookState | undefined,
 ): ContextHookState {
   const selector = (descriptor.depsSelector ?? defaultSelector) as (ctx: unknown) => unknown[];
@@ -105,7 +105,6 @@ export function processContext(
     currentSelected: [],
     callback: () => {
       const current = state.depsSelector(handle!.ref.current);
-
       if (!depsChanged(state.lastRenderedDepsSelected, current)) {
         instance.unscheduleRender(state.reason);
       } else {
@@ -136,8 +135,8 @@ export function processContext(
  */
 export function getContextValue(state: ContextHookState, instance: ComponentFiber): unknown {
   const { ctx } = state;
-  const handle = instance.ctx.get(ctx.id);
-  if (!handle) return ctx.ref.current;
+  const provided = instance.ctx.get(ctx.id);
+  if (!provided) return ctx.ref.current;
   if (state.transform) return state.lastTransformResult;
-  return handle.ref.current;
+  return provided.ref.current;
 }

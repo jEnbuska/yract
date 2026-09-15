@@ -7,7 +7,3 @@ export { useStable } from "./stable";
 export { useState } from "./state";
 export { useDefer } from "./defer";
 export { useLoad } from "./load";
-export { requireIsHalted } from "./halted";
-export { requireHalt } from "./halt";
-export { requireForceUpdate } from "./forceUpdate";
-export { requireRender } from "./render";

@@ -968,7 +968,7 @@ component body
 The renderer tracks component instances in a `GenInstance` stored in a `WeakMap` keyed by the host span. On re-render:
 
 1. A fresh generator is created from the component function
-2. `runHooks` drives the descriptor loop, rebuilding derived state
+2. `resolveComponentGenerator` drives the descriptor loop, rebuilding derived state
 3. `reconcileSlots` diffs the new VNode tree against the previous one:
    - **Same type, same props** → no DOM change (memoisation)
    - **Same type, changed props** → in-place DOM update
@@ -993,7 +993,7 @@ Abort cleanup is registered via `cleanupFns[hookIndex]` on the `GenInstance`. `u
 
 ### Effect scheduling
 
-`useEffect` queues its callback in `pendingEffects[]` during `runHooks`. After `reconcileSlots` (DOM updated), `flushEffects(instance)` is called. It runs each pending effect and stores the returned cleanup in `hookStates`. The guard `instance.gen === null` ensures effects only fire when the generator has fully returned its JSX — effects are deferred if the generator is still paused (e.g. inside `useRender`).
+`useEffect` queues its callback in `pendingEffects[]` during `resolveComponentGenerator`. After `reconcileSlots` (DOM updated), `flushEffects(instance)` is called. It runs each pending effect and stores the returned cleanup in `hookStates`. The guard `instance.gen === null` ensures effects only fire when the generator has fully returned its JSX — effects are deferred if the generator is still paused (e.g. inside `useRender`).
 
 ### Unmount and cleanup
 

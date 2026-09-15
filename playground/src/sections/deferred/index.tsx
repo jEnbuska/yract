@@ -27,13 +27,16 @@ export function* DeferredDemo() {
   const [count, _setCount] = yield* useState(40_000);
 
   const [rows, setRows] = yield* useState<PersonRow[] | undefined>(undefined);
-  yield* useEffect(async(signal) => {
-    const rows = await getPersonRows(15_000, signal);
-    void setRows(rows)
-  }, [count]);
+  yield* useEffect(
+    async (signal) => {
+      const rows = await getPersonRows(15_000, signal);
+      void setRows(rows);
+    },
+    [count],
+  );
 
   const filtered = yield* useMemo(
-    (query: string, rows) => {
+    (query, rows) => {
       let result = rows;
       if (!query) {
         return result;

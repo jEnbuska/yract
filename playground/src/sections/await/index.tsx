@@ -1,4 +1,4 @@
-import { requireHalt, requireIsHalted, requireRender, useEffect, useLoad, useState } from "yract";
+import { doHalt, doIsHalted, doReturn, useEffect, useLoad, useState } from "yract";
 import { Window, WindowBar, WindowBody } from "../../dos";
 
 export function* AwaitDemo() {
@@ -26,7 +26,7 @@ export function* AwaitDemo() {
   }, [result.error]);
 
   while (result.error) {
-    yield* requireRender(<ErrorChild retry={() => setPromise(Promise.resolve(Date.now()))} />);
+    yield* doReturn(<ErrorChild retry={() => setPromise(Promise.resolve(Date.now()))} />);
   }
 
   const { data } = result;
@@ -44,7 +44,7 @@ export function* AwaitDemo() {
   });
 
   if (!result.data) {
-    yield* requireHalt(<p>Initial loading...</p>);
+    yield* doHalt(<p>Initial loading...</p>);
   }
 
   return (
@@ -79,7 +79,7 @@ function* AwaitedChild() {
       clearInterval(interval);
     };
   });
-  const halted = yield* requireIsHalted();
+  const halted = yield* doIsHalted();
   const [clicks, setClicks] = yield* useState(0);
   return (
     <div

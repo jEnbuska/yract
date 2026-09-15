@@ -3,7 +3,7 @@
   "exclude": ["duplicates"],
   "workspaces": {
     ".": {
-      "entry": ["src/index.ts", "src/jsx-runtime.ts"],
+      "entry": ["src/index.ts", "src/jsx-runtime.ts", "src/__typetests__/**/*.typetest.tsx"],
       "project": ["src/**/*.ts", "src/**/*.tsx"]
     },
     "playground": {

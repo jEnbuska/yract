@@ -1,19 +1,20 @@
 import type { WeakRefHookState } from "../render/types";
 
 import { $WEAK_REF } from "./constants";
-import type { WeakRefDescriptor } from "./types";
+import type { WeakRefHookDescriptor } from "./types";
 import type { WeakRefLike } from "../render/element-props";
 
 export function* useWeakRef<T extends WeakKey>(
   initial?: T,
-): Generator<WeakRefDescriptor, WeakRefLike<T>> {
-  const desc: WeakRefDescriptor = { type: $WEAK_REF, initial };
-  const result: WeakRefHookState<T> = yield desc;
+): Generator<WeakRefHookDescriptor, WeakRefLike<T>, WeakRefHookState<T>> {
+  const result = yield { type: $WEAK_REF, initial };
   return result.ref as WeakRefLike<T>;
 }
+
 type GetCurrent = {
   deref(): undefined | WeakKey;
 };
+
 export const weakRefSymbol = Symbol($WEAK_REF);
 /** @internal */
 export function processWeakRef(prev?: WeakRefHookState): WeakRefHookState {

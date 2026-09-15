@@ -1,5 +1,6 @@
 import type { Child } from "./jsx";
 import type { HookDescriptor } from "./hooks/types";
+import type { CapabilityDescriptor } from "./capabilities/types";
 
 export type DraftBy<T extends Record<PropertyKey, any>, K extends keyof T> = Omit<T, K> & {
   [key in K]: undefined | T[key];
@@ -21,8 +22,15 @@ export type DependencyList = readonly unknown[];
  * Defaults to `HookDescriptor | Child` — the full union a component body
  * can produce via `yield*` delegation.
  */
-export type ComponentGenerator<TReturn = Child, TYield = HookDescriptor | Child> = Generator<
-  TYield,
-  TReturn,
-  unknown
->;
+export type ComponentGenerator<
+  TReturn = Child,
+  TYield = HookDescriptor | CapabilityDescriptor,
+> = Generator<TYield, TReturn, unknown>;
+
+export type RenderGenerator<T> = Generator<HookDescriptor | CapabilityDescriptor, T>;
+
+export type PartialBy<T extends Record<PropertyKey, any>, K extends keyof T> = Omit<T, K> & {
+  [key in K]?: T[K];
+};
+
+export type AnyFn = (...args: any[]) => any;

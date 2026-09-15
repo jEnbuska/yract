@@ -1,31 +1,63 @@
 import type { MemoHookState } from "../render/types";
-import { type MemoDescriptor } from "./types";
-
+import type { MemoHookDescriptor } from "./types";
 import { depsChanged } from "../general";
-import type { ComponentGenerator, DependencyList } from "../general-types";
 import { $MEMO } from "./constants";
+import type { DependencyList } from "../general-types";
 
 /**
  * Memoized value hook. Re-computes only when deps change.
  * Dependency values are forwarded as arguments to the factory.
  */
+export function useMemo<T, const Deps extends any[]>(
+  fn: (...args: NoInfer<Deps>) => T,
+  deps: Deps,
+): Generator<MemoHookDescriptor<T, Deps>, T>;
+export function useMemo<T, const Deps extends [any, ...any[]]>(
+  fn: (arg0: NoInfer<Deps>[0]) => T,
+  deps: Deps,
+): Generator<MemoHookDescriptor<T, Deps>, T>;
+export function useMemo<T, const Deps extends [any, any, ...any[]]>(
+  fn: (arg0: NoInfer<Deps>[0], arg1: NoInfer<Deps>[1]) => T,
+  deps: Deps,
+): Generator<MemoHookDescriptor<T, Deps>, T>;
+export function useMemo<T, const Deps extends [any, any, any, ...any[]]>(
+  fn: (arg0: NoInfer<Deps>[0], arg1: NoInfer<Deps>[1], arg2: NoInfer<Deps>[2]) => T,
+  deps: Deps,
+): Generator<MemoHookDescriptor<T, Deps>, T>;
+export function useMemo<T, const Deps extends [any, any, any, any, ...any[]]>(
+  fn: (
+    arg0: NoInfer<Deps>[0],
+    arg1: NoInfer<Deps>[1],
+    arg2: NoInfer<Deps>[2],
+    arg3: NoInfer<Deps>[3],
+  ) => T,
+  deps: Deps,
+): Generator<MemoHookDescriptor<T, Deps>, T>;
+export function useMemo<T, const Deps extends [any, any, any, any, any, ...any[]]>(
+  fn: (
+    arg0: NoInfer<Deps>[0],
+    arg1: NoInfer<Deps>[1],
+    arg2: NoInfer<Deps>[2],
+    arg3: NoInfer<Deps>[3],
+    arg4: NoInfer<Deps>[4],
+  ) => T,
+  deps: Deps,
+): Generator<MemoHookDescriptor<T, Deps>, T>;
+export function useMemo<T>(
+  fn: (...args: DependencyList) => T,
+  deps: DependencyList,
+): Generator<MemoHookDescriptor<T>, T>;
 
-export function useMemo<T, Deps extends [unknown, ...unknown[]]>(
-  fn: (...args: Deps) => T,
-  deps: [...Deps],
-): ComponentGenerator<T>;
-export function useMemo<T>(fn: () => T, deps?: DependencyList): ComponentGenerator<T>;
-export function* useMemo<T>(
-  fn: (...args: unknown[]) => T,
-  deps: DependencyList = [],
-): ComponentGenerator<T> {
-  const desc: MemoDescriptor = { type: $MEMO, fn, deps };
-  const value = yield desc;
-  return value as T;
+export function* useMemo(
+  fn: (...args: DependencyList) => any,
+  deps: DependencyList,
+): Generator<MemoHookDescriptor<any>> {
+  const result: MemoHookState<any> = yield { type: $MEMO, fn, deps } satisfies MemoHookDescriptor;
+  return result.value;
 }
 
 /** @internal */
-export function processMemo(descriptor: MemoDescriptor, prev?: MemoHookState): MemoHookState {
+export function processMemo(descriptor: MemoHookDescriptor, prev?: MemoHookState): MemoHookState {
   if (prev !== undefined && !depsChanged(prev.deps, descriptor.deps)) return prev;
   return {
     type: $MEMO,

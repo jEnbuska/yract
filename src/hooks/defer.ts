@@ -1,4 +1,4 @@
-import type { ComponentGenerator, DraftBy } from "../general-types";
+import type { DraftBy, RenderGenerator } from "../general-types";
 import { useState } from "./state";
 import type { Component, PropsWithChildren } from "../jsx";
 import { Fragment, jsx } from "../jsx-runtime";
@@ -19,7 +19,7 @@ export function* useDefer(
   config: {
     disabled?: boolean;
   } = {},
-): ComponentGenerator<[Component<PropsWithChildren>, boolean]> {
+): RenderGenerator<[Component<PropsWithChildren>, boolean]> {
   const [isDeferring, setDeferring] = yield* useState(false);
   const { disabled } = config;
   return [

@@ -1,8 +1,8 @@
 import type { StableHookState } from "../render/types";
-import { type StableDescriptor } from "./types";
+import { type StableHookDescriptor } from "./types";
 
-import type { ComponentGenerator } from "../general-types";
 import { $STABLE } from "./constants";
+import type { AnyFn, PartialBy } from "../general-types";
 
 /**
  * Stable-identity function hook.
@@ -11,26 +11,27 @@ import { $STABLE } from "./constants";
  * is swapped each render so it always calls the latest `fn`. Useful for
  * passing stable event handlers to child components.
  */
-export function* useStable<T extends (...args: any[]) => any>(fn: T): ComponentGenerator<T> {
-  const desc: StableDescriptor = { type: $STABLE, fn };
-  const stableFn = yield desc;
-  return stableFn as T;
+export function* useStable<T extends AnyFn>(
+  fn: T,
+): Generator<StableHookDescriptor<T>, T, StableHookState<T>> {
+  const stable = yield { type: $STABLE, fn };
+  return stable.callback;
 }
 
 /** @internal */
 export function processStable(
-  descriptor: StableDescriptor,
+  descriptor: StableHookDescriptor,
   prev?: StableHookState,
 ): StableHookState {
   if (prev) {
     prev.current = descriptor.fn;
     return prev;
   }
-  const state: StableHookState = {
+  const state = {
     type: $STABLE,
     current: descriptor.fn,
-    stable: undefined as unknown,
-  };
-  state.stable = (...args: unknown[]) => state.current(...args);
+    callback: undefined,
+  } satisfies PartialBy<StableHookState, "callback"> as any as StableHookState;
+  state.callback = (...args: unknown[]) => state.current(...args);
   return state;
 }

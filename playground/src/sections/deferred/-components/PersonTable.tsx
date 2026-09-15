@@ -1,5 +1,5 @@
-import type  { PersonRow } from "../../../types";
-import { useDefer, useMemo, useRef } from "yract";
+import type { PersonRow } from "../../../types";
+import { ComponentGenerator, useDefer, useMemo, useRef } from "yract";
 import {
   LoaderTrain,
   Select,

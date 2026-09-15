@@ -285,7 +285,7 @@ When `setState` is called **during** a component's render (while the generator
 body is executing), yract does not complete the current render. Instead:
 
 1. `rerender()` sees `isRendering === true` and sets `pendingRerender = true`.
-2. `runHooks` checks `instance.pendingRerender` after each hook descriptor. If
+2. `resolveComponentGenerator` checks `instance.pendingRerender` after each hook descriptor. If
    true, it returns `{ cancelled: true }`.
 3. `executeRerender` detects the cancellation, reverts effect deps for any
    effects queued during the cancelled render, and **retries** by looping back

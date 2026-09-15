@@ -1,17 +1,17 @@
 import type { ComponentFiber } from "../instances/component-fiber";
 import type { LoadState } from "../render/types";
-import type { LoadDescriptor } from "./types";
+import type { LoadHookDescriptor } from "./types";
 
 import { $LOAD } from "./constants";
 
 export function* useLoad<TData, TError = any>(
   promise: Promise<TData> | undefined,
 ): Generator<
-  LoadDescriptor,
+  LoadHookDescriptor,
   Pick<LoadState<TData, TError>, "loading" | "error" | "data">,
   LoadState<TData, TError>
 > {
-  const descriptor: LoadDescriptor = { type: $LOAD, promise };
+  const descriptor: LoadHookDescriptor = { type: $LOAD, promise };
   const { data, loading, error } = (yield descriptor) as LoadState<TData, TError>;
   return { data, loading, error };
 }
@@ -20,7 +20,7 @@ const resolved = new WeakMap<Promise<unknown>, { data: any; error: any }>();
 const pending = new WeakMap<Promise<unknown>, boolean>();
 export function processLoad(
   instance: ComponentFiber,
-  descriptor: LoadDescriptor,
+  descriptor: LoadHookDescriptor,
   prev?: LoadState<any>,
 ): LoadState<any> {
   const { promise } = descriptor;
@@ -56,7 +56,7 @@ export function processLoad(
 
 async function handleResolveLoad(
   promise: Promise<unknown>,
-  descriptor: LoadDescriptor,
+  descriptor: LoadHookDescriptor,
   state: LoadState<any>,
   instance: ComponentFiber,
 ) {
@@ -74,7 +74,7 @@ async function handleResolveLoad(
 
 async function handleAwaitLoad(
   promise: Promise<unknown>,
-  descriptor: LoadDescriptor,
+  descriptor: LoadHookDescriptor,
   state: LoadState<any>,
   instance: ComponentFiber,
 ) {

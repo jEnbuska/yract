@@ -163,6 +163,11 @@ function* Counter(_props: object) {
   1. A demo section in `playground/src/sections/<route>/` wired into the router.
   2. Playwright visual tests in `playground/tests/` covering the demo.
   3. Documentation in `docs/api.md`.
+- **Type Safety Tests:** Compile-time type tests live in `src/__typetests__/*.typetest.tsx`. They are checked by `npm run typecheck` only — `tsconfig.build.json` excludes them and Vitest does not pick them up (its `include` is `src/__tests__/**/*.test.{ts,tsx}`), so `npm run build` and `npm test` will not catch a regression in one. They are registered as knip entry points in `knip.json`; a typetest outside that folder is reported as an unused file. Assert types with an **invariant** equality helper — a mutual `extends` check silently accepts `any`, which is exactly how a broken overload degrades:
+  ```ts
+  type Expect<A, B> =
+    (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : never;
+  ```
 - **Bug Fix Workflow:** When a bug is discovered, always write unit tests and/or Playwright visual tests that reproduce the bug **before** writing the fix. Verify the tests fail, then fix the bug, then verify the tests pass.
 
 ### Playground Structure

@@ -14,11 +14,8 @@ export {
   useDefer,
   type RefObject,
   useLoad,
-  requireIsHalted,
-  requireHalt,
-  requireRender,
-  requireForceUpdate,
 } from "./hooks";
+export { doRerender, doHalt, doIsHalted, doReturn } from "./capabilities";
 export {
   type Child,
   type Children,

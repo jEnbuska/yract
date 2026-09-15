@@ -23,18 +23,21 @@ export interface RenderContext {
   scheduler: Scheduler;
   delegationRoot: DelegationRoot;
 }
-export interface StateHookState {
+
+export type SetState<T = unknown> = (value: ((prevValue: T) => T) | T) => Promise<void>;
+export interface StateHookState<T = unknown> {
   type: typeof $STATE;
-  value: unknown;
+  value: T;
+  setState: SetState<T>;
   deps: DependencyList;
   pendingValue: unknown;
   identifier: symbol;
   pendingResolve?: () => void;
 }
 
-export interface RefHookState {
+export interface RefHookState<T = unknown> {
   type: typeof $REF;
-  current: unknown;
+  ref: { current: T };
 }
 
 export interface WeakRefHookState<T extends WeakKey = WeakKey> {
@@ -47,16 +50,16 @@ export interface IdHookState {
   id: string;
 }
 
-export interface MemoHookState {
+export interface MemoHookState<T = unknown> {
   type: typeof $MEMO;
-  value: unknown;
+  value: T;
   deps: DependencyList;
 }
 
-export interface StableHookState {
+export interface StableHookState<T extends (...args: any[]) => any = (...args: any[]) => any> {
   type: typeof $STABLE;
-  current: (...args: unknown[]) => unknown;
-  stable: unknown;
+  current: T;
+  callback: T;
 }
 
 export interface EffectHookState {
