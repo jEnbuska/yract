@@ -141,9 +141,7 @@ function unRegisterElementEvent(el: AnyElement, propKey: string): void {
  * declare `ref` (it lives on `HTMLAttributes`/`SVGAttributes` only), so the
  * runtime accesses it through this lightweight cast. */
 export type WeakRefLike<T extends WeakKey = WeakKey> = Readonly<Record<symbol, boolean>> & {
-  get current(): {
-    deref(): undefined | T;
-  };
+  get current(): undefined | T;
   set current(value: T | undefined);
 };
 

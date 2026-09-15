@@ -1,15 +1,13 @@
 import type { RefObject } from "../hooks/ref";
-import type { ComponentGenerator } from "../general-types";
 import type { HaltedAcquirementDescriptor } from "./types";
 import type { ComponentFiber } from "../instances/component-fiber";
 import { $$HALTED } from "./constants";
 
-export function* doIsHalted(): ComponentGenerator<
-  Readonly<RefObject<boolean>>,
-  HaltedAcquirementDescriptor
+export function* withIsHalted(): Generator<
+  HaltedAcquirementDescriptor,
+  Readonly<RefObject<boolean>>
 > {
-  const result = yield { type: $$HALTED };
-  return result as Readonly<RefObject<boolean>>;
+  return yield { type: $$HALTED } satisfies HaltedAcquirementDescriptor;
 }
 const cache = new WeakMap<
   ComponentFiber,

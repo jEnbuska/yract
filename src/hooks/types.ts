@@ -19,9 +19,9 @@ export interface StateHookDescriptor<T = unknown> {
   deps: DependencyList;
 }
 
-export interface RefHookDescriptor {
+export interface RefHookDescriptor<T = unknown> {
   type: typeof $REF;
-  initialValue: unknown;
+  initialValue: T;
 }
 
 export interface WeakRefHookDescriptor<T extends WeakKey = WeakKey> {

@@ -11,9 +11,8 @@ function nextId(): string {
 /**
  * Stable unique ID hook. Returns a string ID that is stable across re-renders.
  */
-export function* useId(): Generator<IdHookDescriptor, string, IdHookState> {
-  const desc: IdHookDescriptor = { type: $ID };
-  const result = yield desc;
+export function* useId(): Generator<IdHookDescriptor, string> {
+  const result: IdHookState = yield { type: $ID } satisfies IdHookDescriptor;
   return result.id;
 }
 

@@ -1,5 +1,5 @@
 import type { PersonRow } from "../../../types";
-import { ComponentGenerator, useDefer, useMemo, useRef } from "yract";
+import { useDefer, useMemo, useRef } from "yract";
 import {
   LoaderTrain,
   Select,
@@ -22,29 +22,27 @@ export type SortDir = "asc" | "desc" | "none";
 
 type UpdatePerson = (person: PersonRow) => void;
 
-export function* PersonTable({
-  rows,
-  sortDir,
-  onSort,
-  updatePerson,
-}: {
+function sortRows(rows: readonly PersonRow[] | undefined, sortDir: SortDir) {
+  return rows?.toSorted((a, b) => {
+    let cmp: number;
+    if (a.name === b.name) {
+      cmp = Number(a.id) - Number(b.id);
+    } else {
+      cmp = a.name.localeCompare(b.name);
+    }
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+}
+
+type PersonTableProps = {
   rows: readonly PersonRow[] | undefined;
   sortDir: SortDir;
   onSort: () => void;
   updatePerson: UpdatePerson;
-}) {
+};
+export function* PersonTable({ rows, sortDir, onSort, updatePerson }: PersonTableProps) {
   const sortLabel = sortDir === "asc" ? " ▲" : sortDir === "desc" ? " ▼" : "";
-  const sortedRows = yield* useMemo(() => {
-    return rows?.toSorted((a, b) => {
-      let cmp: number;
-      if (a.name === b.name) {
-        cmp = Number(a.id) - Number(b.id);
-      } else {
-        cmp = a.name.localeCompare(b.name);
-      }
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-  }, [sortDir, rows]);
+  const sortedRows = yield* useMemo(sortRows, [rows, sortDir]);
   const [Defer, deferring] = yield* useDefer();
   return (
     <Table

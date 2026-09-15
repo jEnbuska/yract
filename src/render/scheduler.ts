@@ -41,6 +41,18 @@ export class Scheduler {
     return this._rendering;
   }
 
+  private onIdleSubscribers = new Set<() => void>();
+
+  idle: boolean = false;
+
+  subscribeOnIdle = (cb: () => unknown, signal?: AbortSignal): (() => void) => {
+    console.log("sub on idle");
+    this.onIdleSubscribers.add(cb);
+    const unsubscribe = () => this.onIdleSubscribers.delete(cb);
+    if (signal) signal.addEventListener("abort", unsubscribe);
+    return unsubscribe;
+  };
+
   private readonly primaryRenderGroup: Group = { queues: [], members: new Map() };
   private readonly secondaryRenderGroup: Group = { queues: [], members: new Map() };
 
@@ -134,6 +146,7 @@ export class Scheduler {
 
   private run = async (): Promise<void> => {
     while (true) {
+      this.idle = false;
       this.workYieldDeadline = Date.now() + SLICE_MS;
 
       const {
@@ -177,7 +190,12 @@ export class Scheduler {
         !effectDeferredGroup.members.size &&
         !this.resolveGroup.members.size
       ) {
+        this.idle = true;
         this.resolvable = createResolvable();
+        for (const sub of this.onIdleSubscribers) {
+          console.log("notify on idle");
+          sub();
+        }
       }
       await this.resolvable.promise;
     }

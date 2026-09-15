@@ -1,8 +1,8 @@
-import type { ComponentGenerator } from "yract";
 import type { ComponentFiber } from "../instances/component-fiber";
 import { $$RERENDER } from "./constants";
+import type { RerenderAcquirementDescriptor } from "./types";
 
-export function* doRerender(): ComponentGenerator<() => void> {
+export function* withRerender(): Generator<RerenderAcquirementDescriptor, () => void> {
   const callback = yield { type: $$RERENDER };
   return callback as () => void;
 }

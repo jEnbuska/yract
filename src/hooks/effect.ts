@@ -14,8 +14,8 @@ import { $EFFECT } from "./constants";
 export function* useEffect(
   fn: EffectCallback,
   deps: DependencyList = [],
-): Generator<EffectHookDescriptor, void, EffectHookState> {
-  yield { type: $EFFECT, fn, deps } satisfies EffectHookDescriptor;
+): Generator<EffectHookDescriptor, void> {
+  const _: EffectHookState = yield { type: $EFFECT, fn, deps } satisfies EffectHookDescriptor;
 }
 
 /** @internal */

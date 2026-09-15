@@ -21,7 +21,11 @@ export function* useState<T>(
   initialValue: T | (() => T),
   deps: DependencyList = [],
 ): Generator<StateHookDescriptor<T>, [T, (value: T | ((prev: T) => T)) => Promise<void>]> {
-  const { value, setState }: StateHookState<T> = yield { type: $STATE, initialValue, deps };
+  const { value, setState }: StateHookState<T> = yield {
+    type: $STATE,
+    initialValue,
+    deps,
+  } satisfies StateHookDescriptor<T>;
   return [value, setState] as const;
 }
 

@@ -13,6 +13,7 @@ import type { SortDir } from "./-components/PersonTable";
 import { PersonTable } from "./-components/PersonTable";
 import type { PersonRow } from "../../types";
 import { PersonFiltering } from "./-components/PersonFiltering";
+import { PersonCount } from "./-components/PersonCount";
 
 /* ── Table row ── */
 
@@ -20,40 +21,36 @@ import { PersonFiltering } from "./-components/PersonFiltering";
 
 /* ── Main demo ── */
 
+function filterRows(query: string, rows?: PersonRow[]) {
+  let result = rows;
+  if (!query) {
+    return result;
+  }
+  const lower = query
+    .toLowerCase()
+    .split(" ")
+    .map((word) => word.trim())
+    .filter(Boolean);
+
+  return result?.filter(({ name, id, department, city }) => {
+    const combined = `${name} ${id} ${department} ${city}`.toLowerCase();
+    return lower.every((word) => combined.includes(word));
+  });
+}
 export function* DeferredDemo() {
   const [search, setSearch] = yield* useState("");
-  console.log("search", search);
   const [sortDir, setSortDir] = yield* useState<SortDir>("asc");
-  const [count, _setCount] = yield* useState(40_000);
+  const [count, setCount] = yield* useState(15_000);
 
   const [rows, setRows] = yield* useState<PersonRow[] | undefined>(undefined);
-  yield* useEffect(
-    async (signal) => {
-      const rows = await getPersonRows(15_000, signal);
-      void setRows(rows);
-    },
-    [count],
-  );
 
-  const filtered = yield* useMemo(
-    (query, rows) => {
-      let result = rows;
-      if (!query) {
-        return result;
-      }
-      const lower = query
-        .toLowerCase()
-        .split(" ")
-        .map((word) => word.trim())
-        .filter(Boolean);
+  yield* useEffect(async (signal) => {
+    void setRows(undefined);
+    const rows = await getPersonRows(count, signal);
+    void setRows(rows);
+  }, []);
 
-      return result?.filter(({ name, id, department, city }) => {
-        const combined = `${name} ${id} ${department} ${city}`.toLowerCase();
-        return lower.every((word) => combined.includes(word));
-      });
-    },
-    [search, rows],
-  );
+  const filtered = yield* useMemo(filterRows, [search, rows]);
 
   const updatePerson = yield* useStable((person: PersonRow) => {
     if (!rows?.length) return;
@@ -85,6 +82,7 @@ export function* DeferredDemo() {
           setValue={setSearch}
           matches={`${filtered?.length ?? 0}/${rows?.length ?? 0}`}
         />
+        <PersonCount count={count} setCount={setCount} />
         <PersonTable
           rows={filtered}
           sortDir={sortDir}

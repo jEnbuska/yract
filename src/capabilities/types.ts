@@ -1,4 +1,4 @@
-import type { $$CONTEXT, $$HALT, $$HALTED, $$RERENDER, $$RETURN } from "./constants";
+import type { $$CONTEXT, $$HALT, $$HALTED, $$IDLE, $$RERENDER, $$RETURN } from "./constants";
 import type { Child, Context } from "yract";
 
 export interface ReturnAcquirementDescriptor {
@@ -24,9 +24,14 @@ export interface ContextAcquirementDescriptor {
   ctx: Context;
 }
 
+export interface IdleAcquirementDescriptor {
+  type: typeof $$IDLE;
+}
+
 export type CapabilityDescriptor =
   | ReturnAcquirementDescriptor
   | HaltAcquirementDescriptor
   | HaltedAcquirementDescriptor
   | RerenderAcquirementDescriptor
-  | ContextAcquirementDescriptor;
+  | ContextAcquirementDescriptor
+  | IdleAcquirementDescriptor;

@@ -11,10 +11,8 @@ import type { AnyFn, PartialBy } from "../general-types";
  * is swapped each render so it always calls the latest `fn`. Useful for
  * passing stable event handlers to child components.
  */
-export function* useStable<T extends AnyFn>(
-  fn: T,
-): Generator<StableHookDescriptor<T>, T, StableHookState<T>> {
-  const stable = yield { type: $STABLE, fn };
+export function* useStable<T extends AnyFn>(fn: T): Generator<StableHookDescriptor<T>, T> {
+  const stable: StableHookState<T> = yield { type: $STABLE, fn } satisfies StableHookDescriptor<T>;
   return stable.callback;
 }
 

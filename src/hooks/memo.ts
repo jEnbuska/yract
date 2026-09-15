@@ -47,7 +47,6 @@ export function useMemo<T>(
   fn: (...args: DependencyList) => T,
   deps: DependencyList,
 ): Generator<MemoHookDescriptor<T>, T>;
-
 export function* useMemo(
   fn: (...args: DependencyList) => any,
   deps: DependencyList,

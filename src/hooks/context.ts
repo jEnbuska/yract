@@ -3,7 +3,6 @@ import type { ComponentFiber } from "../instances/component-fiber";
 import type { ContextHookDescriptor } from "./types";
 import { getContextReason } from "../render-reasons";
 import { depsChanged } from "../general";
-import type { ComponentGenerator } from "../general-types";
 import { $CONTEXT } from "./constants";
 
 const defaultSelector = (value: unknown): unknown[] => [value];
@@ -22,24 +21,23 @@ const defaultSelector = (value: unknown): unknown[] => [value];
 export function useContext<T>(
   ctx: Context<T>,
   depsSelector?: (ctx: T) => unknown[],
-): Generator<ContextHookDescriptor, T, ContextHookState<T>>;
+): Generator<ContextHookDescriptor, T>;
 export function useContext<T, const D extends unknown[], R>(
   ctx: Context<T>,
   depsSelector: (ctx: T) => D,
   transform: (...args: D) => R,
-): Generator<ContextHookDescriptor, R, ContextHookState<T, D>>;
+): Generator<ContextHookDescriptor, R>;
 export function* useContext<T, D extends unknown[], R>(
   ctx: Context<T>,
   depsSelector: (ctx: T) => D = defaultSelector as (ctx: T) => D,
   transform?: (...args: D) => R,
-): ComponentGenerator<T | R> {
-  const desc: ContextHookDescriptor = {
+): Generator<ContextHookDescriptor, T | R> {
+  const value: ContextHookState<T, D> = yield {
     type: $CONTEXT,
     ctx: ctx as Context,
     depsSelector: depsSelector as ContextHookDescriptor["depsSelector"],
     transform: transform as ContextHookDescriptor["transform"],
-  };
-  const value = yield desc;
+  } satisfies ContextHookDescriptor;
   return value as T | R;
 }
 

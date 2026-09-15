@@ -24,6 +24,9 @@ const FRUITS = [
   "Nectarine",
 ];
 
+function filterFruits(query: string) {
+  return FRUITS.filter((fruit) => fruit.toLowerCase().includes(query.toLowerCase()));
+}
 export function* HooksShowcase() {
   // $id: stable unique ID used to associate the <label> with the <input>
   const inputId = yield* useId();
@@ -37,11 +40,7 @@ export function* HooksShowcase() {
   // $memo: deps are forwarded as arguments to the factory — `searchQuery`
   // receives the current value of `query` and the list only recomputes when
   // the query changes (yract's unique dep-forwarding behaviour).
-  const filtered = yield* useMemo(
-    (searchQuery: string) =>
-      FRUITS.filter((fruit) => fruit.toLowerCase().includes(searchQuery.toLowerCase())),
-    [query],
-  );
+  const filtered = yield* useMemo(filterFruits, [query]);
 
   return (
     <Window>

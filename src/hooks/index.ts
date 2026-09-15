@@ -3,6 +3,7 @@ export { useEffect } from "./effect";
 export { useId } from "./id";
 export { useMemo } from "./memo";
 export { useRef, type RefObject } from "./ref";
+export { useWeakRef } from "./weakRef";
 export { useStable } from "./stable";
 export { useState } from "./state";
 export { useDefer } from "./defer";

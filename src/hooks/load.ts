@@ -6,13 +6,11 @@ import { $LOAD } from "./constants";
 
 export function* useLoad<TData, TError = any>(
   promise: Promise<TData> | undefined,
-): Generator<
-  LoadHookDescriptor,
-  Pick<LoadState<TData, TError>, "loading" | "error" | "data">,
-  LoadState<TData, TError>
-> {
-  const descriptor: LoadHookDescriptor = { type: $LOAD, promise };
-  const { data, loading, error } = (yield descriptor) as LoadState<TData, TError>;
+): Generator<LoadHookDescriptor, Pick<LoadState<TData, TError>, "loading" | "error" | "data">> {
+  const { data, loading, error }: LoadState<TData, TError> = yield {
+    type: $LOAD,
+    promise,
+  } satisfies LoadHookDescriptor;
   return { data, loading, error };
 }
 

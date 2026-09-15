@@ -3,7 +3,7 @@ import type { ComponentGenerator } from "yract";
 import type { HaltAcquirementDescriptor } from "./types";
 import { $$HALT } from "./constants";
 
-export function* doHalt(
+export function* withHalt(
   initialFallback?: Child,
 ): ComponentGenerator<never, HaltAcquirementDescriptor> {
   yield { type: $$HALT, initialFallback } satisfies HaltAcquirementDescriptor;

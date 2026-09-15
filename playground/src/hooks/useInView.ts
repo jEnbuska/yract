@@ -6,7 +6,7 @@ export function* useInView<T extends HTMLElement | SVGElement>(options?: Interse
   const [inView, setInView] = yield* useState(false);
 
   yield* useEffect(() => {
-    const el = ref.current.deref();
+    const el = ref.current;
     if (!el) return undefined;
     const io = new IntersectionObserver(([entry]) => void setInView(entry.isIntersecting), options);
     io.observe(el);

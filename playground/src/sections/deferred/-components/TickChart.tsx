@@ -29,6 +29,18 @@ type TickChartProps = {
   start: number;
 };
 
+function createPoints(entries: Tick[], start: number) {
+  if (entries.length < 2) return [];
+  const out = [];
+  for (let i = 1; i < entries.length; i++) {
+    out.push({
+      tick: Math.round((entries[i].tick - start) / 100) / 10,
+      delta: entries[i].tick - entries[i - 1].tick,
+      id: entries[i].id,
+    });
+  }
+  return out;
+}
 type Tick = { id: string; tick: number };
 export function* TickChart({ width = 1080, height = 300, start }: TickChartProps) {
   const [ref, inView] = yield* useInView<SVGSVGElement>();
@@ -49,24 +61,13 @@ export function* TickChart({ width = 1080, height = 300, start }: TickChartProps
         buffer = [];
         return nextEntries;
       });
-    }, 1000);
+    }, 250);
     return () => {
       clearInterval(addTicksHandle);
       clearInterval(updateStateHandle);
     };
   }, [inView]);
-  const points = yield* useMemo(() => {
-    if (entries.length < 2) return [];
-    const out = [];
-    for (let i = 1; i < entries.length; i++) {
-      out.push({
-        tick: Math.round((entries[i].tick - start) / 100) / 10,
-        delta: entries[i].tick - entries[i - 1].tick,
-        id: entries[i].id,
-      });
-    }
-    return out;
-  }, [entries, start]);
+  const points = yield* useMemo(createPoints, [entries, start]);
 
   if (points.length === 0) {
     return (

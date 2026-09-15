@@ -6,16 +6,9 @@
  * DOM by `[data-dos-item]` rather than through a registry — that keeps the
  * components composable, with no index props to thread through.
  */
-import { useEffect, useRef, type RefObject } from "yract";
-import type { ComponentGenerator } from "yract";
-import type { SEvent } from "yract";
+import { useEffect, useStable, useWeakRef, type SEvent } from "yract";
 
 export type RovingOrientation = "horizontal" | "vertical" | "both";
-
-export interface Roving<T extends HTMLElement> {
-  containerRef: RefObject<T | undefined>;
-  onKeydown: (event: SEvent<"keydown">) => void;
-}
 
 function items(container: HTMLElement | undefined): HTMLElement[] {
   if (!container) return [];
@@ -49,8 +42,8 @@ function handles(key: string, orientation: RovingOrientation): boolean {
 export function* useRoving<T extends HTMLElement>(
   orientation: RovingOrientation = "both",
   manageTabIndex = false,
-): ComponentGenerator<Roving<T>> {
-  const containerRef = yield* useRef<T | undefined>(undefined);
+) {
+  const containerRef = yield* useWeakRef<T>();
 
   yield* useEffect(() => {
     if (!manageTabIndex) return;
@@ -59,7 +52,7 @@ export function* useRoving<T extends HTMLElement>(
     });
   });
 
-  function onKeydown(event: SEvent<"keydown">): void {
+  const onKeydown = yield* useStable((event: SEvent<"keydown">) => {
     const { key } = event.nativeEvent;
     if (!handles(key, orientation)) return;
     const all = items(containerRef.current);
@@ -74,7 +67,7 @@ export function* useRoving<T extends HTMLElement>(
       });
     }
     target.focus();
-  }
+  });
 
   return { containerRef, onKeydown };
 }

@@ -3,7 +3,15 @@ import type { ComponentFiber } from "../instances/component-fiber";
 import { processHook, setupSkippedHookCleanups } from "../hooks/process-hook";
 import { getRerender } from "../capabilities/rerender";
 import { getHalted } from "../capabilities/halted";
-import { $$CONTEXT, $$HALT, $$HALTED, $$RERENDER, $$RETURN } from "../capabilities/constants";
+import {
+  $$CONTEXT,
+  $$HALT,
+  $$HALTED,
+  $$IDLE,
+  $$RERENDER,
+  $$RETURN,
+} from "../capabilities/constants";
+import { getIdle } from "../capabilities/idle";
 
 export function resolveComponentGenerator(
   gen: ComponentGenerator<any>,
@@ -38,6 +46,10 @@ export function resolveComponentGenerator(
       }
       case $$CONTEXT: {
         gen.next(instance.ctx.get(descriptor.ctx.id));
+        break;
+      }
+      case $$IDLE: {
+        gen.next(getIdle(instance));
         break;
       }
       default: {

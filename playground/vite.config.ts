@@ -15,9 +15,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "yract/jsx-dev-runtime": path.resolve(__dirname, "../src/jsx-runtime.ts"),
-      "yract/jsx-runtime": path.resolve(__dirname, "../src/jsx-runtime.ts"),
-      yract: path.resolve(__dirname, "../src/index.ts"),
+      "yract/jsx-dev-runtime": path.resolve(import.meta.dirname, "../src/jsx-runtime.ts"),
+      "yract/jsx-runtime": path.resolve(import.meta.dirname, "../src/jsx-runtime.ts"),
+      yract: path.resolve(import.meta.dirname, "../src/index.ts"),
     },
   },
   test: {

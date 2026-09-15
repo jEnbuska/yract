@@ -12,10 +12,11 @@ export {
   useStable,
   useState,
   useDefer,
+  useWeakRef,
   type RefObject,
   useLoad,
 } from "./hooks";
-export { doRerender, doHalt, doIsHalted, doReturn } from "./capabilities";
+export { withRerender, withHalt, withIsHalted, withReturn, withIdle } from "./capabilities";
 export {
   type Child,
   type Children,

@@ -9,11 +9,8 @@ export interface RefObject<T> {
   current: T;
 }
 
-export function* useRef<T>(
-  initialValue: T,
-): Generator<RefHookDescriptor, RefObject<T>, RefHookState<T>> {
-  const desc: RefHookDescriptor = { type: $REF, initialValue };
-  const result = yield desc;
+export function* useRef<T>(initialValue: T): Generator<RefHookDescriptor<T>, RefObject<T>> {
+  const result: RefHookState<T> = yield { type: $REF, initialValue } satisfies RefHookDescriptor<T>;
   return result.ref;
 }
 
