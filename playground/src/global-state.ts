@@ -54,18 +54,23 @@ const CITIES = [
   "Mumbai",
   "Seoul",
 ];
+
+let id = 0;
 export async function createPersonRows(count: number, signal: AbortSignal) {
   const rows: PersonRow[] = [];
   for (let i = 1; i <= count; i++) {
     if (i % 5000 === 0) {
-      if (signal.aborted) throw new Error("Signal abortedss");
-      await new Promise((res) => setTimeout(res, 0));
+      if (signal.aborted) throw new Error("Signal aborted");
+      await new Promise((res) => setTimeout(res, 50));
     }
+    const nameIndex = Math.floor(Math.random() * FIRST_NAMES.length);
+    const departmentIndex = Math.floor(Math.random() * DEPARTMENTS.length);
+    const cityIndex = Math.floor(Math.random() * CITIES.length);
     rows.push({
-      id: `${i}`,
-      name: FIRST_NAMES[i % FIRST_NAMES.length]!,
-      department: DEPARTMENTS[i % DEPARTMENTS.length]!,
-      city: CITIES[i % CITIES.length]!,
+      id: `${id++}`,
+      name: FIRST_NAMES[nameIndex],
+      department: DEPARTMENTS[departmentIndex],
+      city: CITIES[cityIndex],
     });
   }
   return rows;

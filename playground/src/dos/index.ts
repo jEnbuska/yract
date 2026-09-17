@@ -32,6 +32,7 @@ export {
   TextInput,
 } from "./Field";
 export { Checkbox, CheckboxGroup, Radio, RadioGroup } from "./Choice";
-export { Alert, Badge, Cursor, LoaderTrain, Progress, Spinner, Status } from "./Loader";
+export { Alert, Badge, Clock, Cursor, LoaderTrain, Progress, Spinner, Status } from "./Loader";
+export type { ClockProps, ClockTail } from "./Loader";
 export { Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow } from "./Table";
 export { ListBox, ListBoxOption } from "./ListBox";

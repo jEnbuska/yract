@@ -1,5 +1,5 @@
 /**
- * ThemeDemo – demonstrates createContext / $context with `yield* useState`.
+ * ThemeDemo – demonstrates createContext / useContext with `yield* useState`.
  */
 import { createContext, useContext, useId, useState } from "yract";
 
@@ -50,7 +50,7 @@ export function* ThemeDemo() {
     <section aria-label="Theme context example">
       <h2>Context API</h2>
       <p>
-        <code>createContext</code> / <code>$context</code> let child components consume values
+        <code>createContext</code> / <code>useContext</code> let child components consume values
         without prop-drilling.
       </p>
       <button

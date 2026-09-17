@@ -1,7 +1,7 @@
 import type { Context } from "../context";
 import type { ComponentFiber } from "../instances/component-fiber";
 import type { ContextHookDescriptor } from "./types";
-import { getContextReason } from "../render-reasons";
+import { createContextReason } from "../reasons";
 import { depsChanged } from "../general";
 import { $CONTEXT } from "./constants";
 
@@ -95,7 +95,7 @@ export function processContext(
   const state: ContextHookState = {
     type: $CONTEXT,
     version: handle?.version ?? -1,
-    reason: getContextReason(),
+    reason: createContextReason(),
     ctx: descriptor.ctx,
     depsSelector: selector,
     transform: descriptor.transform,
@@ -104,10 +104,10 @@ export function processContext(
     callback: () => {
       const current = state.depsSelector(handle!.ref.current);
       if (!depsChanged(state.lastRenderedDepsSelected, current)) {
-        instance.unscheduleRender(state.reason);
+        instance.cancelRender(state.reason);
       } else {
         state.currentSelected = current;
-        instance.scheduleRender(state.reason);
+        instance.queueRender(state.reason);
       }
     },
   };

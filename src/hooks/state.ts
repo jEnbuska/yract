@@ -2,7 +2,7 @@ import { createResolvable } from "../create-resolvable";
 import type { ComponentFiber } from "../instances/component-fiber";
 import type { HookState, StateHookState } from "../render/types";
 import { type StateHookDescriptor } from "./types";
-import { getStateReason } from "../render-reasons";
+import { createStateReason } from "../reasons";
 import { depsChanged } from "../general";
 import type { DependencyList, PartialBy } from "../general-types";
 import { HookRuleError } from "./HookRuleError";
@@ -39,7 +39,7 @@ export function processState(
     const state = {
       type: $STATE,
       value,
-      identifier: getStateReason(),
+      identifier: createStateReason(),
       pendingValue: value,
       deps: descriptor.deps,
       setState: undefined,
@@ -77,7 +77,7 @@ export function createStateSetter(
       throw new HookRuleError(
         instance,
         `Was calling "setState" during <${instance.rctx.scheduler.rendering}> component render!
-"setState" should only be called from events and by $effects's`,
+"setState" should only be called from events and by useEffect`,
       );
     }
     const nextValue = resolveNextValue(newValue, state.pendingValue);
@@ -85,8 +85,8 @@ export function createStateSetter(
     if (nextValue === state.value) {
       state.pendingValue = state.value;
       state.pendingResolve = undefined;
-      instance.unscheduleRender(state.identifier);
-      instance.unscheduleResolve(state.identifier);
+      instance.cancelRender(state.identifier);
+      instance.cancelStateResolve(state.identifier);
       return Promise.resolve();
     }
 
@@ -104,8 +104,8 @@ export function createStateSetter(
     state.pendingValue = nextValue;
     const { promise, resolve } = createResolvable();
     state.pendingResolve = resolve;
-    instance.scheduleRender(state.identifier);
-    instance.scheduleResolve(state.identifier);
+    instance.queueRender(state.identifier);
+    instance.scheduleStateResolve(state.identifier);
     return promise;
   };
 }

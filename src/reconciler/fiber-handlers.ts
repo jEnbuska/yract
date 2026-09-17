@@ -10,7 +10,7 @@ import type {
 import { extendIntentNodes, extendIntentWithInstance, type Slot } from "../slots/slot";
 import type { AnyElement, TagNamespace } from "../render/elements/namespaces";
 import type { ContextMap } from "../render/types";
-import { MOUNT_REASON } from "../render-reasons";
+import { MOUNT_REASON, UNMOUNT } from "../reasons";
 import type {
   CreateElementAction,
   CreateFragmentAction,
@@ -40,7 +40,7 @@ export function handleMountSlot(
   } else {
     instance = createFiber(extendIntentNodes(intent), ctx, fiber, fiber.rctx, parentDom, ns);
     intent.instance = instance;
-    instance.scheduleRender(MOUNT_REASON);
+    instance.queueRender(MOUNT_REASON);
   }
   (fiber.nextInstances ??= new Map<string, ComponentFiber>()).set(path, instance);
   return intent as Slot<ComponentSlotType>;
@@ -86,6 +86,7 @@ export function handleUpdateSlotProps(
 
   instance.setProps(slot);
   (fiber.nextInstances ??= new Map<string, ComponentFiber>()).set(path, instance);
+  instance.cancelPostRenderCallback(UNMOUNT);
 }
 
 export function handleUpdateRef(fiber: ComponentFiber, slot: Intent<ElementSlotType>) {

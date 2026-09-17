@@ -7,4 +7,3 @@ export { useWeakRef } from "./weakRef";
 export { useStable } from "./stable";
 export { useState } from "./state";
 export { useDefer } from "./defer";
-export { useLoad } from "./load";

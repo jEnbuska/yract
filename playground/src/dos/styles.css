@@ -1042,6 +1042,111 @@
   }
 }
 
+.dos-clock {
+  box-sizing: border-box;
+  display: inline-block;
+  position: relative;
+  width: var(--dos-clock-size, 4rem);
+  height: var(--dos-clock-size, 4rem);
+  border: 1px solid currentcolor;
+  border-radius: 50%;
+  color: var(--dos-hi-cyan);
+  vertical-align: middle;
+}
+
+/*
+ * A dot marker, swung out to its own radius. Same rotate-then-unrotate trick
+ * as the label, but a circle does not care which way up it is — the unrotate
+ * is there so the dot's own box stays square to the page and the radius reads
+ * off the vertical.
+ */
+.dos-clock-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--dos-clock-size, 4rem) * var(--dos-clock-dot-size, 0.06));
+  height: calc(var(--dos-clock-size, 4rem) * var(--dos-clock-dot-size, 0.06));
+  border-radius: 50%;
+  background: currentcolor;
+  opacity: var(--dos-clock-tail-opacity, 1);
+  transform: translate(-50%, -50%) rotate(var(--dos-clock-degrees, 0deg))
+    translateY(calc(var(--dos-clock-size, 4rem) * -1 * var(--dos-clock-dot-radius, 0.35)))
+    rotate(calc(-1 * var(--dos-clock-degrees, 0deg)));
+}
+
+/*
+ * A tail's label, sitting just outside the rim so no wedge is drawn behind it
+ * — a number in the ring's own colour on top of a wedge in that same colour is
+ * unreadable. The chip keeps it off the screen background too. Swing out along
+ * the wedge's angle, then unrotate by the same amount so the text stays level
+ * whatever o'clock it is at. The wedge's opacity does not reach it: a mark too
+ * faint to see is still worth a readable number.
+ */
+.dos-clock-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  padding: 0 0.3em;
+  font-size: calc(var(--dos-clock-size, 4rem) * 0.06);
+  line-height: 1.5;
+  white-space: nowrap;
+  /* Dark ink on a light chip: the tail colour itself is too dark at some hues
+     to read against a dark ground, so the chip carries the hue instead. */
+  color: var(--dos-clock-label-fg, var(--dos-black));
+  background: var(--dos-clock-label-bg, var(--dos-white));
+  transform: translate(-50%, -50%) rotate(var(--dos-clock-degrees, 0deg))
+    translateY(calc(var(--dos-clock-size, 4rem) * -1 * var(--dos-clock-label-radius, 0.6)))
+    rotate(calc(-1 * var(--dos-clock-degrees, 0deg)));
+}
+
+/*
+ * Several dials on one face. A grid with every child in the same cell stacks
+ * them exactly, with no absolute positioning and no duplicated sizing; the
+ * per-dial borders give way to one neutral ring drawn on the stack itself,
+ * as an inset shadow so it costs no layout.
+ */
+.dos-clock-stack {
+  display: inline-grid;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--dos-screen-muted);
+}
+
+.dos-clock-stack > .dos-clock {
+  grid-area: 1 / 1;
+  border-color: transparent;
+}
+
+/*
+ * A tail is a wedge cut from the face, not a bar laid on top of it, so its
+ * angular width can be set in turns: `--dos-clock-tail-width: 0.25` is a
+ * quarter of the dial. A conic gradient starts at twelve o'clock, so each
+ * wedge trails clockwise from wherever its own `--dos-clock-degrees` points
+ * it. Every tail carries its own angle, opacity and width.
+ */
+.dos-clock-tail {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    currentcolor 0 calc(var(--dos-clock-tail-width, 0.02) * 1turn),
+    transparent 0
+  );
+  opacity: var(--dos-clock-tail-opacity, 1);
+  transform: rotate(var(--dos-clock-degrees, 0deg));
+  /*
+   * Confine the wedge to one band of the face. Defaults span the whole radius,
+   * so a lone dial is still a full disc; give a stacked dial its own inner and
+   * outer radius and the rings become concentric instead of overlaid.
+   */
+  mask: radial-gradient(
+    closest-side,
+    transparent calc(var(--dos-clock-inner-radius, 0%) - 0.5px),
+    #000 var(--dos-clock-inner-radius, 0%),
+    #000 calc(var(--dos-clock-outer-radius, 100%) - 0.5px),
+    transparent var(--dos-clock-outer-radius, 100%)
+  );
+}
+
 .dos-cursor {
   display: inline-block;
   width: 0.6em;
@@ -1127,9 +1232,18 @@
   font-size: 0.9333em;
   font-variant-numeric: tabular-nums;
   /* Cells carry only right/bottom borders; the table draws the other two
-     edges, which reproduces `border-collapse: collapse` without a table. */
+     edges, which reproduces `border-collapse: collapse` without a table.
+     The bottom edge is the table's too: a scrolling table paints its borders
+     on the viewport, so the frame stays closed however far down the rows go,
+     where the last row's own border would have scrolled away with it. */
   border-top: 0.1429em solid var(--dos-dkgray);
   border-left: 0.1429em solid var(--dos-dkgray);
+  border-bottom: 0.1429em solid var(--dos-dkgray);
+}
+
+/* ...which would otherwise print a second line under the last row. */
+.dos-table__body .dos-table__row:last-child .dos-table__cell {
+  border-bottom: 0;
 }
 
 .dos-table__caption {

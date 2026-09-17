@@ -1,5 +1,5 @@
 /**
- * LazyContextDemo -- demonstrates all three $context overloads:
+ * LazyContextDemo -- demonstrates all three useContext overloads:
  *
  *   1. No selector   -- rerenders whenever the Provider value changes.
  *   2. Selector only -- rerenders only when the selected deps change; returns full value.

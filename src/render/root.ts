@@ -42,7 +42,6 @@ export class Root {
 
   /** Tear down the root and clean up event listeners. */
   unmount(): void {
-    this.rootInstance.unmount();
     this.container.textContent = "";
     this.delegationRoot.dispose();
   }
@@ -84,6 +83,6 @@ class RootInstance extends ComponentFiber {
     this.child = child;
     this.parentDom.appendChild(this.headNode);
     this.parentDom.appendChild(this.tailNode);
-    this.scheduleRender(Symbol("MOUNT"));
+    this.queueRender(Symbol("MOUNT"));
   }
 }

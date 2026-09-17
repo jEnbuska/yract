@@ -115,7 +115,7 @@ function* Counter(_props: object) {
 | `events.ts`                           | `SyntheticEvent`/`SEvent` and the proxy-based event wrapper                                                 |
 | `context.ts`                          | `createContext`, `resolveContext`, context map helpers                                                      |
 | `general.ts` / `general-types.ts`     | Shared helpers and `ComponentGenerator`, `DependencyList`                                                   |
-| `render-reasons.ts`                   | Symbols identifying why a fiber was scheduled                                                               |
+| `reasons.ts`                          | Symbols identifying why a fiber was scheduled                                                               |
 | `hooks/*.ts`                          | One file per hook (`state`, `effect`, `memo`, `ref`, `context`, `id`, `load`, `halt`, `defer`, `stable`, …) |
 | `hooks/constants.ts`                  | Hook type symbols (`$STATE`, `$EFFECT`, …)                                                                  |
 | `hooks/types.ts`                      | Hook descriptor interfaces                                                                                  |

@@ -106,13 +106,13 @@ export function* TableRow({ children, ...rest }: TableRowProps) {
     </div>
   );
 }
-
+export type SortDir = "ascending" | "descending" | "none";
 export interface TableHeadCellProps extends ComponentProps<"div"> {
   /** Which cells this header describes. Defaults to the column below it. */
   scope?: "col" | "row";
   align?: CellAlign;
   /** Makes the header a sort control and announces the current direction. */
-  sort?: "ascending" | "descending" | "none";
+  sort?: SortDir;
 }
 
 export function* TableHeadCell({

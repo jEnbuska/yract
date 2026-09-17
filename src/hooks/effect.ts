@@ -26,7 +26,7 @@ export function processEffect(
 ): EffectHookState {
   if (!state) {
     const identifier = Symbol($EFFECT);
-    instance.scheduleEffect(identifier);
+    instance.schedulePostRenderCallback(identifier);
     // First run — no controller yet; afterRender will create one and run fn.
     return {
       type: $EFFECT,
@@ -39,7 +39,7 @@ export function processEffect(
     state.dirty = true;
     state.deps = descriptor.deps;
     state.fn = descriptor.fn;
-    instance.scheduleEffect(state.identifier);
+    instance.schedulePostRenderCallback(state.identifier);
   }
   return state;
 }

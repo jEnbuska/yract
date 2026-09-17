@@ -10,7 +10,7 @@ import { createResolvable } from "../create-resolvable";
 import type { ComponentSlotType, Slot } from "../slots/slot";
 import type { ContextMap, RenderContext } from "../render/types";
 import type { TagNamespace } from "../render/elements/namespaces";
-import { MOUNT_REASON } from "../render-reasons";
+import { MOUNT_REASON } from "../reasons";
 import { useEffect } from "./effect";
 import { useRef } from "./ref";
 import { $EFFECT } from "./constants";
@@ -103,8 +103,8 @@ class DeferFiber extends ComponentFiber<DeferProps> {
   }
 
   private prepareAfterDeferredRender() {
-    if (this.hookStates) return;
-    this.scheduleEffect(MOUNT_REASON);
+    if (this.hookStates.length) return;
+    this.schedulePostRenderCallback(MOUNT_REASON);
     this.hookStates = [
       {
         type: $EFFECT,
@@ -112,7 +112,7 @@ class DeferFiber extends ComponentFiber<DeferProps> {
         fn: () => {
           this.context.ref.current = false;
           void this.notifyDeferring(false);
-          this.hookStates = undefined;
+          this.hookStates = [];
         },
         identifier: Symbol($EFFECT),
         dirty: true,

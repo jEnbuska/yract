@@ -25,6 +25,7 @@ import {
   Link,
   ListBox,
   ListBoxOption,
+  Clock,
   LoaderTrain,
   Nav,
   NavLink,
@@ -312,6 +313,37 @@ export function* DosDemo() {
           <LoaderTrain label="Scanning drive C:" />
           <Status>
             <Spinner /> Reading directory
+          </Status>
+          <Row>
+            <Clock tails={[{ degrees: 0 }]} />
+            <Clock tails={[{ degrees: 90, width: 0.25 }]} />
+            <Clock
+              tails={[
+                { degrees: 210, opacity: 1 },
+                { degrees: 181, opacity: 0.6 },
+                { degrees: 152, opacity: 0.3 },
+              ]}
+              tailWidth={0.08}
+            />
+            <Clock
+              tails={[
+                { degrees: 0, opacity: 1, width: 0.02 },
+                { degrees: 90, opacity: 0.7, width: 0.06 },
+                { degrees: 200, opacity: 0.4, width: 0.14 },
+              ]}
+            />
+            <Clock
+              tails={[
+                { degrees: 45, opacity: 0.9 },
+                { degrees: 315, opacity: 0.5 },
+              ]}
+              tailWidth={0.25}
+              size="2rem"
+            />
+          </Row>
+          <Status>
+            Each tail carries its own angle, opacity and width — the fourth dial widens as it fades;
+            `tailWidth` is only the fallback
           </Status>
         </WindowBody>
       </Window>

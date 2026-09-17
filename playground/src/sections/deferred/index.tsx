@@ -1,54 +1,56 @@
-/**
- * DeferredDemo – large table with sort and search, wrapped in Deferred.
- *
- * Generates 5000 rows with 5 columns. The user can sort by the first
- * column and search by the first column or a combined text search
- * across all columns (datalist-style filtering).
- */
 import { useEffect, useMemo, useRef, useStable, useState } from "yract";
 import { Window, WindowBar, WindowBody } from "../../dos";
 import { getPersonRows } from "../../global-state";
-import { TickChart } from "./-components/TickChart";
-import type { SortDir } from "./-components/PersonTable";
 import { PersonTable } from "./-components/PersonTable";
 import type { PersonRow } from "../../types";
 import { PersonFiltering } from "./-components/PersonFiltering";
 import { PersonCount } from "./-components/PersonCount";
-
-/* ── Table row ── */
-
-/* ── Table (reads deferred context) ── */
-
-/* ── Main demo ── */
+import LagSpinner from "./-components/LagSpinner";
 
 function filterRows(query: string, rows?: PersonRow[]) {
-  let result = rows;
-  if (!query) {
-    return result;
-  }
+  query = query.trim();
+  if (!query) return rows;
   const lower = query
     .toLowerCase()
     .split(" ")
     .map((word) => word.trim())
     .filter(Boolean);
-
-  return result?.filter(({ name, id, department, city }) => {
+  return rows?.filter(({ name, id, department, city }) => {
     const combined = `${name} ${id} ${department} ${city}`.toLowerCase();
     return lower.every((word) => combined.includes(word));
   });
 }
 export function* DeferredDemo() {
   const [search, setSearch] = yield* useState("");
-  const [sortDir, setSortDir] = yield* useState<SortDir>("asc");
-  const [count, setCount] = yield* useState(15_000);
+  const resolvable = yield* useRef<PromiseWithResolvers<void> | undefined>(undefined);
+  const [count, setCount] = yield* useState(5_000);
+  const updateCount = yield* useStable(async (n: number) => {
+    if (n === count) return;
+    void setCount(n);
+    resolvable.current = Promise.withResolvers();
+    return resolvable.current.promise;
+  });
 
   const [rows, setRows] = yield* useState<PersonRow[] | undefined>(undefined);
-
-  yield* useEffect(async (signal) => {
-    void setRows(undefined);
-    const rows = await getPersonRows(count, signal);
-    void setRows(rows);
-  }, []);
+  yield* useEffect(
+    async (signal) => {
+      let next: PersonRow[];
+      if (!rows) {
+        next = await getPersonRows(count, signal);
+      } else if (rows.length === count) {
+        return;
+      } else if (count > rows.length) {
+        console.log("add rows", count - rows.length);
+        next = [...rows, ...(await getPersonRows(count - rows.length, signal))];
+      } else {
+        next = rows.slice(0, count);
+      }
+      if (signal.aborted) return;
+      await setRows(next);
+      resolvable.current?.resolve();
+    },
+    [count],
+  );
 
   const filtered = yield* useMemo(filterRows, [search, rows]);
 
@@ -58,16 +60,6 @@ export function* DeferredDemo() {
     if (index === -1) throw new Error(`Person with id ${person.id} does not exist`);
     void setRows([...rows.slice(0, index), person, ...rows.slice(index + 1)]);
   });
-
-  const updateSortDir = yield* useStable(() => {
-    void setSortDir((dir) => {
-      console.log("SET SORT");
-      if (dir === "desc") return "asc";
-      return "desc";
-    }).then(() => console.log("SORTED"));
-  });
-
-  const start = yield* useRef(Date.now());
   return (
     <Window>
       <WindowBar title="Defer Table" aside="/deferred" />
@@ -82,15 +74,9 @@ export function* DeferredDemo() {
           setValue={setSearch}
           matches={`${filtered?.length ?? 0}/${rows?.length ?? 0}`}
         />
-        <PersonCount count={count} setCount={setCount} />
-        <PersonTable
-          rows={filtered}
-          sortDir={sortDir}
-          onSort={updateSortDir}
-          updatePerson={updatePerson}
-        />
-
-        <TickChart start={start.current} />
+        <PersonCount count={count} setCount={updateCount} />
+        <PersonTable rows={filtered} updatePerson={updatePerson} />
+        <LagSpinner />
       </WindowBody>
     </Window>
   );

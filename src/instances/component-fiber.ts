@@ -3,7 +3,7 @@ import type { Child, Component } from "../jsx";
 import type { ContextMap, HookState, RenderContext } from "../render/types";
 import type { UIAction } from "../reconciler/actions";
 import { mountFiber, reconcilerFiber } from "../reconciler/reconciler";
-import { PROPS_REASON } from "../render-reasons";
+import { PROPS_REASON, UNMOUNT } from "../reasons";
 import type { ComponentSlotType, ContextSlotType, Slot } from "../slots/slot";
 import type { WeakRefLike } from "../render/element-props";
 import type { AnyElement, TagNamespace } from "../render/elements/namespaces";
@@ -13,27 +13,26 @@ import { DeferContext } from "../hooks/defer";
 import { resolveComponentGenerator } from "../render/resolve-component-generator";
 
 export class ComponentFiber<TProps extends Record<string, unknown> = Record<string, any>> {
-  public halted: boolean = false;
   public renders: number = 0;
-  public hookIndex: number = 0;
   public readonly ns: TagNamespace;
   public preparedSlots: Map<string, Slot> | undefined = undefined;
-
+  public cleanups = false;
+  public confidentIteration: number;
   unmounted: boolean | undefined = undefined;
   readonly component: Component<any>;
   readonly depth: number;
   readonly parent: ComponentFiber | null;
   parentDom: Node;
-  uiActions: Array<UIAction> | undefined = undefined;
+  uiActions?: Array<UIAction> | undefined = undefined;
   ctx: ContextMap;
   readonly rctx: RenderContext;
   instances?: Map<string, ComponentFiber> = undefined;
   nextInstances?: Map<string, ComponentFiber> = undefined;
   unmountInstances?: Map<string, ComponentFiber> = undefined;
-  hookStates?: HookState[] = undefined;
+  hookStates: HookState[] = [];
   renderReasons = new Set<symbol>();
   resolveReasons?: Set<symbol> = undefined;
-  effectReasons?: Set<symbol> = undefined;
+  postRenderCallbackReasons?: Set<symbol> = undefined;
   refsToAssign?: Map<WeakRefLike, AnyElement> = undefined;
   slot?: Slot = undefined;
   pendingSlot?: Slot = undefined;
@@ -71,42 +70,52 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     this.deps = intent.props.deps;
     this.depth = (parent?.depth ?? -1) + 1;
     this.ns = ns;
+    this.confidentIteration = this.rctx.scheduler.renderIteration;
   }
 
   isDeferred() {
     return resolveContext(this.ctx, DeferContext);
   }
 
-  scheduleRender(reason: symbol, deferred?: boolean): void {
+  queueRender(reason: symbol, deferred?: boolean): void {
     this.renderReasons.add(reason);
-    this.rctx.scheduler.scheduleRender(this, deferred);
+    this.rctx.scheduler.queueRender(this, deferred);
   }
 
-  unscheduleRender(reason: symbol, deferred?: boolean): void {
-    this.renderReasons.delete(reason);
-    if (this.renderReasons.size) {
-      this.rctx.scheduler.unscheduleRender(this, deferred);
+  cancelRender(reason: symbol, deferred?: boolean): void {
+    const { renderReasons } = this;
+    renderReasons.delete(reason);
+    if (renderReasons.size) {
+      this.rctx.scheduler.cancelRender(this, deferred);
     }
   }
 
-  scheduleResolve(reason: symbol): void {
+  scheduleStateResolve(reason: symbol): void {
     if (this.resolveReasons?.has(reason)) return;
     (this.resolveReasons ??= new Set()).add(reason);
-    this.rctx.scheduler.scheduleResolve(this);
+    this.rctx.scheduler.scheduleStateResolve(this);
   }
 
-  unscheduleResolve(reason: symbol): void {
-    this.resolveReasons?.delete(reason);
-    if (this.resolveReasons?.size === 0) {
-      this.rctx.scheduler.unscheduleResolve(this);
+  cancelStateResolve(reason: symbol): void {
+    const { resolveReasons } = this;
+    resolveReasons?.delete(reason);
+    if (resolveReasons?.size === 0) {
+      this.rctx.scheduler.cancelStateResolve(this);
     }
   }
 
-  scheduleEffect(reason: symbol): void {
-    if (this.effectReasons?.has(reason)) return;
-    (this.effectReasons ??= new Set()).add(reason);
-    this.rctx.scheduler.scheduleEffect(this);
+  schedulePostRenderCallback(reason: symbol): void {
+    if (this.postRenderCallbackReasons?.has(reason)) return;
+    (this.postRenderCallbackReasons ??= new Set()).add(reason);
+    this.rctx.scheduler.schedulePostRenderCallback(this);
   }
+
+  cancelPostRenderCallback(reason: symbol): void {
+    if (!this.postRenderCallbackReasons?.delete(reason)) return;
+    if (this.postRenderCallbackReasons.size) return;
+    this.rctx.scheduler.schedulePostRenderCallback(this);
+  }
+
   stack(): string {
     let str = this.parent?.stack() ?? "";
     str += "\t".repeat(this.depth);
@@ -131,27 +140,21 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     const { unmountInstances, rctx } = this;
     const { scheduler } = rctx;
     if (unmountInstances?.size) {
-      let scheduleUnmount = false;
-      for (const instance of unmountInstances.values()) {
-        if (instance.unmount()) {
-          scheduleUnmount = true;
-        } else {
-          unmountInstances.delete(instance.path);
-        }
+      for (const child of unmountInstances.values()) {
+        child.unmounted = true;
+        if (child.renders) continue;
+        unmountInstances.delete(child.path);
+        child.schedulePostRenderCallback(UNMOUNT);
       }
-      if (scheduleUnmount) {
-        scheduler.scheduleUnmountChildren(this);
-      }
-    } else {
-      scheduler.unscheduleUnmountChildren(this);
     }
-    const { refsToAssign, uiActions } = this;
 
+    const { refsToAssign, uiActions } = this;
     if (uiActions!.length || refsToAssign) {
       scheduler.scheduleUiUpdate(this);
     } else {
+      // TODO I don't remember what this next line does
       this.preparedSlots?.clear();
-      scheduler.unscheduleUiUpdate(this);
+      scheduler.cancelUiUpdate(this);
     }
     this.renderReasons.clear();
     this.renders++;
@@ -159,19 +162,26 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
 
   unmount(): boolean | undefined {
     this.unmounted = true;
-    const { scheduler } = this.rctx;
-    if (this.renderReasons.size) scheduler.unscheduleRender(this);
     return !!this.renders;
   }
 
   // Rename and flip to isMounted
-  isUnmounted(): boolean {
+  isUnmounted(renderIteration: number): boolean {
     let { parent } = this;
     while (parent) {
       if (parent.unmounted) return true;
-      parent = parent.parent;
+      if (parent.confidentIteration === renderIteration) return false;
     }
     return false;
+  }
+
+  isMounted(): boolean {
+    let { parent } = this;
+    while (parent) {
+      if (parent.unmounted) return false;
+      parent = parent.parent;
+    }
+    return true;
   }
 
   setProps(
@@ -180,6 +190,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
       "type"
     >,
   ): void {
+    this.confidentIteration = this.rctx.scheduler.renderIteration;
     const { deps } = intent.props;
     if (!depsChanged(this.deps, deps)) return;
     this.deps = deps;
@@ -187,6 +198,6 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     if (shallowEqual(this.props, props)) return;
     this.props = props as TProps;
     this.propsPrepared = false;
-    this.scheduleRender(PROPS_REASON);
+    this.queueRender(PROPS_REASON);
   }
 }

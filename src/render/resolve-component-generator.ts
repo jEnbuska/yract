@@ -2,27 +2,19 @@ import type { Child, ComponentGenerator } from "yract";
 import type { ComponentFiber } from "../instances/component-fiber";
 import { processHook, setupSkippedHookCleanups } from "../hooks/process-hook";
 import { getRerender } from "../capabilities/rerender";
-import { getHalted } from "../capabilities/halted";
-import {
-  $$CONTEXT,
-  $$HALT,
-  $$HALTED,
-  $$IDLE,
-  $$RERENDER,
-  $$RETURN,
-} from "../capabilities/constants";
-import { getIdle } from "../capabilities/idle";
+import { $$CONTEXT, $$RERENDER, $$RETURN } from "../capabilities/constants";
 
 export function resolveComponentGenerator(
   gen: ComponentGenerator<any>,
   instance: ComponentFiber,
 ): Child {
   let step = gen.next();
-  if (step.done) return step.value;
-  instance.hookStates ??= [];
-  instance.halted = false;
-  instance.hookIndex = 0;
-  if (!step.done) instance.hookStates ??= [];
+  instance.cleanups = false;
+  let hookIndex = 0;
+  if (step.done) {
+    setupSkippedHookCleanups(instance, hookIndex);
+    return step.value;
+  }
   while (!step.done) {
     const descriptor = step.value;
     switch (descriptor.type) {
@@ -30,37 +22,22 @@ export function resolveComponentGenerator(
         step = gen.next(getRerender(instance));
         break;
       }
-      case $$HALTED: {
-        step = gen.next(getHalted(instance));
+      case $$CONTEXT: {
+        step = gen.next(instance.ctx.get(descriptor.ctx.id));
         break;
-      }
-      case $$HALT: {
-        instance.halted = true;
-        if (!instance.renders) return descriptor.initialFallback;
-        return instance.prevChild;
       }
       case $$RETURN: {
-        setupSkippedHookCleanups(instance, instance.hookIndex);
-        instance.hookIndex = 0;
+        setupSkippedHookCleanups(instance, hookIndex);
         return descriptor.child;
       }
-      case $$CONTEXT: {
-        gen.next(instance.ctx.get(descriptor.ctx.id));
-        break;
-      }
-      case $$IDLE: {
-        gen.next(getIdle(instance));
-        break;
-      }
       default: {
-        const result = processHook(descriptor, instance.hookIndex, instance);
-        instance.hookIndex++;
+        const result = processHook(descriptor, hookIndex, instance);
+        hookIndex++;
         step = gen.next(result);
         break;
       }
     }
   }
-  setupSkippedHookCleanups(instance, instance.hookIndex);
-  instance.hookIndex = 0;
+  setupSkippedHookCleanups(instance, hookIndex);
   return step.value;
 }

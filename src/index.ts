@@ -14,9 +14,8 @@ export {
   useDefer,
   useWeakRef,
   type RefObject,
-  useLoad,
 } from "./hooks";
-export { withRerender, withHalt, withIsHalted, withReturn, withIdle } from "./capabilities";
+export { withRerender, withReturn } from "./capabilities";
 export {
   type Child,
   type Children,

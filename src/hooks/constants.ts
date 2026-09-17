@@ -6,4 +6,3 @@ export const $MEMO = "$MEMO" as const;
 export const $STABLE = "$STABLE" as const;
 export const $EFFECT = "$EFFECT" as const;
 export const $CONTEXT = "$CONTEXT" as const;
-export const $LOAD = "$LOAD" as const;

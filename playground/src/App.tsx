@@ -7,7 +7,6 @@
  */
 import { Screen, Shell, ShellMain, Sidebar } from "./dos";
 import "./dos/styles.css";
-import { AwaitDemo } from "./sections/await";
 import { ContextDemo } from "./sections/context";
 import { Counter } from "./sections/counter";
 import { DeferredDemo } from "./sections/deferred";
@@ -28,7 +27,6 @@ const demos = [
   { id: "lazy-ctx", label: "Lazy Context", Demo: LazyContextDemo },
   { id: "key-shuffle", label: "Key Shuffle", Demo: KeyShuffleDemo },
   { id: "deferred", label: "Defer Table", Demo: DeferredDemo },
-  { id: "await", label: "Await", Demo: AwaitDemo },
   { id: "dos", label: "DOS Kit", Demo: DosDemo },
 ] as const;
 

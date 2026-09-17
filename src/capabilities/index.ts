@@ -7,7 +7,4 @@
  * conditionally, or in a different order from one render to the next.
  */
 export { withRerender } from "./rerender";
-export { withHalt } from "./halt";
-export { withIsHalted } from "./halted";
 export { withReturn } from "./return";
-export { withIdle } from "./idle";

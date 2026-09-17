@@ -1,16 +1,6 @@
 import type { Context } from "../context";
 import type { DependencyList } from "yract";
-import type {
-  $CONTEXT,
-  $EFFECT,
-  $ID,
-  $LOAD,
-  $MEMO,
-  $REF,
-  $STABLE,
-  $STATE,
-  $WEAK_REF,
-} from "./constants";
+import type { $CONTEXT, $EFFECT, $ID, $MEMO, $REF, $STABLE, $STATE, $WEAK_REF } from "./constants";
 import type { AnyFn } from "../general-types";
 
 export interface StateHookDescriptor<T = unknown> {
@@ -58,11 +48,6 @@ export interface ContextHookDescriptor {
   transform?: (...args: unknown[]) => unknown;
 }
 
-export interface LoadHookDescriptor {
-  type: typeof $LOAD;
-  promise?: Promise<any>;
-}
-
 export type HookDescriptor =
   | StateHookDescriptor
   | RefHookDescriptor
@@ -71,5 +56,4 @@ export type HookDescriptor =
   | MemoHookDescriptor
   | StableHookDescriptor
   | EffectHookDescriptor
-  | ContextHookDescriptor
-  | LoadHookDescriptor;
+  | ContextHookDescriptor;

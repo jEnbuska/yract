@@ -48,7 +48,7 @@ describe("smoke: components", () => {
     expect(container.querySelector('[data-testid="greeting"]')?.textContent).toBe("Hello, world!");
   });
 
-  it("renders state from $state on initial mount", async () => {
+  it("renders state from useState on initial mount", async () => {
     function* Counter() {
       const [count] = yield* useState(7);
       return <span data-testid="count">{count}</span>;
@@ -62,7 +62,7 @@ describe("smoke: components", () => {
 });
 
 describe("smoke: context", () => {
-  it("consumer reads the provider value via $context", async () => {
+  it("consumer reads the provider value via useContext", async () => {
     const ThemeCtx = createContext<"light" | "dark">("light");
 
     function* Badge() {

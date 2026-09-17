@@ -1,5 +1,6 @@
 import path from "node:path";
-import { defineConfig } from "vite";
+// `vitest/config` rather than `vite`: only its `defineConfig` knows the `test` block.
+import { defineConfig } from "vitest/config";
 
 /**
  * Vite config for the yract playground.
@@ -11,7 +12,10 @@ import { defineConfig } from "vite";
  */
 export default defineConfig({
   oxc: {
-    jsxImportSource: "yract",
+    jsx: {
+      runtime: "automatic",
+      importSource: "yract",
+    },
   },
   resolve: {
     alias: {

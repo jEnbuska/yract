@@ -1,5 +1,5 @@
 import type { PersonRow } from "../../../types";
-import { useDefer, useMemo, useRef } from "yract";
+import { useDefer, useMemo, useRef, useStable, useState } from "yract";
 import {
   LoaderTrain,
   Select,
@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "../../../dos";
 import { DEPARTMENTS } from "../../../global-state";
+import type { SortDir } from "../../../dos/Table";
 
 const formatter = new Intl.DateTimeFormat("fi", {
   hour: "2-digit",
@@ -18,11 +19,9 @@ const formatter = new Intl.DateTimeFormat("fi", {
   second: "2-digit",
 });
 
-export type SortDir = "asc" | "desc" | "none";
-
 type UpdatePerson = (person: PersonRow) => void;
 
-function sortRows(rows: readonly PersonRow[] | undefined, sortDir: SortDir) {
+function sortRows(rows: PersonRow[] | undefined, sortDir: SortDir) {
   return rows?.toSorted((a, b) => {
     let cmp: number;
     if (a.name === b.name) {
@@ -30,40 +29,39 @@ function sortRows(rows: readonly PersonRow[] | undefined, sortDir: SortDir) {
     } else {
       cmp = a.name.localeCompare(b.name);
     }
-    return sortDir === "asc" ? cmp : -cmp;
+    return sortDir === "ascending" ? cmp : -cmp;
   });
 }
 
 type PersonTableProps = {
-  rows: readonly PersonRow[] | undefined;
-  sortDir: SortDir;
-  onSort: () => void;
+  rows: PersonRow[] | undefined;
   updatePerson: UpdatePerson;
 };
-export function* PersonTable({ rows, sortDir, onSort, updatePerson }: PersonTableProps) {
-  const sortLabel = sortDir === "asc" ? " ▲" : sortDir === "desc" ? " ▼" : "";
+export function* PersonTable({ rows, updatePerson }: PersonTableProps) {
+  const [sortDir, setSortDir] = yield* useState<SortDir>("ascending");
+  const sortLabel = sortDir === "ascending" ? " ▲" : sortDir === "descending" ? " ▼" : "";
   const sortedRows = yield* useMemo(sortRows, [rows, sortDir]);
   const [Defer, deferring] = yield* useDefer();
+  const updateSortDir = yield* useStable(() => {
+    void setSortDir((dir) => (dir === "descending" ? "ascending" : "descending"));
+  });
   return (
     <Table
       caption="People by name, department and city"
-      columns="1fr 1fr 1fr 1fr 1fr"
+      columns="1fr 1fr 1fr 1fr 1fr 1fr"
       rowHeight="18.5px"
       data-testid="Defer-table"
       style={{ maxHeight: "500px", overflowY: "auto", opacity: deferring ? 0.5 : 1 }}
     >
       <TableHead sticky>
         <TableRow>
-          <TableHeadCell
-            onClick={onSort}
-            sort={sortDir === "none" ? "none" : sortDir === "asc" ? "ascending" : "descending"}
-            data-testid="sort-name"
-          >
+          <TableHeadCell onClick={updateSortDir} sort={sortDir} data-testid="sort-name">
             Name{sortLabel}
           </TableHeadCell>
           <TableHeadCell id="persons-department">Department</TableHeadCell>
           <TableHeadCell>City</TableHeadCell>
           <TableHeadCell align="center">Mounted at</TableHeadCell>
+          <TableHeadCell align="center">Updated at</TableHeadCell>
           <TableHeadCell align="center">Re-renders</TableHeadCell>
         </TableRow>
       </TableHead>
@@ -77,16 +75,16 @@ export function* PersonTable({ rows, sortDir, onSort, updatePerson }: PersonTabl
     </Table>
   );
 }
-function* PersonTableBody({
-  rows,
-  updatePerson,
-}: {
-  rows: readonly PersonRow[];
+
+type PersonTableBodyProps = {
+  rows: PersonRow[] | undefined;
   updatePerson: UpdatePerson;
-}) {
+};
+function* PersonTableBody({ rows, updatePerson }: PersonTableBodyProps) {
   const mounted = yield* useRef(new Date());
   const renders = yield* useRef(0);
   renders.current++;
+  const updatedAt = new Date();
 
   return (
     <TableBody>
@@ -97,20 +95,24 @@ function* PersonTableBody({
         <TableCell align="center">
           {formatter.format(mounted.current)},<i>{mounted.current.getMilliseconds()}</i>
         </TableCell>
+        <TableCell align="center">
+          {formatter.format(updatedAt)},<i>{updatedAt.getMilliseconds()}</i>
+        </TableCell>
         <TableCell align="center">{renders.current}</TableCell>
       </TableRow>
-      {rows.map((row) => (
+      {rows!.map((row) => (
         <PersonTableRow key={row.id} row={row} deps={[row]} updatePerson={updatePerson} />
       ))}
     </TableBody>
   );
 }
 
-function* PersonTableRow({ row, updatePerson }: { row: PersonRow; updatePerson: UpdatePerson }) {
+function* PersonTableRow(props: { row: PersonRow; updatePerson: UpdatePerson }) {
+  const { row, updatePerson } = props;
   const mounted = yield* useRef(new Date());
   const renders = yield* useRef(0);
   renders.current++;
-
+  const updatedAt = new Date();
   return (
     <TableRow>
       <TableCell id={`${row.id}-name`}>
@@ -132,6 +134,9 @@ function* PersonTableRow({ row, updatePerson }: { row: PersonRow; updatePerson: 
       <TableCell>{row.city}</TableCell>
       <TableCell align="center">
         {formatter.format(mounted.current)},<i>{mounted.current.getMilliseconds()}</i>
+      </TableCell>
+      <TableCell align="center">
+        {formatter.format(updatedAt)},<i>{updatedAt.getMilliseconds()}</i>
       </TableCell>
       <TableCell align="center">{renders.current}</TableCell>
     </TableRow>

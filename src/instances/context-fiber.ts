@@ -5,7 +5,7 @@ import type { ContextMap, RenderContext } from "../render/types";
 import type { TagNamespace } from "../render/elements/namespaces";
 import type { ContextProperties } from "../context";
 import { depsChanged } from "../general";
-import { PROPS_REASON } from "../render-reasons";
+import { PROPS_REASON } from "../reasons";
 import type { ContextHookState } from "../hooks/context";
 
 export class ContextFiber extends ComponentFiber<{ value: unknown }> {
@@ -45,7 +45,6 @@ export class ContextFiber extends ComponentFiber<{ value: unknown }> {
   override render() {
     const { value } = this.props;
     const prevValue = this.context.ref.current;
-
     this.context.ref.current = value; // Should this be after Object.is(...) ?
     super.render();
     if (Object.is(prevValue, this.context.ref.current)) return;
@@ -60,14 +59,6 @@ export class ContextFiber extends ComponentFiber<{ value: unknown }> {
     if (!depsChanged(this.deps, deps)) return;
     this.deps = deps;
     this.props = intent.props;
-    this.scheduleRender(PROPS_REASON);
-  }
-
-  notifyContextProviders() {
-    const { version } = this.context;
-    for (const sub of this.subscribers) {
-      if (sub.version === version) continue;
-      sub.callback?.();
-    }
+    this.queueRender(PROPS_REASON);
   }
 }
