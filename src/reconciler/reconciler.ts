@@ -10,16 +10,6 @@ import {
 } from "../slots/slot";
 import type { TagNamespace } from "../render/elements/namespaces";
 import { type AnyElement, nodeNameSpace } from "../render/elements/namespaces";
-import type { UIAction } from "./actions";
-import {
-  isWeakRefProp,
-  prepareCreate,
-  prepareInsert,
-  prepareMove,
-  prepareRemove,
-  prepareText,
-  prepareUpdate,
-} from "./actions";
 import { getMapValues, getMapValuesReversed } from "../general";
 import { deriveStableIndexes } from "./derive-stable-indexes";
 import type { ContextMap } from "../render/types";
@@ -30,13 +20,20 @@ import {
   inheritSlot,
   type Intent,
 } from "../slots/intent";
-import { diffElementProps } from "../render/element-props";
+import { diffElementProps, isWeakRefProp } from "../render/element-props";
 import {
   handleCreateNode,
   handleMountSlot,
   handleUpdateRef,
   handleUpdateSlotProps,
 } from "./fiber-handlers";
+import type { UIAction } from "../ui-actions/types";
+import { prepareUpdate } from "../ui-actions/prepare/prepare-update";
+import { prepareRemove } from "../ui-actions/prepare/prepare-remove";
+import { prepareText } from "../ui-actions/prepare/prepare-text";
+import { prepareInsert } from "../ui-actions/prepare/prepare-insert";
+import { prepareMove } from "../ui-actions/prepare/prepare-move";
+import { prepareCreate } from "../ui-actions/prepare/prepare-create";
 
 function prepareFiber(fiber: ComponentFiber) {
   const { instances } = fiber;

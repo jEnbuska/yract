@@ -1,7 +1,6 @@
 import { resolveContext } from "../context";
 import type { Child, Component } from "../jsx";
 import type { ContextMap, HookState, RenderContext } from "../render/types";
-import type { UIAction } from "../reconciler/actions";
 import { mountFiber, reconcilerFiber } from "../reconciler/reconciler";
 import { PROPS_REASON, UNMOUNT } from "../reasons";
 import type { ComponentSlotType, ContextSlotType, Slot } from "../slots/slot";
@@ -11,6 +10,7 @@ import type { DependencyList, DraftBy } from "../general-types";
 import { depsChanged, shallowEqual, stripFrameworkProps } from "../general";
 import { DeferContext } from "../hooks/defer";
 import { resolveComponentGenerator } from "../render/resolve-component-generator";
+import type { UIAction } from "../ui-actions/types";
 
 export class ComponentFiber<TProps extends Record<string, unknown> = Record<string, any>> {
   public renders: number = 0;

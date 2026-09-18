@@ -413,3 +413,10 @@ export function updateElementProps(
     if (next) next.current = el;
   }
 }
+
+export function isWeakRefProp<T extends Record<string, unknown>>(
+  props: T,
+): props is T & { ref: WeakRefLike } {
+  if ("ref" in props) return props["ref"] !== undefined;
+  return false;
+}

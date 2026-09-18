@@ -5,21 +5,22 @@ import type {
   ContextSlotType,
   ElementSlotType,
   FragmentSlotType,
+  SlotType,
   TextSlotType,
 } from "../slots/slot";
 import { extendIntentNodes, extendIntentWithInstance, type Slot } from "../slots/slot";
 import type { AnyElement, TagNamespace } from "../render/elements/namespaces";
 import type { ContextMap } from "../render/types";
 import { MOUNT_REASON, UNMOUNT } from "../reasons";
-import type {
-  CreateElementAction,
-  CreateFragmentAction,
-  CreateSlotResponse,
-  CreateTextAction,
-} from "./actions";
+
 import { prepareSlotNodes, updateWithPreparedSlot } from "../slots/utils";
 import { createFiber } from "../instances/register-create";
 import type { WeakRefLike } from "../render/element-props";
+import type {
+  CreateElementAction,
+  CreateFragmentAction,
+  CreateTextAction,
+} from "../ui-actions/types";
 
 export function handleMountSlot(
   fiber: ComponentFiber,
@@ -46,6 +47,7 @@ export function handleMountSlot(
   return intent as Slot<ComponentSlotType>;
 }
 
+export type CreateSlotResponse<T extends SlotType> = Pick<Slot<T>, "headNode" | "tailNode">;
 export function handleCreateNode(
   fiber: ComponentFiber,
   action: CreateElementAction,

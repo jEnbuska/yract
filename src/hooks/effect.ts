@@ -15,7 +15,7 @@ export function* useEffect(
   fn: EffectCallback,
   deps: DependencyList = [],
 ): Generator<EffectHookDescriptor, void> {
-  const _: EffectHookState = yield { type: $EFFECT, fn, deps } satisfies EffectHookDescriptor;
+  yield { type: $EFFECT, fn, deps } satisfies EffectHookDescriptor;
 }
 
 /** @internal */

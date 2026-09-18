@@ -3,59 +3,24 @@ import { queueSetGroupMember } from "./utils";
 import type { RenderGroup } from "./RenderGroup";
 import type { RequiredBy } from "../../general-types";
 import { type Fiber } from "../../instances/types";
+import { AbstractRenderGroup } from "./AbstractRenderGroup";
 
-export class SyncRenderGroup implements RenderGroup {
-  #renderHead = Number.MAX_SAFE_INTEGER;
-  readonly #postRenderCallbacks: SetGroup[] = [];
-  readonly #uiUpdates: SetGroup[] = [];
-  readonly #renders: SetGroup[] = [];
+export class SyncRenderGroup extends AbstractRenderGroup<SetGroup> implements RenderGroup {
   readonly name = "SyncGroup";
 
   constructor() {
-    this.schedulePostRenderCallback = this.schedulePostRenderCallback.bind(this);
+    super(queueSetGroupMember);
   }
 
-  queueRender(fiber: Fiber) {
-    if (!queueSetGroupMember(this.#renders, fiber)) return;
-    const { depth } = fiber;
-    this.#renderHead = Math.min(depth, this.#renderHead);
+  cancelRender() {
+    throw new Error(`"cancelRender" should never be called of ${this.name}`);
+  }
+  cancelUiUpdate() {
+    throw new Error(`"cancelUiUpdate" should never be called of ${this.name}`);
   }
 
-  hasRenderQueue() {
-    return this.#renderHead !== Number.MAX_SAFE_INTEGER;
-  }
-
-  getRenderHead() {
-    return this.#renderHead ?? Number.MAX_SAFE_INTEGER;
-  }
-
-  scheduleUiUpdate(fiber: Fiber) {
-    queueSetGroupMember(this.#uiUpdates, fiber);
-  }
-
-  schedulePostRenderCallback(fiber: Fiber) {
-    queueSetGroupMember(this.#postRenderCallbacks, fiber);
-  }
-
-  *getPostRenderCallbackIterable(renderIteration: number) {
-    const effects = this.#postRenderCallbacks;
-    for (let i = effects.length - 1; i >= 0; i--) {
-      const { queue, members } = effects[i]!;
-      for (const fiber of queue) {
-        yield fiber;
-        if (fiber.isUnmounted(renderIteration) && fiber.instances) {
-          for (const child of fiber.instances.values()) {
-            fiber.unmounted = true;
-            this.schedulePostRenderCallback(child);
-          }
-        }
-      }
-      members.clear();
-    }
-  }
-
-  *getUiUpdateIterable(): Iterable<RequiredBy<Fiber, "uiActions">> {
-    const uiUpdates = this.#uiUpdates;
+  *getUiUpdateIterable() {
+    const uiUpdates = this.uiUpdates;
     for (const { queue, members } of uiUpdates) {
       for (const next of queue) {
         if (!next.uiActions) continue;
@@ -65,8 +30,8 @@ export class SyncRenderGroup implements RenderGroup {
     }
   }
 
-  *getRenderIterable(): Iterable<Fiber> {
-    const renders = this.#renders;
+  *getRenderIterable() {
+    const renders = this.renders;
     for (let i = this.getRenderHead(); i < renders.length; i++) {
       const { queue, members } = renders[i]!;
       let next = queue.pop();
@@ -76,6 +41,6 @@ export class SyncRenderGroup implements RenderGroup {
       }
       members.clear();
     }
-    this.#renderHead = Number.MAX_SAFE_INTEGER;
+    this.renderHead = Number.MAX_SAFE_INTEGER;
   }
 }

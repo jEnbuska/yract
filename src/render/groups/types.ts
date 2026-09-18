@@ -10,4 +10,4 @@ export type SetGroup = {
   members: Set<Fiber>;
 };
 
-export type Group = SetGroup | MapGroup;
+export type CollectionGroup = SetGroup | MapGroup;

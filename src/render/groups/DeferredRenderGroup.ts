@@ -1,32 +1,36 @@
-import type { MapGroup, SetGroup } from "./types";
-import { queueMapGroupMember, queueSetGroupMember, shallowDeleteMapMember } from "./utils";
+import type { MapGroup } from "./types";
+import { queueMapGroupMember, shallowDeleteMapMember } from "./utils";
 import type { RenderGroup } from "./RenderGroup";
 import type { Fiber } from "../../instances/types";
 import type { RequiredBy } from "../../general-types";
+import { AbstractRenderGroup } from "./AbstractRenderGroup";
 
-export class DeferredRenderGroup implements RenderGroup {
-  #renderHead = Number.MAX_SAFE_INTEGER;
-
-  readonly #restorable: Array<MapGroup> = [];
-  readonly #renders: MapGroup[] = [];
-  readonly #postRenderCallbacks: SetGroup[] = [];
-  readonly #uiUpdates: MapGroup[] = [];
-  readonly #discardParentGroups: Group[] = [];
+export class DeferredRenderGroup extends AbstractRenderGroup<MapGroup> implements RenderGroup {
   readonly name = "DeferredGroup";
 
-  getPostRenderCallbackIterable(): Iterable<Fiber> {
-    return undefined;
+  constructor() {
+    super(queueMapGroupMember);
   }
 
-  getRenderHead(): number {
-    return 0;
+  cancelRender(instance: Fiber) {
+    shallowDeleteMapMember(this.renders, instance);
   }
 
-  *getRenderIterable(): Iterable<Fiber> {
-    const renders = this.#renders;
-    const restorable = this.#restorable;
-    for (const { queue } of restorable) queue.forEach(this.queueRender);
-    for (let i = this.getRenderHead(); i < renders.length; i++) {
+  cancelUiUpdate(instance: Fiber) {
+    shallowDeleteMapMember(this.uiUpdates, instance);
+  }
+
+  beforeRenderStart() {
+    const restorable = this.restorable;
+    for (const { queue, members } of restorable) {
+      while (queue.length) this.queueRender(queue.pop()!);
+      members.clear();
+    }
+  }
+
+  *getRenderIterable() {
+    const renders = this.renders;
+    for (let i = this.renderHead; i < renders.length; i++) {
       const { queue, members } = renders[i]!;
       while (queue.length) {
         let next = queue.pop()!;
@@ -34,47 +38,22 @@ export class DeferredRenderGroup implements RenderGroup {
         members.delete(next);
         if (!booked) continue;
         yield next;
-
-        if (i !== this.#renderHead) return;
+        if (i !== this.renderHead) return;
       }
-      this.#renderHead++;
+      this.renderHead++;
     }
+    this.renderHead = Number.MAX_SAFE_INTEGER;
   }
 
-  getUiUpdateIterable(): Iterable<RequiredBy<Fiber, "uiActions">> {
-    return undefined;
-  }
-
-  hasRenderQueue(): boolean {
-    return false;
-  }
-
-  queueRender = (instance: Fiber) => {
-    if (!queueMapGroupMember(this.#renders, instance)) return;
-    const { depth } = instance;
-    this.#renderHead = Math.min(depth, this.#renderHead ?? Number.MAX_SAFE_INTEGER);
-  };
-
-  cancelRender(instance: Fiber) {
-    shallowDeleteMapMember(this.#renders, instance);
-  }
-
-  scheduleDiscardChildren(instance: Fiber) {
-    queueMapGroupMember(this.#discardParentGroups, instance);
-  }
-
-  cancelDiscardParents(instance: Fiber) {
-    shallowDeleteMapMember(this.#discardParentGroups, instance);
-  }
-
-  scheduleUiUpdate(instance: Fiber) {
-    queueMapGroupMember(this.#uiUpdates, instance);
-  }
-  cancelUiUpdate(instance: Fiber) {
-    shallowDeleteMapMember(this.#uiUpdates, instance);
-  }
-
-  schedulePostRenderCallback(instance: Fiber) {
-    queueSetGroupMember(this.#postRenderCallbacks, instance);
+  *getUiUpdateIterable() {
+    const uiUpdates = this.uiUpdates;
+    for (const { queue, members } of uiUpdates) {
+      for (const next of queue) {
+        if (!next.uiActions) continue;
+        if (!members.has(next)) continue;
+        yield next as RequiredBy<Fiber, "uiActions">;
+      }
+      members.clear();
+    }
   }
 }

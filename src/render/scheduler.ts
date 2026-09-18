@@ -1,8 +1,6 @@
 import { createResolvable } from "../create-resolvable";
 import { effectResolver } from "../hooks/effect";
 import { stateResolver } from "../hooks/state";
-import { insertBefore, moveSlot, removeSlotNodes } from "../reconciler/dom-updates";
-import { updateElementProps } from "./element-props";
 import { DeferredRenderGroup } from "./groups/DeferredRenderGroup";
 import {
   queueSetGroupMember,
@@ -12,11 +10,11 @@ import {
 import type { MapGroup, SetGroup } from "./groups/types";
 import { SyncRenderGroup } from "./groups/SyncRenderGroup";
 import type { RenderGroup } from "./groups/RenderGroup";
-import type { UIAction } from "../reconciler/actions";
 import { unmountHookCleanup } from "../hooks/process-hook";
 import type { Fiber } from "../instances/types";
 import { DeferredRenderThrottler } from "./groups/DeferredRenderThrottler";
 import { UNMOUNT } from "../reasons";
+import { applyDomAction } from "../ui-actions/utils";
 
 export class Scheduler {
   private _rendering = "";
@@ -25,14 +23,13 @@ export class Scheduler {
     return this._rendering;
   }
 
-  private readonly syncGroup: RenderGroup = new SyncRenderGroup();
-  private readonly deferredGroup: RenderGroup = new DeferredRenderGroup();
+  private readonly syncGroup = new SyncRenderGroup();
+  private readonly deferredGroup = new DeferredRenderGroup();
   private throttler = new DeferredRenderThrottler(20);
   private getGroup(deferred: boolean) {
     if (deferred) return this.deferredGroup;
     return this.syncGroup;
   }
-  private readonly restorableDeferredQueues: Array<MapGroup> = [];
 
   private resolveGroups: Array<SetGroup> = [];
 
@@ -43,13 +40,13 @@ export class Scheduler {
   }
 
   queueRender(instance: Fiber, deferred = instance.isDeferred()): void {
+    console.log('queue');
     this.getGroup(deferred).queueRender(instance);
-    if (deferred) shallowDeleteMapMember(this.restorableDeferredQueues, instance);
     this.renderTrigger.resolve();
   }
 
   cancelRender(instance: Fiber, deferred = instance.isDeferred()): void {
-    this.getGroup(deferred).cancelRender?.(instance);
+    this.getGroup(deferred).cancelRender(instance);
   }
 
   schedulePostRenderCallback(instance: Fiber, deferred = instance.isDeferred()): void {
@@ -69,7 +66,7 @@ export class Scheduler {
   }
 
   cancelUiUpdate(instance: Fiber, deferred = instance.isDeferred()): void {
-    this.getGroup(deferred).cancelUiUpdate?.(instance);
+    this.getGroup(deferred).cancelUiUpdate(instance);
   }
 
   private run = async (): Promise<void> => {
@@ -89,15 +86,23 @@ export class Scheduler {
       for (const fiber of deferredGroup.getUiUpdateIterable()) {
         if (fiber.isUnmounted(this.renderIteration)) continue;
         for (const action of fiber.uiActions) {
-          Scheduler.applyUIAction(action, fiber);
+          applyDomAction(action, fiber);
         }
       }
       const { resolveGroups } = this;
       this.resolveGroups = [];
       this.runPostRenderCallbacks(deferredGroup);
-      this.processStates(resolveGroups);
+      const iteration = this.renderIteration;
+      for (const { members, queue } of resolveGroups) {
+        for (const next of queue) {
+          if (!members.has(next)) continue;
+          if (next.isUnmounted(iteration)) continue;
+          next.hookStates?.forEach(stateResolver);
+          next.resolveReasons?.clear();
+        }
+      }
       if (syncGroup.hasRenderQueue() || deferredGroup.hasRenderQueue()) {
-        return this.renderTrigger.promise.then(this.run);
+        continue;
       }
       this.renderTrigger = createResolvable();
       await this.renderTrigger.promise;
@@ -107,7 +112,7 @@ export class Scheduler {
   private handleSyncGroupRender(): void {
     const { syncGroup } = this;
     const iteration = this.renderIteration;
-    for (const fiber of syncGroup.getRenderIterable(iteration)) {
+    for (const fiber of syncGroup.getRenderIterable()) {
       if (fiber.isUnmounted(iteration)) {
         fiber.unmounted = true;
         syncGroup.schedulePostRenderCallback(fiber);
@@ -129,7 +134,11 @@ export class Scheduler {
   private async handleDeferredGroupRender() {
     const { deferredGroup, syncGroup } = this;
     const iteration = this.renderIteration;
-    for (const fiber of deferredGroup.getRenderIterable(iteration)) {
+    deferredGroup.beforeRenderStart();
+
+    if (this.throttler.shouldThrottle()) await this.throttler.throttle();
+    if (syncGroup.hasRenderQueue()) return;
+    for (const fiber of deferredGroup.getRenderIterable()) {
       if (fiber.isUnmounted(iteration)) {
         fiber.unmounted = true;
         fiber.schedulePostRenderCallback(UNMOUNT);
@@ -137,10 +146,8 @@ export class Scheduler {
       }
       fiber.cancelPostRenderCallback(UNMOUNT);
       this.renderFiber(fiber);
-
-      if (!this.throttler.shouldThrottle()) continue;
-      await this.throttler.throttle();
-      if (syncGroup.hasRenderQueue()) break;
+      if (this.throttler.shouldThrottle()) await this.throttler.throttle();
+      if (syncGroup.hasRenderQueue()) return;
     }
   }
 
@@ -168,35 +175,10 @@ export class Scheduler {
     }
   }
 
-  private static applyUIAction(action: UIAction, fiber: Fiber) {
-    switch (action.type) {
-      case "MOVE": {
-        moveSlot(action.slot, action.parentDom, action.before);
-        break;
-      }
-      case "REMOVE":
-        removeSlotNodes(action.slot);
-        break;
-      case "INSERT":
-        insertBefore(action.parentDom, action.node, action.before);
-        break;
-      case "TEXT": {
-        const { slot } = action;
-        slot.headNode.textContent = slot.text;
-        break;
-      }
-      case "UPDATE": {
-        const { slot, patch } = action;
-        updateElementProps(slot.headNode, patch, fiber.rctx.delegationRoot);
-        break;
-      }
-    }
-  }
-
   private static updateUI(fiber: Fiber) {
     const { uiActions, refsToAssign } = fiber;
     for (const action of uiActions!) {
-      Scheduler.applyUIAction(action, fiber);
+      applyDomAction(action, fiber);
     }
     (fiber as Fiber).uiActions = undefined;
     fiber.slot = fiber.pendingSlot;
@@ -204,17 +186,5 @@ export class Scheduler {
     if (!refsToAssign) return;
     for (const [ref, element] of refsToAssign) ref.current = element;
     fiber.refsToAssign = undefined;
-  }
-
-  private processStates(groups: SetGroup[]) {
-    const iteration = this.renderIteration;
-    for (const { members, queue } of groups) {
-      for (const next of queue) {
-        if (!members.has(next)) continue;
-        if (next.isUnmounted(iteration)) continue;
-        next.hookStates?.forEach(stateResolver);
-        next.resolveReasons?.clear();
-      }
-    }
   }
 }
