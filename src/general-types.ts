@@ -32,6 +32,7 @@ export type RenderGenerator<T> = Generator<HookDescriptor | CapabilityDescriptor
 export type PartialBy<T extends Record<PropertyKey, any>, K extends keyof T> = Omit<T, K> & {
   [key in K]?: NonNullable<T[K]>;
 };
+export type RequiredBy<T, K extends keyof T> = Omit<T, K> & { [P in K]-?: NonNullable<T[P]> };
 export type AnyFn = (...args: any[]) => any;
 
 export type PublicOf<T> = { [P in keyof T]: T[P] };

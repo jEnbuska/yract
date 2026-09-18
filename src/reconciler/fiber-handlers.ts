@@ -1,4 +1,3 @@
-import type { ComponentFiber } from "../instances/component-fiber";
 import type { Intent } from "../slots/intent";
 import type {
   ComponentSlotType,
@@ -11,7 +10,7 @@ import type {
 import { extendIntentNodes, extendIntentWithInstance, type Slot } from "../slots/slot";
 import type { AnyElement, TagNamespace } from "../render/elements/namespaces";
 import type { ContextMap } from "../render/types";
-import { MOUNT_REASON, UNMOUNT } from "../reasons";
+import { UNMOUNT } from "../reasons";
 
 import { prepareSlotNodes, updateWithPreparedSlot } from "../slots/utils";
 import { createFiber } from "../instances/register-create";
@@ -21,16 +20,17 @@ import type {
   CreateFragmentAction,
   CreateTextAction,
 } from "../ui-actions/types";
+import type { Fiber } from "../instances/types";
 
 export function handleMountSlot(
-  fiber: ComponentFiber,
+  fiber: Fiber,
   intent: Intent<ComponentSlotType | ContextSlotType>,
   parentDom: Node,
   ns: TagNamespace,
   ctx: ContextMap,
 ) {
   const { path } = intent;
-  let instance = fiber.instances?.get(path) ?? fiber.unmountInstances?.get(path);
+  let instance = fiber.unmountInstances?.get(path);
   if (instance) {
     instance.ctx = ctx;
     instance.parentDom = parentDom;
@@ -41,27 +41,27 @@ export function handleMountSlot(
   } else {
     instance = createFiber(extendIntentNodes(intent), ctx, fiber, fiber.rctx, parentDom, ns);
     intent.instance = instance;
-    instance.queueRender(MOUNT_REASON);
+    instance.rctx.scheduler.queueRender(instance);
   }
-  (fiber.nextInstances ??= new Map<string, ComponentFiber>()).set(path, instance);
+  (fiber.instances ??= new Map<string, Fiber>()).set(path, instance);
   return intent as Slot<ComponentSlotType>;
 }
 
 export type CreateSlotResponse<T extends SlotType> = Pick<Slot<T>, "headNode" | "tailNode">;
 export function handleCreateNode(
-  fiber: ComponentFiber,
+  fiber: Fiber,
   action: CreateElementAction,
 ): CreateSlotResponse<ElementSlotType>;
 export function handleCreateNode(
-  fiber: ComponentFiber,
+  fiber: Fiber,
   action: CreateFragmentAction,
 ): CreateSlotResponse<FragmentSlotType>;
 export function handleCreateNode(
-  fiber: ComponentFiber,
+  fiber: Fiber,
   action: CreateTextAction,
 ): CreateSlotResponse<TextSlotType>;
 export function handleCreateNode(
-  fiber: ComponentFiber,
+  fiber: Fiber,
   action: CreateElementAction | CreateFragmentAction | CreateTextAction,
 ): CreateSlotResponse<any> {
   const { preparedSlots, rctx } = fiber;
@@ -79,7 +79,7 @@ export function handleCreateNode(
 }
 
 export function handleUpdateSlotProps(
-  fiber: ComponentFiber,
+  fiber: Fiber,
   slot: Slot<ComponentSlotType | ContextSlotType>,
 ) {
   const { instance, path } = slot;
@@ -87,11 +87,11 @@ export function handleUpdateSlotProps(
   instance.unmounted = false;
 
   instance.setProps(slot);
-  (fiber.nextInstances ??= new Map<string, ComponentFiber>()).set(path, instance);
+  (fiber.instances ??= new Map<string, Fiber>()).set(path, instance);
   instance.cancelPostRenderCallback(UNMOUNT);
 }
 
-export function handleUpdateRef(fiber: ComponentFiber, slot: Intent<ElementSlotType>) {
+export function handleUpdateRef(fiber: Fiber, slot: Intent<ElementSlotType>) {
   const { headNode, props } = slot;
   const refs = (fiber.refsToAssign ??= new Map<WeakRefLike, AnyElement>());
   refs.set(props.ref!, headNode!);

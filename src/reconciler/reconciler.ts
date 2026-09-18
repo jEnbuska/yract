@@ -1,5 +1,4 @@
 import type { Child, Children } from "../jsx";
-import type { ComponentFiber } from "../instances/component-fiber";
 import type { Slot, SlotType } from "../slots/slot";
 import {
   componentSlotType,
@@ -34,51 +33,48 @@ import { prepareText } from "../ui-actions/prepare/prepare-text";
 import { prepareInsert } from "../ui-actions/prepare/prepare-insert";
 import { prepareMove } from "../ui-actions/prepare/prepare-move";
 import { prepareCreate } from "../ui-actions/prepare/prepare-create";
+import type { RequiredBy } from "../general-types";
+import type { Fiber } from "../instances/types";
 
-function prepareFiber(fiber: ComponentFiber) {
+function prepareFiber(fiber: Fiber) {
   const { instances } = fiber;
-  fiber.instances = instances?.size ? new Map() : undefined;
-  // TODO I think this might go wrong
+  // When even we hit an instance when walking the tree we remove the instance from the 'unmountedInstances' and it will be moved to nextInstances
   fiber.unmountInstances = instances?.size ? new Map(instances) : undefined;
   fiber.refsToAssign = undefined;
   fiber.preparedSlots ??= new Map<string, Slot>();
-  fiber.nextInstances = undefined;
-  return fiber;
+  fiber.instances = undefined;
+  fiber.uiActions = [];
+  return fiber as RequiredBy<Fiber, "uiActions">;
 }
 
-export function mountFiber(fiber: ComponentFiber, child: Child): Slot {
+export function mountFiber(fiber: Fiber, child: Child): Slot {
   // if (fiber.depth > 16) console.log("mount", fiber.component.name);
   const stagingDom = document.createDocumentFragment();
-  const { parentDom, ns, ctx } = prepareFiber(fiber);
+  const { parentDom, ns, ctx, uiActions } = prepareFiber(fiber);
   const intent = childToIntent(child, 0, "");
   mountIntent(fiber, intent, ns, parentDom, stagingDom, ctx);
-  fiber.instances = fiber.nextInstances;
-  fiber.uiActions = [prepareInsert(fiber.parentDom, stagingDom, fiber.tailNode)];
+  uiActions!.push(prepareInsert(fiber.parentDom, stagingDom, fiber.tailNode));
   return intent as Slot;
 }
 
-export function reconcilerFiber(fiber: ComponentFiber, child: Child): Slot {
-  const { parentDom, slot, ns, tailNode, ctx } = prepareFiber(fiber);
+export function reconcilerFiber(fiber: Fiber, child: Child): Slot {
+  const { parentDom, slot, ns, tailNode, ctx, uiActions } = prepareFiber(fiber);
   const prevSlot = slot!;
   const intent = childToIntent(child, 0, "");
-  fiber.uiActions = [];
-  const uiActions: UIAction[] = fiber.uiActions;
   if (intent.key !== prevSlot.key) {
-    uiActions.push(prepareRemove(prevSlot));
-    buildIntentToSlot(uiActions, fiber, intent, ns, parentDom, tailNode, ctx);
-    fiber.instances = fiber.nextInstances;
+    uiActions!.push(prepareRemove(prevSlot));
+    buildIntentToSlot(uiActions!, fiber, intent, ns, parentDom, tailNode, ctx);
     return intent as Slot;
   } else {
     const slot = inheritSlot(intent, prevSlot);
-    updateSlot(uiActions, fiber, slot, ns, ctx);
-    fiber.instances = fiber.nextInstances;
+    updateSlot(uiActions!, fiber, slot, ns, ctx);
     return slot;
   }
 }
 
 function mount(
   children: ReadonlyArray<Children>,
-  fiber: ComponentFiber,
+  fiber: Fiber,
   parentDom: Node,
   stagingDom: Node,
   parentPath: string,
@@ -94,7 +90,7 @@ function mount(
 
 function reconcile(
   uiActions: UIAction[],
-  fiber: ComponentFiber,
+  fiber: Fiber,
   children: ReadonlyArray<Children> = emptyChildren,
   parentDom: Node,
   path: string,
@@ -131,7 +127,7 @@ function reconcile(
 }
 
 function mountIntent(
-  fiber: ComponentFiber,
+  fiber: Fiber,
   intent: Intent,
   ns: TagNamespace,
   parentDom: Node,
@@ -175,7 +171,7 @@ function mountIntent(
 
 function buildIntentToSlot(
   uiActions: UIAction[],
-  fiber: ComponentFiber,
+  fiber: Fiber,
   intent: Intent,
   ns: TagNamespace,
   parentDom: Node,
@@ -221,7 +217,7 @@ function buildIntentToSlot(
 
 function updateSlot<T extends SlotType>(
   uiActions: UIAction[],
-  fiber: ComponentFiber,
+  fiber: Fiber,
   slot: Slot<T>,
   ns: TagNamespace,
   ctx: ContextMap,

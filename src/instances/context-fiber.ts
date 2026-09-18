@@ -7,6 +7,7 @@ import type { ContextProperties } from "../context";
 import { depsChanged } from "../general";
 import { PROPS_REASON } from "../reasons";
 import type { ContextHookState } from "../hooks/context";
+import type { Fiber } from "./types";
 
 export class ContextFiber extends ComponentFiber<{ value: unknown }> {
   context: ContextProperties<unknown>;
@@ -15,7 +16,7 @@ export class ContextFiber extends ComponentFiber<{ value: unknown }> {
   constructor(
     intent: DraftBy<Slot<ContextSlotType>, "instance" | "prevProps">,
     ctx: ContextMap,
-    parent: ComponentFiber | null,
+    parent: Fiber | null,
     rctx: RenderContext,
     parentDom: Node,
     ns: TagNamespace,

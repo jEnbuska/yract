@@ -42,7 +42,7 @@ export function* App() {
           ))}
         </Sidebar>
         <ShellMain>
-          <DeferredDemo/>
+          <DeferredDemo />
           {/*demos.map(({ id, Demo }) => (
             <section key={`${id}`} id={id} className="dos-demo" aria-label={id}>
               <Demo />

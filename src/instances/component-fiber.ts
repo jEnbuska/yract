@@ -11,6 +11,7 @@ import { depsChanged, shallowEqual, stripFrameworkProps } from "../general";
 import { DeferContext } from "../hooks/defer";
 import { resolveComponentGenerator } from "../render/resolve-component-generator";
 import type { UIAction } from "../ui-actions/types";
+import type { Fiber } from "./types";
 
 export class ComponentFiber<TProps extends Record<string, unknown> = Record<string, any>> {
   public renders: number = 0;
@@ -20,14 +21,13 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
   unmounted: boolean | undefined = undefined;
   readonly component: Component<any>;
   readonly depth: number;
-  readonly parent: ComponentFiber | null;
+  readonly parent: Fiber | null;
   parentDom: Node;
   uiActions?: Array<UIAction> | undefined = undefined;
   ctx: ContextMap;
   readonly rctx: RenderContext;
-  instances?: Map<string, ComponentFiber> = undefined;
-  nextInstances?: Map<string, ComponentFiber> = undefined;
-  unmountInstances?: Map<string, ComponentFiber> = undefined;
+  instances?: Map<string, Fiber> = undefined;
+  unmountInstances?: Map<string, Fiber> = undefined;
   hookStates: HookState[] = [];
   renderReasons = new Set<symbol>();
   resolveReasons?: Set<symbol> = undefined;
@@ -47,7 +47,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
   constructor(
     intent: Omit<DraftBy<Slot<ComponentSlotType>, "instance" | "prevProps">, "type">,
     ctx: ContextMap,
-    parent: ComponentFiber | null,
+    parent: Fiber | null,
     rctx: RenderContext,
     parentDom: Node,
     ns: TagNamespace,
@@ -78,7 +78,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
 
   cancelRender(reason: symbol, deferred?: boolean): void {
     const { renderReasons } = this;
-    if(!renderReasons.delete(reason)) return;
+    if (!renderReasons.delete(reason)) return;
     if (!renderReasons.size) {
       this.rctx.scheduler.cancelRender(this, deferred);
     }
@@ -151,7 +151,10 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
 
   // Rename and flip to isMounted
   isUnmounted(renderIteration: number): boolean {
-    let parent: ComponentFiber | null = this;
+    // Walking up the parent chain has to start somewhere, and the cursor is
+    // reassigned on every step.
+    // oxlint-disable-next-line typescript/no-this-alias
+    let parent: Fiber | null = this;
     while (parent) {
       if (parent.unmounted) return true;
       if (parent.confidentIteration === renderIteration) return false;

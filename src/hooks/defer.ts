@@ -14,6 +14,7 @@ import { MOUNT_REASON } from "../reasons";
 import { useEffect } from "./effect";
 import { useRef } from "./ref";
 import { $EFFECT } from "./constants";
+import { type Fiber } from "../instances/types";
 
 export function* useDefer(
   config: {
@@ -70,7 +71,7 @@ class DeferFiber extends ComponentFiber<DeferProps> {
   constructor(
     intent: DraftBy<Slot<ComponentSlotType>, "instance" | "prevProps">,
     parentCtx: ContextMap,
-    parent: ComponentFiber | null,
+    parent: Fiber | null,
     rctx: RenderContext,
     parentDom: Node,
     ns: TagNamespace,
@@ -98,7 +99,7 @@ class DeferFiber extends ComponentFiber<DeferProps> {
   override render() {
     const deferred = (this.context.ref.current = this.props.disabled ? false : this.isDeferred());
     super.render();
-    if(deferred) this.prepareAfterDeferredRender();
+    if (deferred) this.prepareAfterDeferredRender();
     void this.notifyDeferring(deferred);
   }
 

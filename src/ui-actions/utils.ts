@@ -33,28 +33,28 @@ export function applyDomAction(action: UIAction, root: DelegationRoot) {
     stats.set(action.type, bucket);
   }
   try {
-  switch (action.type) {
-    case MOVE_UI_ACTION: {
-      moveSlotNodes(action.slot, action.parentDom, action.before);
-      break;
+    switch (action.type) {
+      case MOVE_UI_ACTION: {
+        moveSlotNodes(action.slot, action.parentDom, action.before);
+        break;
+      }
+      case REMOVE_UI_ACTION:
+        removeSlotNodes(action.slot);
+        break;
+      case INSERT_UI_ACTION:
+        insertNode(action.parentDom, action.node, action.before);
+        break;
+      case TEXT_UI_ACTION: {
+        const { slot } = action;
+        slot.headNode.textContent = slot.text;
+        break;
+      }
+      case UPDATE_UI_ACTION: {
+        const { slot, patch } = action;
+        updateElementProps(slot.headNode, patch, root);
+        break;
+      }
     }
-    case REMOVE_UI_ACTION:
-      removeSlotNodes(action.slot);
-      break;
-    case INSERT_UI_ACTION:
-      insertNode(action.parentDom, action.node, action.before);
-      break;
-    case TEXT_UI_ACTION: {
-      const { slot } = action;
-      slot.headNode.textContent = slot.text;
-      break;
-    }
-    case UPDATE_UI_ACTION: {
-      const { slot, patch } = action;
-      updateElementProps(slot.headNode, patch, root);
-      break;
-    }
-  }
   } finally {
     bucket.n++;
     bucket.ms += performance.now() - started;

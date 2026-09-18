@@ -1,10 +1,10 @@
-import type { ComponentFiber } from "../instances/component-fiber";
 import type { AnyElement } from "../render/elements/namespaces";
 import type { Children, Component } from "../jsx";
 import type { Context } from "../context";
 import type { Intent } from "./intent";
 import type { WeakRefLike } from "../render/element-props";
 import type { DependencyList, DraftBy } from "../general-types";
+import type { Fiber } from "../instances/types";
 
 export const textSlotType = "yract-text" as const;
 export type TextSlotType = typeof textSlotType;
@@ -64,7 +64,7 @@ export type SlotTailNode<T extends SlotType = SlotType> = T extends TextSlotType
     : Comment;
 
 export type SlotInstance<T extends SlotType> = T extends ComponentSlotType | ContextSlotType
-  ? ComponentFiber
+  ? Fiber
   : undefined;
 
 export type Slot<T extends SlotType = SlotType> = T extends SlotType ? SlotBase<T> : never;
@@ -97,12 +97,12 @@ export type SlotChildren<T extends SlotType> = T extends ElementSlotType | Fragm
 
 export function extendIntentWithInstance(
   intent: Intent<ComponentSlotType | ContextSlotType>,
-  instance: ComponentFiber,
+  fiber: Fiber,
 ): asserts intent is Slot<ComponentSlotType> {
-  const { headNode, tailNode } = instance;
+  const { headNode, tailNode } = fiber;
   intent.headNode = headNode;
   intent.tailNode = tailNode;
-  intent.instance = instance;
+  intent.instance = fiber;
 }
 
 export function extendIntentNodes(

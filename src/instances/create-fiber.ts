@@ -6,11 +6,12 @@ import { contextSlotType } from "../slots/slot";
 import type { DraftBy } from "../general-types";
 import { ContextFiber } from "./context-fiber";
 import { Defer } from "../hooks/defer";
+import type { Fiber } from "./types";
 
 export function createFiber(
   intent: DraftBy<Slot<ComponentSlotType | ContextSlotType>, "instance" | "prevProps">,
   parentCtx: ContextMap,
-  parent: ComponentFiber | null,
+  parent: Fiber | null,
   rctx: RenderContext,
   parentDom: Node,
   ns: TagNamespace,

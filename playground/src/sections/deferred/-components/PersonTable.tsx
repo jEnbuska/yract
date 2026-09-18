@@ -1,5 +1,5 @@
 import type { PersonRow } from "../../../types";
-import { useDefer, useEffect, useMemo, useRef, useStable, useState } from "yract";
+import { useDefer, useMemo, useRef, useStable, useState } from "yract";
 import {
   LoaderTrain,
   Select,
@@ -106,7 +106,6 @@ function* PersonTableBody({ rows, updatePerson }: PersonTableBodyProps) {
     </TableBody>
   );
 }
-
 
 function* PersonTableRow(props: { row: PersonRow; updatePerson: UpdatePerson }) {
   const { row, updatePerson } = props;

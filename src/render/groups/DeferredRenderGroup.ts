@@ -26,6 +26,7 @@ export class DeferredRenderGroup extends AbstractRenderGroup<MapGroup> implement
       while (queue.length) {
         let fiber = queue.pop()!;
         const booked = members.get(fiber);
+        if(booked === undefined) continue;
         members.delete(fiber);
         if (!booked) continue;
         yield fiber;

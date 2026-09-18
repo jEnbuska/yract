@@ -2,10 +2,7 @@ import { createResolvable } from "../create-resolvable";
 import { effectResolver } from "../hooks/effect";
 import { stateResolver } from "../hooks/state";
 import { DeferredRenderGroup } from "./groups/DeferredRenderGroup";
-import {
-  queueSetGroupMember,
-  shallowDeleteSetMember,
-} from "./groups/utils";
+import { queueSetGroupMember, shallowDeleteSetMember } from "./groups/utils";
 import type { SetGroup } from "./groups/types";
 import { SyncRenderGroup } from "./groups/SyncRenderGroup";
 import type { RenderGroup } from "./groups/RenderGroup";
@@ -38,29 +35,29 @@ export class Scheduler {
     void this.renderTrigger.promise.then(this.run);
   }
 
-  queueRender(instance: Fiber, deferred = instance.isDeferred()): void {
-    this.getGroup(deferred).queueRender(instance);
+  queueRender(fiber: Fiber, deferred = fiber.isDeferred()): void {
+    this.getGroup(deferred).queueRender(fiber);
     this.renderTrigger.resolve();
   }
 
-  cancelRender(instance: Fiber, deferred = instance.isDeferred()): void {
-    this.getGroup(deferred).cancelRender(instance);
+  cancelRender(fiber: Fiber, deferred = fiber.isDeferred()): void {
+    this.getGroup(deferred).cancelRender(fiber);
   }
 
-  schedulePostRenderCallback(instance: Fiber, deferred = instance.isDeferred()): void {
-    this.getGroup(deferred).schedulePostRenderCallback(instance);
+  schedulePostRenderCallback(fiber: Fiber, deferred = fiber.isDeferred()): void {
+    this.getGroup(deferred).schedulePostRenderCallback(fiber);
   }
 
-  scheduleStateResolve(instance: Fiber): void {
-    queueSetGroupMember(this.resolveGroups, instance);
+  scheduleStateResolve(fiber: Fiber): void {
+    queueSetGroupMember(this.resolveGroups, fiber);
   }
 
-  cancelStateResolve(instance: Fiber): void {
-    shallowDeleteSetMember(this.resolveGroups, instance);
+  cancelStateResolve(fiber: Fiber): void {
+    shallowDeleteSetMember(this.resolveGroups, fiber);
   }
 
-  scheduleCommit(instance: Fiber, deferred = instance.isDeferred()): void {
-    this.getGroup(deferred).scheduleCommit(instance);
+  scheduleCommit(fiber: Fiber, deferred = fiber.isDeferred()): void {
+    this.getGroup(deferred).scheduleCommit(fiber);
   }
 
   private run = async (): Promise<void> => {
@@ -68,10 +65,10 @@ export class Scheduler {
     throttler.onRenderStart();
     const { syncGroup, deferredGroup } = this;
 
-    let start = Date.now()
+    let start = Date.now();
     while (true) {
       while (syncGroup.hasRenderQueue() || deferredGroup.hasRenderQueue()) {
-        start = Date.now()
+        start = Date.now();
         this.renderIteration++;
         //console.log('render sync');
         this.handleSyncGroupRender();
@@ -81,32 +78,34 @@ export class Scheduler {
           //console.log('throttle');
           if (syncGroup.hasRenderQueue()) continue;
         }
-        start = Date.now()
+        start = Date.now();
         await this.handleDeferredGroupRender();
         //console.log('deferred done', (Date.now() - start) / 1000);
       }
       //console.log('apply deferred ui');
-      start = Date.now()
-      const iteration = this.renderIteration
+      start = Date.now();
+      const iteration = this.renderIteration;
+      let updates = 0;
       deferredGroup.forEachCommit(iteration, (fiber) => {
+        updates += fiber.uiActions?.length ?? 0;
         Scheduler.applyUiActions(fiber);
         deferredGroup.commitFiber(fiber);
       });
-      console.log(
+      // console.log('Total updates', updates);
+      /*console.log(
         'DOM UPDATE APPLY TOOK', (Date.now() - start) / 1000, 's  ::',
         takeDomActionStats(),
-      );
+      );*/
       //console.log('...', (Date.now() - start) / 1000);
       const { resolveGroups } = this;
       this.resolveGroups = [];
       //console.log('apply deferred post callbacks');
-      start = Date.now()
+      start = Date.now();
       this.runPostRenderCallbacks(deferredGroup);
       //console.log('...', (Date.now() - start) / 1000);
 
-
       //console.log('apply resolve set states');
-      start = Date.now()
+      start = Date.now();
       for (const { members, queue } of resolveGroups) {
         for (const next of queue) {
           if (!members.has(next)) continue;
@@ -206,7 +205,7 @@ export class Scheduler {
   private static applyUiActions(fiber: Fiber) {
     const { uiActions } = fiber;
     if (!uiActions) return;
-    const { delegationRoot } = fiber.rctx
+    const { delegationRoot } = fiber.rctx;
     for (const action of uiActions) {
       applyDomAction(action, delegationRoot);
     }

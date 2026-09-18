@@ -1,5 +1,5 @@
 import type { CollectionGroup, SetGroup } from "./types";
-import { queueSetGroupMember, shallowDeleteMapMember } from "./utils";
+import { queueSetGroupMember } from "./utils";
 import { type Fiber } from "../../instances/types";
 
 export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
@@ -11,7 +11,10 @@ export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
   #addFiber: (groups: TGroup[], fiber: Fiber) => boolean;
   #removeFiber: (groups: TGroup[], fiber: Fiber) => void;
 
-  constructor(addFiber: (groups: TGroup[], fiber: Fiber) => boolean, removeFiber: (groups: TGroup[], fiber: Fiber) => void) {
+  constructor(
+    addFiber: (groups: TGroup[], fiber: Fiber) => boolean,
+    removeFiber: (groups: TGroup[], fiber: Fiber) => void,
+  ) {
     this.schedulePostRenderCallback = this.schedulePostRenderCallback.bind(this);
     this.#addFiber = addFiber;
     this.#removeFiber = removeFiber;
@@ -22,13 +25,12 @@ export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
     const { refsToAssign } = fiber;
     // The prepared-node cache belongs to the render that filled it: once those
     // nodes are in the document, reusing them would hand a live node back.
-    fiber.preparedSlots?.clear();
-    fiber.uiActions = undefined;
+
     fiber.slot = fiber.pendingSlot;
+    fiber.preparedSlots = undefined;
     fiber.pendingSlot = undefined;
     if (!refsToAssign) return;
     for (const [ref, element] of refsToAssign) ref.current = element;
-    fiber.refsToAssign = undefined;
   }
 
   hasRenderQueue() {
@@ -45,8 +47,8 @@ export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
     this.renderHead = Math.min(depth, this.renderHead);
   }
 
-  cancelRender(instance: Fiber) {
-    this.#removeFiber(this.renders, instance);
+  cancelRender(fiber: Fiber) {
+    this.#removeFiber(this.renders, fiber);
   }
 
   schedulePostRenderCallback(fiber: Fiber) {
