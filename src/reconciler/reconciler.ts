@@ -49,12 +49,10 @@ function prepareFiber(fiber: ComponentFiber) {
 export function mountFiber(fiber: ComponentFiber, child: Child): Slot {
   // if (fiber.depth > 16) console.log("mount", fiber.component.name);
   const stagingDom = document.createDocumentFragment();
-
   const { parentDom, ns, ctx } = prepareFiber(fiber);
   const intent = childToIntent(child, 0, "");
   mountIntent(fiber, intent, ns, parentDom, stagingDom, ctx);
   fiber.instances = fiber.nextInstances;
-  // ComponentFiber.instances.set(stagingDom, fiber);
   fiber.uiActions = [prepareInsert(fiber.parentDom, stagingDom, fiber.tailNode)];
   return intent as Slot;
 }

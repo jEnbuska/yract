@@ -1,5 +1,5 @@
 import { resolveContext } from "../context";
-import type { Child, Component } from "../jsx";
+import type { Component } from "../jsx";
 import type { ContextMap, HookState, RenderContext } from "../render/types";
 import { mountFiber, reconcilerFiber } from "../reconciler/reconciler";
 import { PROPS_REASON, UNMOUNT } from "../reasons";
@@ -11,13 +11,11 @@ import { depsChanged, shallowEqual, stripFrameworkProps } from "../general";
 import { DeferContext } from "../hooks/defer";
 import { resolveComponentGenerator } from "../render/resolve-component-generator";
 import type { UIAction } from "../ui-actions/types";
-import { prepareRemove } from "../ui-actions/prepare/prepare-remove";
 
 export class ComponentFiber<TProps extends Record<string, unknown> = Record<string, any>> {
   public renders: number = 0;
   public readonly ns: TagNamespace;
   public preparedSlots: Map<string, Slot> | undefined = undefined;
-  public cleanups = false;
   public confidentIteration: number;
   unmounted: boolean | undefined = undefined;
   readonly component: Component<any>;
@@ -41,9 +39,6 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
   protected propsPrepared = false;
   readonly headNode: Comment;
   readonly tailNode: Comment;
-  prevChild?: Child;
-
-  static instances: WeakMap<Comment, ComponentFiber> = new WeakMap();
 
   deps?: DependencyList;
 
@@ -59,8 +54,6 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
   ) {
     this.headNode = intent.headNode;
     this.tailNode = intent.tailNode;
-    ComponentFiber.instances.set(this.headNode, this);
-    ComponentFiber.instances.set(this.tailNode, this);
     this.path = intent.path;
     this.component = intent.component;
     this.parent = parent;
@@ -137,40 +130,28 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     } else {
       this.pendingSlot = reconcilerFiber(this, child);
     }
-    this.prevChild = child;
     const { unmountInstances, rctx } = this;
     const { scheduler } = rctx;
 
-    let uiActions = this.uiActions;
     if (unmountInstances?.size) {
-      const removeActions: UIAction[] = [];
       for (const child of unmountInstances.values()) {
         child.unmounted = true;
         if (!child.renders) continue;
         unmountInstances.delete(child.path);
         child.schedulePostRenderCallback(UNMOUNT);
-        if(child.slot) removeActions.push(prepareRemove(child.slot))
-      }
-      if(removeActions.length) {
-        uiActions = [...removeActions, ...uiActions!]
       }
     }
-    const { refsToAssign  } = this;
-    if (uiActions!.length || refsToAssign) {
-      console.log('uiActions length', uiActions?.length);
-      scheduler.scheduleUiUpdate(this);
-    } else {
-      // TODO I don't remember what this next line does
-      this.preparedSlots?.clear();
-      scheduler.cancelUiUpdate(this);
-    }
+    // Always: even a render that changed nothing has to reach the commit, or
+    // `slot` never catches up with `pendingSlot` and the prepared-node cache
+    // outlives the render that filled it.
+    scheduler.scheduleCommit(this);
     this.renderReasons.clear();
     this.renders++;
   }
 
   // Rename and flip to isMounted
   isUnmounted(renderIteration: number): boolean {
-    let parent = this;
+    let parent: ComponentFiber | null = this;
     while (parent) {
       if (parent.unmounted) return true;
       if (parent.confidentIteration === renderIteration) return false;

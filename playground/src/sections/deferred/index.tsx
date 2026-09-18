@@ -5,6 +5,7 @@ import { PersonTable } from "./-components/PersonTable";
 import type { PersonRow } from "../../types";
 import { PersonFiltering } from "./-components/PersonFiltering";
 import { PersonCount } from "./-components/PersonCount";
+import LagSpinner from "./-components/LagSpinner";
 
 function filterRows(query: string, rows?: PersonRow[]) {
   query = query.trim();
@@ -22,7 +23,7 @@ function filterRows(query: string, rows?: PersonRow[]) {
 export function* DeferredDemo() {
   const [search, setSearch] = yield* useState("");
   const resolvable = yield* useRef<PromiseWithResolvers<void> | undefined>(undefined);
-  const [count, setCount] = yield* useState(5_000);
+  const [count, setCount] = yield* useState(30_000);
   const updateCount = yield* useStable(async (n: number) => {
     if (n === count) return;
     void setCount(n);
@@ -74,7 +75,7 @@ export function* DeferredDemo() {
         />
         <PersonCount count={count} setCount={updateCount} />
         <PersonTable rows={filtered} updatePerson={updatePerson} />
-        {/*<LagSpinner />*/}
+        <LagSpinner />
       </WindowBody>
     </Window>
   );

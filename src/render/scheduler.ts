@@ -13,7 +13,7 @@ import { unmountHookCleanup } from "../hooks/process-hook";
 import type { Fiber } from "../instances/types";
 import { DeferredRenderThrottler } from "./groups/DeferredRenderThrottler";
 import { UNMOUNT } from "../reasons";
-import { applyDomAction } from "../ui-actions/utils";
+import { applyDomAction, takeDomActionStats } from "../ui-actions/utils";
 
 export class Scheduler {
   private _rendering = "";
@@ -59,12 +59,8 @@ export class Scheduler {
     shallowDeleteSetMember(this.resolveGroups, instance);
   }
 
-  scheduleUiUpdate(instance: Fiber, deferred = instance.isDeferred()): void {
-    this.getGroup(deferred).scheduleUiUpdate(instance);
-  }
-
-  cancelUiUpdate(instance: Fiber, deferred = instance.isDeferred()): void {
-    this.getGroup(deferred).cancelUiUpdate(instance);
+  scheduleCommit(instance: Fiber, deferred = instance.isDeferred()): void {
+    this.getGroup(deferred).scheduleCommit(instance);
   }
 
   private run = async (): Promise<void> => {
@@ -92,18 +88,14 @@ export class Scheduler {
       //console.log('apply deferred ui');
       start = Date.now()
       const iteration = this.renderIteration
-      for (const fiber of deferredGroup.getUiUpdateIterable()) {
-        //console.log('apply', fiber.component.name);
-        if (fiber.isUnmounted(iteration)) {
-          console.log('-----unmounted ui action------');
-          continue;
-        }
-        console.log('APPLY DEFERRED UI', fiber.uiActions.length);
-        for (const action of fiber.uiActions) {
-          //console.log('apply', fiber.component.name);
-          applyDomAction(action, fiber);
-        }
-      }
+      deferredGroup.forEachCommit(iteration, (fiber) => {
+        Scheduler.applyUiActions(fiber);
+        deferredGroup.commitFiber(fiber);
+      });
+      console.log(
+        'DOM UPDATE APPLY TOOK', (Date.now() - start) / 1000, 's  ::',
+        takeDomActionStats(),
+      );
       //console.log('...', (Date.now() - start) / 1000);
       const { resolveGroups } = this;
       this.resolveGroups = [];
@@ -146,9 +138,10 @@ export class Scheduler {
       fiber.unmountInstances = undefined;
     }
 
-    for (const fiber of syncGroup.getUiUpdateIterable()) {
-      Scheduler.updateUI(fiber);
-    }
+    syncGroup.forEachCommit(this.renderIteration, (fiber) => {
+      Scheduler.applyUiActions(fiber);
+      syncGroup.commitFiber(fiber);
+    });
     this.runPostRenderCallbacks(syncGroup);
     if (syncGroup.hasRenderQueue()) {
       // State was updated by effect callbacks
@@ -210,16 +203,12 @@ export class Scheduler {
     }
   }
 
-  private static updateUI(fiber: Fiber) {
-    const { uiActions, refsToAssign } = fiber;
-    for (const action of uiActions!) {
-      applyDomAction(action, fiber);
+  private static applyUiActions(fiber: Fiber) {
+    const { uiActions } = fiber;
+    if (!uiActions) return;
+    const { delegationRoot } = fiber.rctx
+    for (const action of uiActions) {
+      applyDomAction(action, delegationRoot);
     }
-    (fiber as Fiber).uiActions = undefined;
-    fiber.slot = fiber.pendingSlot;
-    fiber.pendingSlot = undefined;
-    if (!refsToAssign) return;
-    for (const [ref, element] of refsToAssign) ref.current = element;
-    fiber.refsToAssign = undefined;
   }
 }

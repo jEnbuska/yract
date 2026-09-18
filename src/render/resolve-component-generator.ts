@@ -9,7 +9,6 @@ export function resolveComponentGenerator(
   instance: ComponentFiber,
 ): Child {
   let step = gen.next();
-  instance.cleanups = false;
   let hookIndex = 0;
   if (step.done) {
     setupSkippedHookCleanups(instance, hookIndex);

@@ -1,4 +1,3 @@
-import { type RequiredBy } from "../../general-types";
 import { type Fiber } from "../../instances/types";
 
 export interface RenderGroup {
@@ -8,15 +7,9 @@ export interface RenderGroup {
   cancelRender?: (instance: Fiber) => void;
   hasRenderQueue(): boolean;
   getRenderIterable(): Iterator<Fiber, void, void>;
-
-  scheduleDiscardChildren?: (instance: Fiber) => void;
-  cancelDiscardParents?: (instance: Fiber) => void;
-  getDiscardingParents?: () => Iterator<Fiber, void, void>;
-
-  scheduleUiUpdate(instance: Fiber): void;
-  cancelUiUpdate?: (instance: Fiber) => void;
-  getUiUpdateIterable(): Iterator<RequiredBy<Fiber, "uiActions">>;
-
+  commitFiber(fiber: Fiber): void;
+  scheduleCommit(instance: Fiber): void;
+  forEachCommit(iteration: number, visit: (fiber: Fiber) => void): void;
   schedulePostRenderCallback(instance: Fiber): void;
   getPostRenderCallbackIterable(renderIteration: number): Iterable<Fiber, void, void>;
 }

@@ -1,7 +1,6 @@
 import type { SetGroup } from "./types";
-import { queueSetGroupMember, shallowDeleteMapMember, shallowDeleteSetMember } from "./utils";
+import { queueSetGroupMember, shallowDeleteSetMember } from "./utils";
 import type { RenderGroup } from "./RenderGroup";
-import type { RequiredBy } from "../../general-types";
 import { type Fiber } from "../../instances/types";
 import { AbstractRenderGroup } from "./AbstractRenderGroup";
 
@@ -12,11 +11,11 @@ export class SyncRenderGroup extends AbstractRenderGroup<SetGroup> implements Re
     super(queueSetGroupMember, shallowDeleteSetMember);
   }
 
-  *getUiUpdateIterable() {
-    const uiUpdates = this.uiUpdates;
-    for (const { queue, members } of uiUpdates) {
+  forEachCommit(_iteration: number, visit: (fiber: Fiber) => void) {
+    const commits = this.commits;
+    for (const { queue, members } of commits) {
       for (const fiber of queue) {
-        yield fiber as RequiredBy<Fiber, "uiActions">;
+        visit(fiber);
       }
       queue.length = 0;
       members.clear();

@@ -5,7 +5,7 @@ import { type Fiber } from "../../instances/types";
 export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
   protected readonly restorable: TGroup[] = [];
   protected readonly renders: TGroup[] = [];
-  protected readonly uiUpdates: TGroup[] = [];
+  protected readonly commits: TGroup[] = [];
   protected readonly postRenderCallbacks: SetGroup[] = [];
   protected renderHead = Number.MAX_SAFE_INTEGER;
   #addFiber: (groups: TGroup[], fiber: Fiber) => boolean;
@@ -15,6 +15,20 @@ export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
     this.schedulePostRenderCallback = this.schedulePostRenderCallback.bind(this);
     this.#addFiber = addFiber;
     this.#removeFiber = removeFiber;
+  }
+
+  /** The tail of every commit: hand the pending slot over and drain the refs. */
+  commitFiber(fiber: Fiber) {
+    const { refsToAssign } = fiber;
+    // The prepared-node cache belongs to the render that filled it: once those
+    // nodes are in the document, reusing them would hand a live node back.
+    fiber.preparedSlots?.clear();
+    fiber.uiActions = undefined;
+    fiber.slot = fiber.pendingSlot;
+    fiber.pendingSlot = undefined;
+    if (!refsToAssign) return;
+    for (const [ref, element] of refsToAssign) ref.current = element;
+    fiber.refsToAssign = undefined;
   }
 
   hasRenderQueue() {
@@ -35,10 +49,6 @@ export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
     this.#removeFiber(this.renders, instance);
   }
 
-  cancelUiUpdate(instance: Fiber) {
-    this.#removeFiber(this.uiUpdates, instance);
-  }
-
   schedulePostRenderCallback(fiber: Fiber) {
     queueSetGroupMember(this.postRenderCallbacks, fiber);
   }
@@ -49,19 +59,19 @@ export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
       const { queue, members } = effects[i]!;
       while (queue.length) {
         const fiber = queue.pop()!;
-        yield fiber;
         if (fiber.isUnmounted(renderIteration) && fiber.instances) {
           for (const child of fiber.instances.values()) {
             child.unmounted = true;
             this.schedulePostRenderCallback(child);
           }
         }
+        yield fiber;
       }
       members.clear();
     }
   }
 
-  scheduleUiUpdate(fiber: Fiber) {
-    this.#addFiber(this.uiUpdates, fiber);
+  scheduleCommit(fiber: Fiber) {
+    this.#addFiber(this.commits, fiber);
   }
 }

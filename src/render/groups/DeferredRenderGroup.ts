@@ -1,8 +1,7 @@
 import type { MapGroup } from "./types";
 import { queueMapGroupMember, shallowDeleteMapMember } from "./utils";
 import type { RenderGroup } from "./RenderGroup";
-import type { Fiber } from "../../instances/types";
-import type { RequiredBy } from "../../general-types";
+import { type Fiber } from "../../instances/types";
 import { AbstractRenderGroup } from "./AbstractRenderGroup";
 
 export class DeferredRenderGroup extends AbstractRenderGroup<MapGroup> implements RenderGroup {
@@ -37,12 +36,16 @@ export class DeferredRenderGroup extends AbstractRenderGroup<MapGroup> implement
     this.renderHead = Number.MAX_SAFE_INTEGER;
   }
 
-  *getUiUpdateIterable() {
-    const uiUpdates = this.uiUpdates;
-    for (const { queue, members } of uiUpdates) {
+  forEachCommit(iteration: number, visit: (fiber: Fiber) => void) {
+    const commits = this.commits;
+    for (const { queue, members } of commits) {
       for (const fiber of queue) {
+        if (fiber.isUnmounted(iteration)) {
+          fiber.unmounted = true;
+          continue;
+        }
         if (!members.get(fiber)) continue;
-        yield fiber as RequiredBy<Fiber, "uiActions">;
+        visit(fiber);
       }
       queue.length = 0;
       members.clear();

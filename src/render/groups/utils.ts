@@ -38,5 +38,7 @@ export function shallowDeleteSetMember(groups: SetGroup[], fiber: Fiber) {
 }
 
 export function shallowDeleteMapMember(groups: MapGroup[], fiber: Fiber) {
-  groups[fiber.depth]?.members.set(fiber, false);
+  const members = groups[fiber.depth]?.members
+  if(!members?.has(fiber)) return // Is is possible unnecessary check
+  members.set(fiber, false);
 }

@@ -79,14 +79,12 @@ export function processHook(
       return state;
     }
     case $EFFECT: {
-      instance.cleanups = true;
       const prev = getTypedPrev(hookStates, hookIndex, $EFFECT, instance);
       const state = processEffect(instance, descriptor, prev);
       hookStates[hookIndex] = state;
       return state;
     }
     case $CONTEXT: {
-      instance.cleanups = true;
       const prev = getTypedPrev(hookStates, hookIndex, $CONTEXT, instance);
       const state = processContext(instance, descriptor, prev);
       hookStates[hookIndex] = state;
@@ -109,7 +107,6 @@ export function setupSkippedHookCleanups(instance: ComponentFiber, hookIndex: nu
     const hook = hookStates[i]!;
     switch (hook.type) {
       case $EFFECT:
-        instance.cleanups = true;
         hook.dirty = true;
         hook.fn = () => {};
         break;
