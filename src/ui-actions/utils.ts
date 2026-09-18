@@ -26,11 +26,13 @@ export function applyDomAction(action: UIAction, fiber: Fiber) {
       break;
     case TEXT_UI_ACTION: {
       const { slot } = action;
+      console.log('ACTION', action);
       slot.headNode.textContent = slot.text;
       break;
     }
     case UPDATE_UI_ACTION: {
       const { slot, patch } = action;
+      console.log('ACTION', action);
       updateElementProps(slot.headNode, patch, fiber.rctx.delegationRoot);
       break;
     }

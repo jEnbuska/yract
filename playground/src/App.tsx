@@ -42,12 +42,13 @@ export function* App() {
           ))}
         </Sidebar>
         <ShellMain>
-          {demos.map(({ id, Demo }) => (
+          <DeferredDemo/>
+          {/*demos.map(({ id, Demo }) => (
             <section key={`${id}`} id={id} className="dos-demo" aria-label={id}>
               <Demo />
               <button onClick={() => window.location.reload()}>Refresh</button>
             </section>
-          ))}
+          ))*/}
         </ShellMain>
       </Shell>
     </Screen>

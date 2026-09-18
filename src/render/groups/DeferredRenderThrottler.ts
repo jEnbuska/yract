@@ -23,6 +23,6 @@ export class DeferredRenderThrottler {
   }
 
   shouldThrottle(): boolean {
-    return Date.now() <= this.#workYieldDeadline;
+    return Date.now() >= this.#workYieldDeadline;
   }
 }

@@ -1,5 +1,5 @@
 import type { SetGroup } from "./types";
-import { queueSetGroupMember } from "./utils";
+import { queueSetGroupMember, shallowDeleteMapMember, shallowDeleteSetMember } from "./utils";
 import type { RenderGroup } from "./RenderGroup";
 import type { RequiredBy } from "../../general-types";
 import { type Fiber } from "../../instances/types";
@@ -9,14 +9,7 @@ export class SyncRenderGroup extends AbstractRenderGroup<SetGroup> implements Re
   readonly name = "SyncGroup";
 
   constructor() {
-    super(queueSetGroupMember);
-  }
-
-  cancelRender() {
-    throw new Error(`"cancelRender" should never be called of ${this.name}`);
-  }
-  cancelUiUpdate() {
-    throw new Error(`"cancelUiUpdate" should never be called of ${this.name}`);
+    super(queueSetGroupMember, shallowDeleteSetMember);
   }
 
   *getUiUpdateIterable() {
@@ -26,6 +19,7 @@ export class SyncRenderGroup extends AbstractRenderGroup<SetGroup> implements Re
         if (!next.uiActions) continue;
         yield next as RequiredBy<Fiber, "uiActions">;
       }
+      queue.length = 0;
       members.clear();
     }
   }

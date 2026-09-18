@@ -1,5 +1,5 @@
 import type { CollectionGroup, SetGroup } from "./types";
-import { queueSetGroupMember } from "./utils";
+import { queueSetGroupMember, shallowDeleteMapMember } from "./utils";
 import { type Fiber } from "../../instances/types";
 
 export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
@@ -9,10 +9,12 @@ export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
   protected readonly postRenderCallbacks: SetGroup[] = [];
   protected renderHead = Number.MAX_SAFE_INTEGER;
   #addFiber: (groups: TGroup[], fiber: Fiber) => boolean;
+  #removeFiber: (groups: TGroup[], fiber: Fiber) => void;
 
-  constructor(addFiber: (groups: TGroup[], fiber: Fiber) => boolean) {
+  constructor(addFiber: (groups: TGroup[], fiber: Fiber) => boolean, removeFiber: (groups: TGroup[], fiber: Fiber) => void) {
     this.schedulePostRenderCallback = this.schedulePostRenderCallback.bind(this);
     this.#addFiber = addFiber;
+    this.#removeFiber = removeFiber;
   }
 
   hasRenderQueue() {
@@ -29,9 +31,13 @@ export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
     this.renderHead = Math.min(depth, this.renderHead);
   }
 
-  abstract cancelRender(fiber: Fiber): void;
+  cancelRender(instance: Fiber) {
+    this.#removeFiber(this.renders, instance);
+  }
 
-  abstract cancelUiUpdate(fiber: Fiber): void;
+  cancelUiUpdate(instance: Fiber) {
+    this.#removeFiber(this.uiUpdates, instance);
+  }
 
   schedulePostRenderCallback(fiber: Fiber) {
     queueSetGroupMember(this.postRenderCallbacks, fiber);

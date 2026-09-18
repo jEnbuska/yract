@@ -9,15 +9,7 @@ export class DeferredRenderGroup extends AbstractRenderGroup<MapGroup> implement
   readonly name = "DeferredGroup";
 
   constructor() {
-    super(queueMapGroupMember);
-  }
-
-  cancelRender(instance: Fiber) {
-    shallowDeleteMapMember(this.renders, instance);
-  }
-
-  cancelUiUpdate(instance: Fiber) {
-    shallowDeleteMapMember(this.uiUpdates, instance);
+    super(queueMapGroupMember, shallowDeleteMapMember);
   }
 
   beforeRenderStart() {
@@ -26,6 +18,7 @@ export class DeferredRenderGroup extends AbstractRenderGroup<MapGroup> implement
       while (queue.length) this.queueRender(queue.pop()!);
       members.clear();
     }
+
   }
 
   *getRenderIterable() {
@@ -50,9 +43,10 @@ export class DeferredRenderGroup extends AbstractRenderGroup<MapGroup> implement
     for (const { queue, members } of uiUpdates) {
       for (const next of queue) {
         if (!next.uiActions) continue;
-        if (!members.has(next)) continue;
+        if (!members.get(next)) continue;
         yield next as RequiredBy<Fiber, "uiActions">;
       }
+      queue.length = 0;
       members.clear();
     }
   }

@@ -33,12 +33,6 @@ export function queueSetGroupMember(groups: SetGroup[], fiber: Fiber): boolean {
   return true;
 }
 
-export function queueArrayMember(groups: Fiber[][], fiber: Fiber) {
-  const { depth } = fiber;
-  while (groups.length <= depth) groups.push([]);
-  groups[depth]!.push(fiber);
-}
-
 export function shallowDeleteSetMember(groups: SetGroup[], fiber: Fiber) {
   groups[fiber.depth]?.members.delete(fiber);
 }

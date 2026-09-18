@@ -84,8 +84,8 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
 
   cancelRender(reason: symbol, deferred?: boolean): void {
     const { renderReasons } = this;
-    renderReasons.delete(reason);
-    if (renderReasons.size) {
+    if(!renderReasons.delete(reason)) return;
+    if (!renderReasons.size) {
       this.rctx.scheduler.cancelRender(this, deferred);
     }
   }
@@ -131,6 +131,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     }
     const generator = this.component(this.props);
     const child = resolveComponentGenerator(generator, this);
+    const prevUiActions = this.uiActions;
     if (!this.slot) {
       this.pendingSlot = mountFiber(this, child);
     } else {
@@ -150,11 +151,11 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
 
     const { refsToAssign, uiActions } = this;
     if (uiActions!.length || refsToAssign) {
-      scheduler.scheduleUiUpdate(this);
+      if(!prevUiActions?.length) scheduler.scheduleUiUpdate(this);
     } else {
       // TODO I don't remember what this next line does
       this.preparedSlots?.clear();
-      scheduler.cancelUiUpdate(this);
+      if(prevUiActions?.length) scheduler.cancelUiUpdate(this);
     }
     this.renderReasons.clear();
     this.renders++;
@@ -167,21 +168,13 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
 
   // Rename and flip to isMounted
   isUnmounted(renderIteration: number): boolean {
-    let { parent } = this;
+    let parent = this;
     while (parent) {
       if (parent.unmounted) return true;
       if (parent.confidentIteration === renderIteration) return false;
-    }
-    return false;
-  }
-
-  isMounted(): boolean {
-    let { parent } = this;
-    while (parent) {
-      if (parent.unmounted) return false;
       parent = parent.parent;
     }
-    return true;
+    return false;
   }
 
   setProps(

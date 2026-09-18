@@ -5,7 +5,6 @@ import { PersonTable } from "./-components/PersonTable";
 import type { PersonRow } from "../../types";
 import { PersonFiltering } from "./-components/PersonFiltering";
 import { PersonCount } from "./-components/PersonCount";
-import LagSpinner from "./-components/LagSpinner";
 
 function filterRows(query: string, rows?: PersonRow[]) {
   query = query.trim();
@@ -40,7 +39,6 @@ export function* DeferredDemo() {
       } else if (rows.length === count) {
         return;
       } else if (count > rows.length) {
-        console.log("add rows", count - rows.length);
         next = [...rows, ...(await getPersonRows(count - rows.length, signal))];
       } else {
         next = rows.slice(0, count);
@@ -76,7 +74,7 @@ export function* DeferredDemo() {
         />
         <PersonCount count={count} setCount={updateCount} />
         <PersonTable rows={filtered} updatePerson={updatePerson} />
-        <LagSpinner />
+        {/*<LagSpinner />*/}
       </WindowBody>
     </Window>
   );
