@@ -7,9 +7,8 @@ export interface RenderGroup {
   cancelRender?: (fiber: Fiber) => void;
   hasRenderQueue(): boolean;
   getRenderIterable(): Iterator<Fiber, void, void>;
-  commitFiber(fiber: Fiber): void;
   scheduleCommit(fiber: Fiber): void;
-  forEachCommit(iteration: number, visit: (fiber: Fiber) => void): void;
+  commit(iteration: number): void;
   schedulePostRenderCallback(instance: Fiber): void;
   getPostRenderCallbackIterable(renderIteration: number): Iterable<Fiber, void, void>;
 }

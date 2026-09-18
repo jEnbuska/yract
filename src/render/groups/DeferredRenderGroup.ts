@@ -26,7 +26,7 @@ export class DeferredRenderGroup extends AbstractRenderGroup<MapGroup> implement
       while (queue.length) {
         let fiber = queue.pop()!;
         const booked = members.get(fiber);
-        if(booked === undefined) continue;
+        if (booked === undefined) continue;
         members.delete(fiber);
         if (!booked) continue;
         yield fiber;
@@ -37,7 +37,7 @@ export class DeferredRenderGroup extends AbstractRenderGroup<MapGroup> implement
     this.renderHead = Number.MAX_SAFE_INTEGER;
   }
 
-  forEachCommit(iteration: number, visit: (fiber: Fiber) => void) {
+  commit(iteration: number) {
     const commits = this.commits;
     for (const { queue, members } of commits) {
       for (const fiber of queue) {
@@ -46,7 +46,7 @@ export class DeferredRenderGroup extends AbstractRenderGroup<MapGroup> implement
           continue;
         }
         if (!members.get(fiber)) continue;
-        visit(fiber);
+        AbstractRenderGroup.applyUIActions(fiber);
       }
       queue.length = 0;
       members.clear();

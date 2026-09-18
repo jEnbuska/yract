@@ -151,10 +151,12 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
 
   // Rename and flip to isMounted
   isUnmounted(renderIteration: number): boolean {
+    if (this.unmounted) return true;
+    if (this.confidentIteration === renderIteration) return false;
     // Walking up the parent chain has to start somewhere, and the cursor is
     // reassigned on every step.
     // oxlint-disable-next-line typescript/no-this-alias
-    let parent: Fiber | null = this;
+    let parent = this.parent;
     while (parent) {
       if (parent.unmounted) return true;
       if (parent.confidentIteration === renderIteration) return false;

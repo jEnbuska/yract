@@ -1,7 +1,6 @@
 import type { SetGroup } from "./types";
 import { queueSetGroupMember, shallowDeleteSetMember } from "./utils";
 import type { RenderGroup } from "./RenderGroup";
-import { type Fiber } from "../../instances/types";
 import { AbstractRenderGroup } from "./AbstractRenderGroup";
 
 export class SyncRenderGroup extends AbstractRenderGroup<SetGroup> implements RenderGroup {
@@ -11,11 +10,11 @@ export class SyncRenderGroup extends AbstractRenderGroup<SetGroup> implements Re
     super(queueSetGroupMember, shallowDeleteSetMember);
   }
 
-  forEachCommit(_iteration: number, visit: (fiber: Fiber) => void) {
+  commit() {
     const commits = this.commits;
     for (const { queue, members } of commits) {
       for (const fiber of queue) {
-        visit(fiber);
+        AbstractRenderGroup.applyUIActions(fiber);
       }
       queue.length = 0;
       members.clear();

@@ -85,12 +85,7 @@ export class Scheduler {
       //console.log('apply deferred ui');
       start = Date.now();
       const iteration = this.renderIteration;
-      let updates = 0;
-      deferredGroup.forEachCommit(iteration, (fiber) => {
-        updates += fiber.uiActions?.length ?? 0;
-        Scheduler.applyUiActions(fiber);
-        deferredGroup.commitFiber(fiber);
-      });
+      deferredGroup.commit(this.renderIteration);
       // console.log('Total updates', updates);
       /*console.log(
         'DOM UPDATE APPLY TOOK', (Date.now() - start) / 1000, 's  ::',
@@ -134,13 +129,9 @@ export class Scheduler {
         continue;
       }
       this.renderFiber(fiber);
-      fiber.unmountInstances = undefined;
     }
 
-    syncGroup.forEachCommit(this.renderIteration, (fiber) => {
-      Scheduler.applyUiActions(fiber);
-      syncGroup.commitFiber(fiber);
-    });
+    syncGroup.commit();
     this.runPostRenderCallbacks(syncGroup);
     if (syncGroup.hasRenderQueue()) {
       // State was updated by effect callbacks
@@ -181,7 +172,7 @@ export class Scheduler {
   private runPostRenderCallbacks(group: RenderGroup) {
     const iteration = this.renderIteration;
     for (const next of group.getPostRenderCallbackIterable(iteration)) {
-      if (next.isUnmounted(iteration)) {
+      if (next.unmounted) {
         next.hookStates.forEach(unmountHookCleanup);
       } else {
         next.hookStates.forEach(effectResolver);

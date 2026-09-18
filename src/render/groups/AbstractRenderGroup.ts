@@ -1,6 +1,7 @@
 import type { CollectionGroup, SetGroup } from "./types";
 import { queueSetGroupMember } from "./utils";
 import { type Fiber } from "../../instances/types";
+import { applyDomAction } from "../../ui-actions/utils";
 
 export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
   protected readonly restorable: TGroup[] = [];
@@ -18,19 +19,6 @@ export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
     this.schedulePostRenderCallback = this.schedulePostRenderCallback.bind(this);
     this.#addFiber = addFiber;
     this.#removeFiber = removeFiber;
-  }
-
-  /** The tail of every commit: hand the pending slot over and drain the refs. */
-  commitFiber(fiber: Fiber) {
-    const { refsToAssign } = fiber;
-    // The prepared-node cache belongs to the render that filled it: once those
-    // nodes are in the document, reusing them would hand a live node back.
-
-    fiber.slot = fiber.pendingSlot;
-    fiber.preparedSlots = undefined;
-    fiber.pendingSlot = undefined;
-    if (!refsToAssign) return;
-    for (const [ref, element] of refsToAssign) ref.current = element;
   }
 
   hasRenderQueue() {
@@ -61,9 +49,9 @@ export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
       const { queue, members } = effects[i]!;
       while (queue.length) {
         const fiber = queue.pop()!;
-        if (fiber.isUnmounted(renderIteration) && fiber.instances) {
+        fiber.unmounted = fiber.isUnmounted(renderIteration);
+        if (fiber.instances && fiber.unmounted) {
           for (const child of fiber.instances.values()) {
-            child.unmounted = true;
             this.schedulePostRenderCallback(child);
           }
         }
@@ -75,5 +63,22 @@ export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
 
   scheduleCommit(fiber: Fiber) {
     this.#addFiber(this.commits, fiber);
+  }
+
+  protected static applyUIActions(fiber: Fiber) {
+    const { uiActions } = fiber;
+    const { delegationRoot } = fiber.rctx;
+    for (const action of uiActions!) {
+      applyDomAction(action, delegationRoot);
+    }
+    const { refsToAssign } = fiber;
+    // The prepared-node cache belongs to the render that filled it: once those
+    // nodes are in the document, reusing them would hand a live node back.
+
+    fiber.slot = fiber.pendingSlot;
+    fiber.preparedSlots = undefined;
+    fiber.pendingSlot = undefined;
+    if (!refsToAssign) return;
+    for (const [ref, element] of refsToAssign) ref.current = element;
   }
 }
