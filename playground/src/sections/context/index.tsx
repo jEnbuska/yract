@@ -20,7 +20,6 @@ import { ThemeBadge } from "../../components/ThemeBadge";
 export function* ContextDemo() {
   const [theme, setTheme] = yield* useState<Theme>("light");
   const [locale, setLocale] = yield* useState<Locale>("en");
-  console.log("locale", locale);
 
   return (
     <Window>

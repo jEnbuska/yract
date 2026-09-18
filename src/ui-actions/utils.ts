@@ -13,12 +13,14 @@ import { moveSlotNodes } from "./utils/move-slot-nodes";
 import { insertNode } from "./utils/insert-node";
 
 export function applyDomAction(action: UIAction, fiber: Fiber) {
+  if(fiber.component.name === 'PersonTableBody') console.log('APPLY BODY change', action);
   switch (action.type) {
     case MOVE_UI_ACTION: {
       moveSlotNodes(action.slot, action.parentDom, action.before);
       break;
     }
     case REMOVE_UI_ACTION:
+      console.log('REMOVE', action);
       removeSlotNodes(action.slot);
       break;
     case INSERT_UI_ACTION:
@@ -26,13 +28,11 @@ export function applyDomAction(action: UIAction, fiber: Fiber) {
       break;
     case TEXT_UI_ACTION: {
       const { slot } = action;
-      console.log('ACTION', action);
       slot.headNode.textContent = slot.text;
       break;
     }
     case UPDATE_UI_ACTION: {
       const { slot, patch } = action;
-      console.log('ACTION', action);
       updateElementProps(slot.headNode, patch, fiber.rctx.delegationRoot);
       break;
     }

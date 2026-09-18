@@ -11,6 +11,7 @@ import { depsChanged, shallowEqual, stripFrameworkProps } from "../general";
 import { DeferContext } from "../hooks/defer";
 import { resolveComponentGenerator } from "../render/resolve-component-generator";
 import type { UIAction } from "../ui-actions/types";
+import { prepareRemove } from "../ui-actions/prepare/prepare-remove";
 
 export class ComponentFiber<TProps extends Record<string, unknown> = Record<string, any>> {
   public renders: number = 0;
@@ -131,7 +132,6 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     }
     const generator = this.component(this.props);
     const child = resolveComponentGenerator(generator, this);
-    const prevUiActions = this.uiActions;
     if (!this.slot) {
       this.pendingSlot = mountFiber(this, child);
     } else {
@@ -140,30 +140,32 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     this.prevChild = child;
     const { unmountInstances, rctx } = this;
     const { scheduler } = rctx;
+
+    let uiActions = this.uiActions;
     if (unmountInstances?.size) {
+      const removeActions: UIAction[] = [];
       for (const child of unmountInstances.values()) {
         child.unmounted = true;
-        if (child.renders) continue;
+        if (!child.renders) continue;
         unmountInstances.delete(child.path);
         child.schedulePostRenderCallback(UNMOUNT);
+        if(child.slot) removeActions.push(prepareRemove(child.slot))
+      }
+      if(removeActions.length) {
+        uiActions = [...removeActions, ...uiActions!]
       }
     }
-
-    const { refsToAssign, uiActions } = this;
+    const { refsToAssign  } = this;
     if (uiActions!.length || refsToAssign) {
-      if(!prevUiActions?.length) scheduler.scheduleUiUpdate(this);
+      console.log('uiActions length', uiActions?.length);
+      scheduler.scheduleUiUpdate(this);
     } else {
       // TODO I don't remember what this next line does
       this.preparedSlots?.clear();
-      if(prevUiActions?.length) scheduler.cancelUiUpdate(this);
+      scheduler.cancelUiUpdate(this);
     }
     this.renderReasons.clear();
     this.renders++;
-  }
-
-  unmount(): boolean | undefined {
-    this.unmounted = true;
-    return !!this.renders;
   }
 
   // Rename and flip to isMounted

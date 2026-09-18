@@ -15,9 +15,8 @@ export class SyncRenderGroup extends AbstractRenderGroup<SetGroup> implements Re
   *getUiUpdateIterable() {
     const uiUpdates = this.uiUpdates;
     for (const { queue, members } of uiUpdates) {
-      for (const next of queue) {
-        if (!next.uiActions) continue;
-        yield next as RequiredBy<Fiber, "uiActions">;
+      for (const fiber of queue) {
+        yield fiber as RequiredBy<Fiber, "uiActions">;
       }
       queue.length = 0;
       members.clear();
@@ -28,10 +27,10 @@ export class SyncRenderGroup extends AbstractRenderGroup<SetGroup> implements Re
     const renders = this.renders;
     for (let i = this.getRenderHead(); i < renders.length; i++) {
       const { queue, members } = renders[i]!;
-      let next = queue.pop();
-      while (next) {
-        yield next;
-        next = queue.pop();
+      let fiber = queue.pop();
+      while (fiber) {
+        yield fiber;
+        fiber = queue.pop();
       }
       members.clear();
     }

@@ -52,7 +52,7 @@ export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
         yield fiber;
         if (fiber.isUnmounted(renderIteration) && fiber.instances) {
           for (const child of fiber.instances.values()) {
-            fiber.unmounted = true;
+            child.unmounted = true;
             this.schedulePostRenderCallback(child);
           }
         }

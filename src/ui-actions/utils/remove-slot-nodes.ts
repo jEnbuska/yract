@@ -10,7 +10,6 @@ import {
 import { getMapValuesReversed } from "../../general";
 
 export function removeSlotNodes(slot: Slot) {
-  console.log('REMOVE SLOT NODES');
   switch (slot.type) {
     case textSlotType:
     case elementSlotType:

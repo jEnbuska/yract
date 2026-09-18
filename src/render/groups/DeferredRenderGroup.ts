@@ -18,7 +18,6 @@ export class DeferredRenderGroup extends AbstractRenderGroup<MapGroup> implement
       while (queue.length) this.queueRender(queue.pop()!);
       members.clear();
     }
-
   }
 
   *getRenderIterable() {
@@ -26,11 +25,11 @@ export class DeferredRenderGroup extends AbstractRenderGroup<MapGroup> implement
     for (let i = this.renderHead; i < renders.length; i++) {
       const { queue, members } = renders[i]!;
       while (queue.length) {
-        let next = queue.pop()!;
-        const booked = members.get(next);
-        members.delete(next);
+        let fiber = queue.pop()!;
+        const booked = members.get(fiber);
+        members.delete(fiber);
         if (!booked) continue;
-        yield next;
+        yield fiber;
         if (i !== this.renderHead) return;
       }
       this.renderHead++;
@@ -41,10 +40,9 @@ export class DeferredRenderGroup extends AbstractRenderGroup<MapGroup> implement
   *getUiUpdateIterable() {
     const uiUpdates = this.uiUpdates;
     for (const { queue, members } of uiUpdates) {
-      for (const next of queue) {
-        if (!next.uiActions) continue;
-        if (!members.get(next)) continue;
-        yield next as RequiredBy<Fiber, "uiActions">;
+      for (const fiber of queue) {
+        if (!members.get(fiber)) continue;
+        yield fiber as RequiredBy<Fiber, "uiActions">;
       }
       queue.length = 0;
       members.clear();

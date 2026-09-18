@@ -98,12 +98,11 @@ class DeferFiber extends ComponentFiber<DeferProps> {
   override render() {
     const deferred = (this.context.ref.current = this.props.disabled ? false : this.isDeferred());
     super.render();
-    this.prepareAfterDeferredRender();
+    if(deferred) this.prepareAfterDeferredRender();
     void this.notifyDeferring(deferred);
   }
 
   private prepareAfterDeferredRender() {
-    if (this.hookStates.length) return;
     this.schedulePostRenderCallback(MOUNT_REASON);
     this.hookStates = [
       {

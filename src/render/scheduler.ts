@@ -91,9 +91,16 @@ export class Scheduler {
       }
       //console.log('apply deferred ui');
       start = Date.now()
+      const iteration = this.renderIteration
       for (const fiber of deferredGroup.getUiUpdateIterable()) {
-        if (fiber.isUnmounted(this.renderIteration)) continue;
+        //console.log('apply', fiber.component.name);
+        if (fiber.isUnmounted(iteration)) {
+          console.log('-----unmounted ui action------');
+          continue;
+        }
+        console.log('APPLY DEFERRED UI', fiber.uiActions.length);
         for (const action of fiber.uiActions) {
+          //console.log('apply', fiber.component.name);
           applyDomAction(action, fiber);
         }
       }
@@ -104,7 +111,7 @@ export class Scheduler {
       start = Date.now()
       this.runPostRenderCallbacks(deferredGroup);
       //console.log('...', (Date.now() - start) / 1000);
-      const iteration = this.renderIteration;
+
 
       //console.log('apply resolve set states');
       start = Date.now()
@@ -138,6 +145,7 @@ export class Scheduler {
       this.renderFiber(fiber);
       fiber.unmountInstances = undefined;
     }
+
     for (const fiber of syncGroup.getUiUpdateIterable()) {
       Scheduler.updateUI(fiber);
     }
@@ -152,8 +160,6 @@ export class Scheduler {
     const { deferredGroup, syncGroup } = this;
     const iteration = this.renderIteration;
     deferredGroup.beforeRenderStart();
-
-
     if (this.throttler.shouldThrottle()) await this.throttler.throttle();
     if (syncGroup.hasRenderQueue()) {
       // console.log('exit deferred');
@@ -161,14 +167,12 @@ export class Scheduler {
     }
     // console.log('render deferred');
     for (const fiber of deferredGroup.getRenderIterable()) {
-      console.log(fiber.component.name);
+      // console.log(fiber.component.name);
       if (fiber.isUnmounted(iteration)) {
-        console.log('unmount', fiber.component.name);
         fiber.unmounted = true;
         fiber.schedulePostRenderCallback(UNMOUNT);
         continue;
       }
-      console.log('is mounted');
       fiber.cancelPostRenderCallback(UNMOUNT);
       this.renderFiber(fiber);
       if (this.throttler.shouldThrottle()) {
