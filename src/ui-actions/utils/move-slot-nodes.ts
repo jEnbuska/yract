@@ -1,4 +1,5 @@
 import type { Slot } from "../../slots/slot";
+import { shallowSlotType } from "../../slots/slot";
 import {
   componentSlotType,
   contextSlotType,
@@ -37,11 +38,14 @@ export function moveSlotNodes(slot: Slot, parentDom: Node, beforeNode: Node | nu
     case elementSlotType:
       moveBefore(parentDom, slot.headNode, beforeNode);
       break;
+    case shallowSlotType:
     case fragmentSlotType: {
       const node = slot.tailNode;
       moveBefore(parentDom, node, beforeNode);
       beforeNode = node;
-      for (const child of getMapValuesReversed(slot.slots)) {
+      const reversed = getMapValuesReversed(slot.slots);
+      for (let i = 0; i < reversed.length; i++) {
+        const child = reversed[i]!;
         moveSlotNodes(child, parentDom, beforeNode);
         beforeNode = child.headNode;
       }

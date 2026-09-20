@@ -2,8 +2,10 @@ import type { Child, Children, Component, FrameworkProps, PropsWithChildren } fr
 import { Fragment } from "./jsx";
 import type { Context, ContextProps } from "./context";
 import type { Draft } from "./slots/draft";
+import { asShallowDraft } from "./slots/draft";
 import { asComponentDraft, asContextDraft, asElementDraft, asFragmentDraft } from "./slots/draft";
 import { getIntentChildren } from "./slots/intent";
+import type { Shallow } from "./shallow";
 
 export { Fragment };
 
@@ -12,7 +14,16 @@ export function jsx<P extends Record<string, any>>(
   props: (P & FrameworkProps) | null,
   key?: string,
 ): Draft | null;
-export function jsx<T>(node: Context<T>, props: FrameworkProps & ContextProps<T>): Draft | null;
+export function jsx<P extends Record<string, any>>(
+  node: Shallow<P>,
+  props: (P & Omit<FrameworkProps, "deps">) | null,
+  key?: string,
+): Draft | null;
+export function jsx<P>(
+  node: Context<P>,
+  props: FrameworkProps & ContextProps<P>,
+  key?: string,
+): Draft | null;
 
 export function jsx(
   node: typeof Fragment,
@@ -36,7 +47,10 @@ export function jsx(node: any, props: any, key?: string): Draft | null {
       return asFragmentDraft(props.key ?? key, getIntentChildren(props.children));
     }
     case "object": {
-      return asContextDraft(props.key ?? key, node, props);
+      if (node.Provider) {
+        return asContextDraft(props.key ?? key, node, props);
+      }
+      return asShallowDraft(props.key ?? key, node.component, props);
     }
     default: {
       throw new Error(`Invalid JSX node type "${typeof node}"`);
@@ -47,6 +61,11 @@ export function jsx(node: any, props: any, key?: string): Draft | null {
 export function jsxs<P extends Record<string, any>>(
   type: Component<Omit<P, keyof FrameworkProps>>,
   props: P & FrameworkProps,
+  key?: string,
+): Draft | null;
+export function jsxs<P extends Record<string, any>>(
+  type: Shallow<Omit<P, keyof FrameworkProps>>,
+  props: P & Omit<FrameworkProps, "deps">,
   key?: string,
 ): Draft | null;
 export function jsxs<T>(type: Context<T>, props: FrameworkProps & ContextProps<T>): Draft;
@@ -73,7 +92,10 @@ export function jsxs(node: any, props: any, key?: string): Child {
       return asFragmentDraft(key, props.children);
     }
     case "object": {
-      return asContextDraft(key, node, props);
+      if (node.Provider) {
+        return asContextDraft(key, node, props);
+      }
+      return asShallowDraft(key, node.component, props);
     }
     default: {
       throw new Error(`Invalid JSX node type "${typeof node}"`);

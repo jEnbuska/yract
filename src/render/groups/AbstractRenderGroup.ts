@@ -8,7 +8,9 @@ export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
   protected readonly renders: TGroup[] = [];
   protected readonly commits: TGroup[] = [];
   protected readonly postRenderCallbacks: SetGroup[] = [];
+  protected readonly preCommit: SetGroup[] = [];
   protected renderHead = Number.MAX_SAFE_INTEGER;
+  protected preCommitHead = -1;
   #addFiber: (groups: TGroup[], fiber: Fiber) => boolean;
   #removeFiber: (groups: TGroup[], fiber: Fiber) => void;
 
@@ -25,14 +27,34 @@ export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
     return this.renderHead !== Number.MAX_SAFE_INTEGER;
   }
 
-  getRenderHead(): number {
-    return this.renderHead;
-  }
-
   queueRender(fiber: Fiber) {
     if (!this.#addFiber(this.renders, fiber)) return;
     const { depth } = fiber;
     this.renderHead = Math.min(depth, this.renderHead);
+  }
+
+  queuePreCommit(fiber: Fiber) {
+    queueSetGroupMember(this.preCommit, fiber)
+    const { depth } = fiber;
+    this.preCommitHead = Math.max(depth, this.preCommitHead);
+  }
+
+  hasPrecommitQueue() {
+    return this.preCommitHead !== -1;
+  }
+
+  *getPrecommitIterable() {
+    const preCommit = this.preCommit;
+    for (let i = this.preCommitHead; i >= 0; i--) {
+      const { queue, members } = preCommit[i]!;
+      while (queue.length) {
+        let fiber = queue.pop()!;
+        if (!members.delete(fiber)) continue;
+        yield fiber;
+      }
+      this.preCommitHead--;
+    }
+    this.preCommitHead = -1;
   }
 
   cancelRender(fiber: Fiber) {
@@ -68,8 +90,8 @@ export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
   protected static applyUIActions(fiber: Fiber) {
     const { uiActions } = fiber;
     const { delegationRoot } = fiber.rctx;
-    for (const action of uiActions!) {
-      applyDomAction(action, delegationRoot);
+    for (let i = 0; i < uiActions!.length; i++) {
+      applyDomAction(uiActions![i]!, delegationRoot);
     }
     const { refsToAssign } = fiber;
     // The prepared-node cache belongs to the render that filled it: once those
@@ -78,7 +100,8 @@ export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
     fiber.slot = fiber.pendingSlot;
     fiber.preparedSlots = undefined;
     fiber.pendingSlot = undefined;
-    if (!refsToAssign) return;
-    for (const [ref, element] of refsToAssign) ref.current = element;
+    fiber.initialMounted = true;
+    if (refsToAssign) for (const [ref, element] of refsToAssign) ref.current = element;
+
   }
 }

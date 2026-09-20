@@ -1,7 +1,6 @@
 import { type Fiber } from "../../instances/types";
 
 export interface RenderGroup {
-  getRenderHead(): number;
   readonly name: string;
   queueRender(fiber: Fiber): void;
   cancelRender?: (fiber: Fiber) => void;

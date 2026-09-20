@@ -1,10 +1,24 @@
-import type { ComponentSlotType, ContextSlotType, ElementSlotType, FragmentSlotType } from "./slot";
-import { componentSlotType, contextSlotType, elementSlotType, fragmentSlotType } from "./slot";
+import type {
+  ComponentSlotType,
+  ContextSlotType,
+  ElementSlotType,
+  FragmentSlotType,
+  ShallowSlotType,
+} from "./slot";
+import { shallowSlotType } from "./slot";
 import type { DraftBy } from "../general-types";
 import type { Intent } from "./intent";
-import type { Children, Component, Context, FrameworkProps } from "yract";
+import type { Children, Component, FrameworkProps } from "../jsx";
+import type { Context } from "../context";
+import { componentSlotType, contextSlotType, elementSlotType, fragmentSlotType } from "./slot";
+import type { Shallow } from "../shallow";
 
-type DraftSlotType = ComponentSlotType | ContextSlotType | FragmentSlotType | ElementSlotType;
+type DraftSlotType =
+  | ComponentSlotType
+  | ContextSlotType
+  | FragmentSlotType
+  | ElementSlotType
+  | ShallowSlotType;
 
 export type Draft<T extends DraftSlotType = DraftSlotType> = T extends DraftSlotType
   ? DraftBy<Intent<T>, "index" | "path" | "instance" | "key">
@@ -59,6 +73,33 @@ export function asContextDraft(
     tailNode: undefined,
     text: undefined,
     type: contextSlotType,
+  };
+}
+
+export function asShallowDraft(
+  _key: string | undefined,
+  component: Shallow["component"],
+  props: Record<string, unknown>,
+): Draft<ShallowSlotType> {
+  return {
+    _key,
+    children: undefined,
+    component,
+    context: undefined,
+    element: undefined,
+    headNode: undefined,
+    index: undefined,
+    instance: undefined,
+    key: undefined,
+    stable: undefined,
+    path: undefined,
+    prevProps: undefined,
+    prevText: undefined,
+    props,
+    slots: undefined,
+    tailNode: undefined,
+    text: undefined,
+    type: shallowSlotType,
   };
 }
 
@@ -134,4 +175,9 @@ export function ensureFreshFragmentDraft(draft: Draft<FragmentSlotType>) {
 export function ensureFreshContextDraft(draft: Draft<ContextSlotType>) {
   if (!draft.key) return draft;
   return asContextDraft(draft._key, draft.context, draft.props);
+}
+
+export function ensureFreshShallowDraft(draft: Draft<ShallowSlotType>) {
+  if (!draft.key) return draft;
+  return asShallowDraft(draft._key, draft.component, draft.props);
 }

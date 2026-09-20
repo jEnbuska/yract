@@ -1,33 +1,10 @@
 /**
  * Loaders — one for each thing you might know about the wait.
  *
- * `Progress` when you know the total, `LoaderTrain` when you do not,
- * `Spinner` for a short pause, `Clock` for a dial you point yourself,
- * `Cursor` for a prompt still waiting on input.
+ * `LoaderTrain` when you do not know the total, `Clock` for a dial you point
+ * yourself.
  */
-import { useContext } from "yract";
-import type { Children, ComponentProps } from "yract";
-import { FieldContext } from "./contexts";
-
-export interface ProgressProps extends ComponentProps<"progress"> {
-  value: number;
-  max?: number;
-}
-
-/** Determinate bar. Label it with a `FieldLabel` inside a `Field`. */
-export function* Progress({ value, max = 100, ...rest }: ProgressProps) {
-  const { controlId, descriptionId } = yield* useContext(FieldContext);
-  return (
-    <progress
-      aria-describedby={descriptionId}
-      {...rest}
-      className="dos-progress"
-      id={controlId}
-      value={value}
-      max={max}
-    />
-  );
-}
+import type { ComponentProps } from "yract";
 
 export interface LoaderTrainProps extends ComponentProps<"div"> {
   /** What is being waited on. Announced in place of a percentage. */
@@ -40,14 +17,6 @@ export interface LoaderTrainProps extends ComponentProps<"div"> {
  */
 export function* LoaderTrain({ label, ...rest }: LoaderTrainProps) {
   return <div {...rest} className="dos-loader-train" role="progressbar" aria-label={label} />;
-}
-
-/**
- * The four-character spinner. The glyph is decorative; the surrounding text is
- * what gets announced, so wrap it in a live region with `Status`.
- */
-export function* Spinner(props: ComponentProps<"span">) {
-  return <span {...props} className="dos-spinner" aria-hidden="true" />;
 }
 
 export interface ClockTail {
@@ -99,8 +68,7 @@ const clamp = (value: number): number => Math.min(Math.max(value, 0), 1);
  *
  * It holds no state and runs no animation of its own: the caller places every
  * tail, so the same dial can track elapsed time, progress, or a value that has
- * nothing to do with clocks. Decorative, like `Spinner` — put the words in a
- * `Status` beside it.
+ * nothing to do with clocks. Decorative — put any wording in a label beside it.
  */
 export function* Clock({ tails, tailWidth = 0.02, size = "4rem", style, ...rest }: ClockProps) {
   return (
@@ -160,55 +128,3 @@ export function* Clock({ tails, tailWidth = 0.02, size = "4rem", style, ...rest 
 }
 
 /** Blinking block, for a prompt awaiting input. Decorative. */
-export function* Cursor(props: ComponentProps<"span">) {
-  return <span {...props} className="dos-cursor" aria-hidden="true" />;
-}
-
-/** Polite live region — announces its content when it changes. */
-export function* Status({ children, ...rest }: ComponentProps<"p">) {
-  return (
-    <p {...rest} className="dos-text" role="status">
-      {children}
-    </p>
-  );
-}
-
-export type BadgeTone = "neutral" | "info" | "ok" | "warn" | "error";
-
-const badgeClass: Record<BadgeTone, string> = {
-  neutral: "dos-badge",
-  info: "dos-badge dos-badge--info",
-  ok: "dos-badge dos-badge--ok",
-  warn: "dos-badge dos-badge--warn",
-  error: "dos-badge dos-badge--error",
-};
-
-/** State pill. The tone is a duplicate of the text, never a substitute for it. */
-export interface BadgeProps extends ComponentProps<"span"> {
-  tone?: BadgeTone;
-}
-
-export function* Badge({ tone = "neutral", children, ...rest }: BadgeProps) {
-  return (
-    <span {...rest} className={badgeClass[tone]}>
-      {children}
-    </span>
-  );
-}
-
-export interface AlertProps extends ComponentProps<"div"> {
-  children: Children;
-  /**
-   * `alert` interrupts the screen reader, so keep it for something that just
-   * went wrong. Anything standing on the page at load should stay `status`.
-   */
-  urgent?: boolean;
-}
-
-export function* Alert({ children, urgent, ...rest }: AlertProps) {
-  return (
-    <div {...rest} className="dos-alert" role={urgent ? "alert" : "status"}>
-      {children}
-    </div>
-  );
-}

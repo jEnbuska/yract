@@ -48,23 +48,3 @@ export function* WindowBar({ title, aside }: WindowBarProps) {
 export function* WindowBody({ children }: PropsWithChildren) {
   return <div className="dos-win__body">{children}</div>;
 }
-
-export interface WellProps extends PropsWithChildren {
-  /** Minimal padding, for a well that only frames a list. */
-  flush?: boolean;
-}
-
-export function* Well({ flush, children }: WellProps) {
-  return <div className={flush ? "dos-well dos-well--flush" : "dos-well"}>{children}</div>;
-}
-
-/** Black terminal surface. Content keeps its whitespace, as in a real console. */
-export function* Terminal({ children }: PropsWithChildren) {
-  return <pre className="dos-term">{children}</pre>;
-}
-
-export type TerminalToneName = "hi" | "ok" | "warn" | "err";
-
-export function* TerminalTone({ tone, children }: PropsWithChildren & { tone: TerminalToneName }) {
-  return <span className={`dos-term__${tone}`}>{children}</span>;
-}

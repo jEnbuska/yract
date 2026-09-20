@@ -1,4 +1,4 @@
-import type { PersonRow } from "./types";
+import type { PersonRow } from "../../../../types";
 
 const FIRST_NAMES = [
   "Alice",
@@ -42,7 +42,7 @@ export const DEPARTMENTS = [
   "Research",
 ];
 
-const CITIES = [
+export const CITIES = [
   "Helsinki",
   "Berlin",
   "London",
@@ -56,7 +56,7 @@ const CITIES = [
 ];
 
 let id = 0;
-export async function createPersonRows(count: number, signal: AbortSignal) {
+async function createPersonRows(count: number, signal: AbortSignal) {
   const rows: PersonRow[] = [];
   for (let i = 1; i <= count; i++) {
     if (i % 5000 === 0) {

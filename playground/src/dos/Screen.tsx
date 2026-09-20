@@ -9,14 +9,14 @@
  * passes straight through. `...rest` is spread first, so the props the kit owns
  * (className, role, aria-*) always win over a caller trying to override them.
  */
-import { createContext, useId, useRef } from "yract";
+import { createContext, useContext, useId, useRef } from "yract";
 import type { ComponentProps } from "yract";
 
 export interface ScreenProps extends ComponentProps<"div"> {
   skipLabel?: string;
 }
 
-export const ScreenContext = createContext({ mainId: "" });
+const ScreenContext = createContext({ mainId: "" });
 
 export function* Screen({ skipLabel = "Skip to content", children, ...rest }: ScreenProps) {
   const mainId = yield* useId();
@@ -33,27 +33,14 @@ export function* Screen({ skipLabel = "Skip to content", children, ...rest }: Sc
   );
 }
 
-export interface StageProps extends ComponentProps<"div"> {
-  /** Drop the padding, for chrome that should meet the stage edges. */
-  flush?: boolean;
-}
-
-export function* Stage({ flush, children, ...rest }: StageProps) {
+/**
+ * The content pane. It carries the id the skip link points at, so a `Screen`
+ * needs exactly one of these and nothing else around it.
+ */
+export function* ShellMain({ children, ...rest }: ComponentProps<"div">) {
+  const { mainId } = yield* useContext(ScreenContext);
   return (
-    <div {...rest} className={flush ? "dos-stage dos-stage--flush" : "dos-stage"}>
-      {children}
-    </div>
-  );
-}
-
-export interface ScrollProps extends ComponentProps<"div"> {
-  label: string;
-}
-
-/** Horizontal scroll container. Focusable, so a keyboard can scroll it too. */
-export function* Scroll({ label, children, ...rest }: ScrollProps) {
-  return (
-    <div {...rest} className="dos-scroll" role="region" aria-label={label} tabIndex={0}>
+    <div {...rest} className="dos-shell__main" id={mainId}>
       {children}
     </div>
   );

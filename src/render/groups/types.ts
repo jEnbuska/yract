@@ -5,9 +5,9 @@ export type MapGroup = {
   members: Map<Fiber, boolean>;
 };
 
-export type SetGroup = {
-  queue: Array<Fiber>;
-  members: Set<Fiber>;
+export type SetGroup<T extends Fiber = Fiber> = {
+  queue: Array<T>;
+  members: Set<T>;
 };
 
 export type CollectionGroup = SetGroup | MapGroup;

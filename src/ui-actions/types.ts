@@ -1,7 +1,13 @@
 import type { TagNamespace } from "../render/elements/namespaces";
 import type { ElementPatch } from "../render/element-props";
 import type { Intent } from "../slots/intent";
-import type { ElementSlotType, FragmentSlotType, Slot, TextSlotType } from "../slots/slot";
+import type {
+  ElementSlotType,
+  FragmentSlotType,
+  ShallowSlotType,
+  Slot,
+  TextSlotType,
+} from "../slots/slot";
 import type {
   CREATE_UI_ACTION,
   INSERT_UI_ACTION,
@@ -37,6 +43,15 @@ export type CreateFragmentAction = Delegated<{
   parentDom: undefined;
   patch: undefined;
   slot: Intent<FragmentSlotType>;
+  type: typeof CREATE_UI_ACTION;
+}>;
+export type CreateShallowAction = Delegated<{
+  before: null;
+  node: undefined;
+  ns: TagNamespace;
+  parentDom: undefined;
+  patch: undefined;
+  slot: Intent<ShallowSlotType>;
   type: typeof CREATE_UI_ACTION;
 }>;
 export type CreateTextAction = Delegated<{

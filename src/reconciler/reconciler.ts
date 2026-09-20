@@ -1,5 +1,6 @@
 import type { Child, Children } from "../jsx";
 import type { Slot, SlotType } from "../slots/slot";
+import { shallowSlotType } from "../slots/slot";
 import {
   componentSlotType,
   contextSlotType,
@@ -51,7 +52,9 @@ export function mountFiber(fiber: Fiber, child: Child): Slot {
   // if (fiber.depth > 16) console.log("mount", fiber.component.name);
   const stagingDom = document.createDocumentFragment();
   const { parentDom, ns, ctx, uiActions } = prepareFiber(fiber);
+
   const intent = childToIntent(child, 0, "");
+
   mountIntent(fiber, intent, ns, parentDom, stagingDom, ctx);
   uiActions!.push(prepareInsert(fiber.parentDom, stagingDom, fiber.tailNode));
   return intent as Slot;
@@ -61,6 +64,7 @@ export function reconcilerFiber(fiber: Fiber, child: Child): Slot {
   const { parentDom, slot, ns, tailNode, ctx, uiActions } = prepareFiber(fiber);
   const prevSlot = slot!;
   const intent = childToIntent(child, 0, "");
+
   if (intent.key !== prevSlot.key) {
     uiActions!.push(prepareRemove(prevSlot));
     buildIntentToSlot(uiActions!, fiber, intent, ns, parentDom, tailNode, ctx);
@@ -161,7 +165,15 @@ function mountIntent(
       const { path, children } = intent;
       stagingDom.appendChild(headNode);
       intent.slots = mount(children, fiber, parentDom, stagingDom, path, ns, ctx);
-      stagingDom.appendChild(tailNode!);
+      stagingDom.appendChild(tailNode);
+      return;
+    }
+    case shallowSlotType: {
+      const { headNode, tailNode } = handleCreateNode(fiber, prepareCreate(intent, ns));
+      const { path, props, component } = intent;
+      stagingDom.appendChild(headNode);
+      intent.slots = mount([component(props)], fiber, parentDom, stagingDom, path, ns, ctx);
+      stagingDom.appendChild(tailNode);
       return;
     }
     default:
@@ -209,9 +221,22 @@ function buildIntentToSlot(
       const stagingDom = document.createDocumentFragment();
       stagingDom.appendChild(headNode);
       intent.slots = mount(children, fiber, parentDom, stagingDom, path, ns, ctx);
-      stagingDom.appendChild(tailNode!);
+      stagingDom.appendChild(tailNode);
       uiActions.push(prepareInsert(parentDom, stagingDom, beforeNode));
+      return;
     }
+    case shallowSlotType: {
+      const { headNode, tailNode } = handleCreateNode(fiber, prepareCreate(intent, ns));
+      const { path, component, props } = intent;
+      const stagingDom = document.createDocumentFragment();
+      stagingDom.appendChild(headNode);
+      intent.slots = mount([component(props)], fiber, parentDom, stagingDom, path, ns, ctx);
+      stagingDom.appendChild(tailNode);
+      uiActions.push(prepareInsert(parentDom, stagingDom, beforeNode));
+      return;
+    }
+    default:
+      throw new Error(`invalid intent ${JSON.stringify(intent satisfies never)}`);
   }
 }
 
@@ -245,13 +270,36 @@ function updateSlot<T extends SlotType>(
     case fragmentSlotType: {
       const { tailNode, children, path, slots } = slot;
       const parentDom = tailNode.parentNode;
-      if (!parentDom) {
-        throw new Error("yract: fragment slot reconciled with detached start anchor");
-      }
-      slot.slots = reconcile(uiActions, fiber, children, parentDom, path, slots, ns, tailNode, ctx);
+      slot.slots = reconcile(
+        uiActions,
+        fiber,
+        children,
+        parentDom!,
+        path,
+        slots,
+        ns,
+        tailNode,
+        ctx,
+      );
+      return;
+    }
+    case shallowSlotType: {
+      const { tailNode, path, slots, component, props } = slot;
+      const parentDom = tailNode.parentNode;
+      slot.slots = reconcile(
+        uiActions,
+        fiber,
+        [component(props)],
+        parentDom!,
+        path,
+        slots,
+        ns,
+        tailNode,
+        ctx,
+      );
       return;
     }
     default:
-      throw new Error(`Unhandled update slot ${slot satisfies never}`);
+      throw new Error(`Unhandled update slot ${JSON.stringify(slot satisfies never)}`);
   }
 }

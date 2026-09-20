@@ -1,5 +1,3 @@
-// Public API for yract.
-
 export { type Context, type ContextProps, createContext, resolveContext } from "./context";
 
 export type { SEvent, SyntheticEvent } from "./events";
@@ -31,3 +29,6 @@ export { Root } from "./render/root";
 
 export type { ComponentGenerator } from "./general-types";
 export type { DependencyList } from "./general-types";
+
+export { shallow } from "./shallow"
+export type { Shallow } from "./shallow"

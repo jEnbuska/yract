@@ -53,17 +53,6 @@ export function* FieldDescription({ children, ...rest }: ComponentProps<"p">) {
   );
 }
 
-/** Error text. Renders nothing unless its `Field` is marked invalid. */
-export function* FieldError({ children, ...rest }: ComponentProps<"p">) {
-  const { errorId, invalid } = yield* useContext(FieldContext);
-  if (!invalid) return null;
-  return (
-    <p {...rest} className="dos-error" id={errorId}>
-      {children}
-    </p>
-  );
-}
-
 function describedBy(invalid: boolean, descriptionId: string, errorId: string): string {
   return invalid ? errorId : descriptionId;
 }
@@ -124,28 +113,6 @@ export function* Select({ value, onValueChange, children, ...rest }: SelectProps
         {children}
       </select>
     </div>
-  );
-}
-
-export interface TextAreaProps extends ComponentProps<"textarea"> {
-  value: string;
-  /** Receives the new value. The native `onChange` still passes through. */
-  onValueChange?: (value: string) => void;
-}
-
-export function* TextArea({ value, onValueChange, ...rest }: TextAreaProps) {
-  const { controlId, descriptionId, errorId, invalid } = yield* useContext(FieldContext);
-  return (
-    <textarea
-      {...rest}
-      className="dos-textarea"
-      id={controlId}
-      value={value}
-      aria-describedby={describedBy(invalid, descriptionId, errorId)}
-      onInput={(event: SyntheticEvent<Event, HTMLTextAreaElement>) =>
-        onValueChange?.(event.currentTarget?.value ?? "")
-      }
-    />
   );
 }
 

@@ -104,6 +104,8 @@ const KEY_MARGIN = 4;
 const KEY_OVERHANG = 10;
 /** A tick closer than this to the last one kept is dropped as unreadable. */
 const MIN_TICK_GAP_PX = 18;
+/** Stalls at least this long get their own number in the key gutter. */
+const CHART_CALLOUT_FROM_MS = 200;
 /** Reserved below the plot for the time axis. */
 const CHART_AXIS_AREA = 28;
 
@@ -356,13 +358,31 @@ function* LagChart({ stamps, now }: { stamps: readonly number[]; now: number }) 
     position,
     color: lagColor(Math.exp(mix(Math.log(CHART_FROM_MS), Math.log(scaleMs), position))),
   }));
-  const gridlines = thinTicks(
-    logTicks(scaleMs).map((ms) => ({
-      ms,
-      y: CHART_PAD + plotHeight * (1 - logRatio(ms, scaleMs)),
-      ink: lagInkAt(logRatio(ms, LAG_BLACK_MS)),
-    })),
+  const atHeight = (ms: number) => ({
+    ms,
+    y: CHART_PAD + plotHeight * (1 - logRatio(ms, scaleMs)),
+    ink: lagInkAt(logRatio(ms, LAG_BLACK_MS)),
+  });
+  const gridlines = thinTicks(logTicks(scaleMs).map(atHeight));
+  /*
+   * The stalls themselves, named in the key gutter at the height they reached.
+   * Ascending, so thinning keeps the worst one — the number most worth reading
+   * is the one at the top.
+   */
+  const callouts = thinTicks(
+    bars
+      .map(({ gap }) => gap)
+      .filter((gap) => gap >= CHART_CALLOUT_FROM_MS)
+      .sort((a, b) => a - b)
+      .map(atHeight),
   );
+  /*
+   * A callout is something that happened; a tick is only the scale. When the
+   * two land on top of each other the tick gives up its number and keeps its
+   * line, rather than both printing into the same pixels.
+   */
+  const tickHasRoom = (y: number) =>
+    !callouts.some((callout) => Math.abs(callout.y - y) < MIN_TICK_GAP_PX);
 
   return (
     <div
@@ -414,16 +434,34 @@ function* LagChart({ stamps, now }: { stamps: readonly number[]; now: number }) 
               stroke="var(--dos-screen-muted)"
               strokeDasharray="2 4"
             />
-            <text
-              x={CHART_PAD_LEFT - KEY_MARGIN * 2}
-              y={y + 4}
-              fontSize="12"
-              textAnchor="end"
-              fill={ink}
-            >
-              {tickLabel(ms)}
-            </text>
+            {tickHasRoom(y) && (
+              <text
+                x={CHART_PAD_LEFT - KEY_MARGIN * 2}
+                y={y + 4}
+                fontSize="12"
+                textAnchor="end"
+                fill={ink}
+              >
+                {tickLabel(ms)}
+              </text>
+            )}
           </g>
+        ))}
+        {callouts.map(({ ms, y, ink }) => (
+          // Bold so a measured stall is not mistaken for a gridline's number.
+          // Same gutter and the same contrast-picked ink as the scale, so it
+          // stays legible wherever the ramp puts it.
+          <text
+            key={`callout-${ms}`}
+            x={CHART_PAD_LEFT - KEY_MARGIN * 2}
+            y={y + 4}
+            fontSize="12"
+            fontWeight="bold"
+            textAnchor="end"
+            fill={ink}
+          >
+            {tickLabel(ms)}
+          </text>
         ))}
         {bars.map(({ stamp, gap }) => {
           const height = logRatio(gap, scaleMs) * plotHeight;

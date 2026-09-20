@@ -102,7 +102,7 @@ export function stripFrameworkProps<T extends Record<string, any>>(props: T): T 
   for (const k in props) {
     const isFrameworkProps = frameworkProps.has(k);
     if (isFrameworkProps) {
-      hasFrameworkProps ||= true;
+      hasFrameworkProps = true;
       continue;
     }
     copy[k] = props[k];

@@ -23,7 +23,7 @@ export class SyncRenderGroup extends AbstractRenderGroup<SetGroup> implements Re
 
   *getRenderIterable() {
     const renders = this.renders;
-    for (let i = this.getRenderHead(); i < renders.length; i++) {
+    for (let i = this.renderHead; i < renders.length; i++) {
       const { queue, members } = renders[i]!;
       let fiber = queue.pop();
       while (fiber) {

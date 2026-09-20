@@ -4,6 +4,7 @@ import type {
   ContextSlotType,
   ElementSlotType,
   FragmentSlotType,
+  ShallowSlotType,
   SlotType,
   TextSlotType,
 } from "../slots/slot";
@@ -18,6 +19,7 @@ import type { WeakRefLike } from "../render/element-props";
 import type {
   CreateElementAction,
   CreateFragmentAction,
+  CreateShallowAction,
   CreateTextAction,
 } from "../ui-actions/types";
 import type { Fiber } from "../instances/types";
@@ -54,6 +56,10 @@ export function handleCreateNode(
 ): CreateSlotResponse<ElementSlotType>;
 export function handleCreateNode(
   fiber: Fiber,
+  action: CreateShallowAction,
+): CreateSlotResponse<ShallowSlotType>;
+export function handleCreateNode(
+  fiber: Fiber,
   action: CreateFragmentAction,
 ): CreateSlotResponse<FragmentSlotType>;
 export function handleCreateNode(
@@ -62,13 +68,13 @@ export function handleCreateNode(
 ): CreateSlotResponse<TextSlotType>;
 export function handleCreateNode(
   fiber: Fiber,
-  action: CreateElementAction | CreateFragmentAction | CreateTextAction,
+  action: CreateElementAction | CreateFragmentAction | CreateTextAction | CreateShallowAction,
 ): CreateSlotResponse<any> {
   const { preparedSlots, rctx } = fiber;
   const { slot, ns } = action;
   const { path } = slot;
   const prepared = preparedSlots!.get(path);
-  let resultSlot: Slot<ElementSlotType | TextSlotType | FragmentSlotType>;
+  let resultSlot: Slot<ElementSlotType | TextSlotType | FragmentSlotType | ShallowSlotType>;
   if (prepared) {
     resultSlot = updateWithPreparedSlot(slot, prepared, rctx.delegationRoot);
   } else {

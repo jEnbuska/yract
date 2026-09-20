@@ -21,7 +21,7 @@
 import type { Children, ComponentProps } from "yract";
 import { useId } from "yract";
 
-export type CellAlign = "start" | "center" | "end";
+type CellAlign = "start" | "center" | "end";
 
 const alignClass: Record<CellAlign, string> = {
   start: "",

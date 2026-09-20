@@ -1,7 +1,6 @@
 import type { MapGroup } from "./types";
 import { queueMapGroupMember, shallowDeleteMapMember } from "./utils";
 import type { RenderGroup } from "./RenderGroup";
-import { type Fiber } from "../../instances/types";
 import { AbstractRenderGroup } from "./AbstractRenderGroup";
 
 export class DeferredRenderGroup extends AbstractRenderGroup<MapGroup> implements RenderGroup {
@@ -10,6 +9,7 @@ export class DeferredRenderGroup extends AbstractRenderGroup<MapGroup> implement
   constructor() {
     super(queueMapGroupMember, shallowDeleteMapMember);
   }
+
 
   beforeRenderStart() {
     const restorable = this.restorable;
@@ -40,9 +40,9 @@ export class DeferredRenderGroup extends AbstractRenderGroup<MapGroup> implement
   commit(iteration: number) {
     const commits = this.commits;
     for (const { queue, members } of commits) {
-      for (const fiber of queue) {
-        if (fiber.isUnmounted(iteration)) {
-          fiber.unmounted = true;
+      for (let j = 0; j < queue.length; j++) {
+        const fiber = queue[j]!;
+        if (fiber.unmounted ||=fiber.isUnmounted(iteration)) {
           continue;
         }
         if (!members.get(fiber)) continue;

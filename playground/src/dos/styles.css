@@ -393,102 +393,31 @@
   flex: 1;
 }
 
-.dos-sidebar {
-  box-sizing: border-box;
-  background: var(--dos-black);
-  display: flex;
-  flex-direction: column;
-  gap: 0.0667em;
-  padding: 0.6667em 0 0.9333em;
-  border-right: 0.2667em solid var(--dos-hi-cyan);
-  border-top: 0.1333em solid var(--dos-dkgray);
-  border-bottom: 0.1333em solid var(--dos-dkgray);
-  /* Follows the page while the demos scroll past. `dvh` tracks the visible
-     viewport, so a mobile URL bar collapsing does not clip the last link.
-     `align-self: start` stops the grid row from stretching it — sticky needs
-     the item to be shorter than its track — and `height` then fills the
-     viewport so the panel does not end under the last link. */
-  position: sticky;
-  top: 0;
-  align-self: start;
-  height: 100dvh;
-  overflow-y: auto;
-}
-
-.dos-sidebar__group {
-  box-sizing: border-box;
-  margin: 0;
-  color: var(--dos-hi-cyan);
-  font-family: var(--dos-font-ui);
-  font-size: 0.7333em;
-  font-weight: 600;
-  padding: 1.0909em 1.4545em 0.3636em;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
-.dos-sidebar__link {
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: var(--dos-white);
-  font-size: 0.9333em;
-  gap: 1em;
-  padding: 0.3571em 1.1429em 0.3571em 0.8571em;
-  text-decoration: none;
-  border-left: 0.2857em solid transparent;
-}
-
-.dos-sidebar__link:hover {
-  background: var(--dos-dkgray);
-}
-.dos-sidebar__link:focus-visible {
-  outline: var(--dos-focus) solid var(--dos-yellow);
-  outline-offset: -0.2143em;
-}
-
-.dos-sidebar__link[aria-current="page"] {
-  background: var(--dos-hi-cyan);
-  color: var(--dos-black);
-  border-left-color: var(--dos-white);
-  font-weight: 600;
-}
-
-.dos-sidebar__link[aria-disabled="true"] {
-  color: #8a8a8a;
-  pointer-events: none;
-}
-
-.dos-sidebar__count {
-  font-size: 0.8571em;
-  color: var(--dos-hi-cyan);
-  font-variant-numeric: tabular-nums;
-}
-.dos-sidebar__link:hover .dos-sidebar__count {
-  color: var(--dos-white);
-}
-.dos-sidebar__link[aria-current="page"] .dos-sidebar__count {
-  color: var(--dos-black);
-}
-
-.dos-shell {
-  box-sizing: border-box;
-  display: grid;
-  grid-template-columns: 14.6667em minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr);
-  min-height: 14.6667em;
-  align-items: start;
-}
-
 .dos-shell__main > * {
   min-width: 0;
-  /* Content column caps at 51.2em (768px at the kit's 15px base) and centres
-     in whatever space is left beside the sidebar. The cap is on the children,
-     not the column, so the blue screen still bleeds to the edge. */
+  /* Content caps at 51.2em (768px at the kit's 15px base) and centres in the
+     screen. The cap is on the children, not the pane, so the blue still bleeds
+     to the edge. */
   width: 100%;
   max-width: 51.2em;
   margin-inline: auto;
+}
+
+/*
+ * Two panels beside each other when the screen can take it, stacked when it
+ * cannot. `auto-fit` does the switching: at one column the second panel simply
+ * falls below the first, which is the narrow-screen layout.
+ */
+.dos-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(30em, 1fr));
+  gap: 0.8em;
+  align-items: start;
+}
+
+/* It holds two content columns, so it opts out of the single-column cap. */
+.dos-shell__main > .dos-split {
+  max-width: 104em;
 }
 
 .dos-shell__main {
@@ -498,9 +427,9 @@
   display: flex;
   flex-direction: column;
   gap: 0.8em;
-  /* Grid and flex items default to `min-width: auto`, i.e. min-content — one
-     wide child (a chart, a table) would otherwise widen this column and push
-     the whole page into a horizontal scroll. */
+  /* Flex items default to `min-width: auto`, i.e. min-content — one wide child
+     (a chart, a table) would otherwise widen this pane and push the whole page
+     into a horizontal scroll. */
   min-width: 0;
   padding: 1.0667em 1.2em;
   border-top: 0.1333em solid var(--dos-dkgray);
@@ -954,6 +883,32 @@
   border-left: 0.1333em solid var(--dos-hi-cyan);
   border-right: 0.1333em solid var(--dos-cyan-shadow);
   border-bottom: 0.1333em solid var(--dos-cyan-shadow);
+}
+
+.dos-range[disabled] {
+  cursor: not-allowed;
+}
+.dos-range[disabled]::-webkit-slider-runnable-track {
+  background: var(--dos-gray);
+  border-color: var(--dos-dkgray);
+}
+.dos-range[disabled]::-moz-range-track {
+  background: var(--dos-gray);
+  border-color: var(--dos-dkgray);
+}
+.dos-range[disabled]::-webkit-slider-thumb {
+  background: var(--dos-gray);
+  border-top-color: var(--dos-bevel-light);
+  border-left-color: var(--dos-bevel-light);
+  border-right-color: var(--dos-bevel-dark);
+  border-bottom-color: var(--dos-bevel-dark);
+}
+.dos-range[disabled]::-moz-range-thumb {
+  background: var(--dos-gray);
+  border-top-color: var(--dos-bevel-light);
+  border-left-color: var(--dos-bevel-light);
+  border-right-color: var(--dos-bevel-dark);
+  border-bottom-color: var(--dos-bevel-dark);
 }
 
 /* ---------- Loaders ---------- */
@@ -1454,7 +1409,6 @@
     box-shadow: none;
   }
   .dos-nav-bar__link[aria-current="page"],
-  .dos-sidebar__link[aria-current="page"],
   .dos-tab[aria-selected="true"] {
     forced-color-adjust: none;
   }
@@ -1488,9 +1442,6 @@
   .dos-nav-bar__link {
     padding: 0.8571em 1.4286em;
   }
-  .dos-sidebar__link {
-    padding: 0.7143em 1.1429em 0.7143em 0.8571em;
-  }
   .dos-list__row {
     padding: 0.7143em 0.8571em;
   }
@@ -1510,17 +1461,6 @@
   }
   .dos-spec__example {
     padding-bottom: 0.8em;
-  }
-}
-
-@media (max-width: 40em) {
-  .dos-shell {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  /* No room for a side rail on a phone. The demos are all on one page, so
-     dropping it costs no reachability — scrolling gets you everywhere. */
-  .dos-sidebar {
-    display: none;
   }
 }
 

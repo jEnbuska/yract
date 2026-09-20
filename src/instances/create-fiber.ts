@@ -16,7 +16,8 @@ export function createFiber(
   parentDom: Node,
   ns: TagNamespace,
 ): ComponentFiber {
-  if (intent.component === Defer) {
+  const {component} = intent
+  if (component === Defer) {
     return new Defer.Fiber(
       intent as DraftBy<Slot<ComponentSlotType>, "instance" | "prevProps">,
       parentCtx,
@@ -37,6 +38,7 @@ export function createFiber(
       ns,
     );
   }
+
   return new ComponentFiber(
     intent as DraftBy<Slot<ComponentSlotType>, "instance" | "prevProps">,
     parentCtx,

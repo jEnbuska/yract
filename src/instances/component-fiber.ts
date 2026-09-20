@@ -11,6 +11,7 @@ import { depsChanged, shallowEqual, stripFrameworkProps } from "../general";
 import { DeferContext } from "../hooks/defer";
 import { resolveComponentGenerator } from "../render/resolve-component-generator";
 import type { UIAction } from "../ui-actions/types";
+import { INSERT_UI_ACTION } from "../ui-actions/constants";
 import type { Fiber } from "./types";
 
 export class ComponentFiber<TProps extends Record<string, unknown> = Record<string, any>> {
@@ -18,6 +19,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
   public readonly ns: TagNamespace;
   public preparedSlots: Map<string, Slot> | undefined = undefined;
   public confidentIteration: number;
+  initialMounted = false;
   unmounted: boolean | undefined = undefined;
   readonly component: Component<any>;
   readonly depth: number;
@@ -39,6 +41,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
   protected propsPrepared = false;
   readonly headNode: Comment;
   readonly tailNode: Comment;
+
 
   deps?: DependencyList;
 
@@ -119,19 +122,21 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
   }
 
   render() {
+    const scheduler = this.rctx.scheduler;
     if (!this.propsPrepared) {
+
       this.props = stripFrameworkProps<any>(this.props);
       this.propsPrepared = true;
     }
     const generator = this.component(this.props);
     const child = resolveComponentGenerator(generator, this);
     if (!this.slot) {
+      if (!this.initialMounted && this.parent) scheduler.queuePreCommit(this.parent);
       this.pendingSlot = mountFiber(this, child);
     } else {
       this.pendingSlot = reconcilerFiber(this, child);
     }
-    const { unmountInstances, rctx } = this;
-    const { scheduler } = rctx;
+    const { unmountInstances } = this;
 
     if (unmountInstances?.size) {
       for (const child of unmountInstances.values()) {
@@ -145,11 +150,74 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     // `slot` never catches up with `pendingSlot` and the prepared-node cache
     // outlives the render that filled it.
     scheduler.scheduleCommit(this);
+    // Nothing of ours is in the document yet, so our parent can fold our whole
+    // staging fragment into its own and spare us an insert. A parent that has
+    // not mounted either queues ITS parent when it renders, so the collapse
+    // cascades up to the highest ancestor that is still mounting.
     this.renderReasons.clear();
     this.renders++;
   }
 
-  // Rename and flip to isMounted
+  /**
+   * `reconcile` walks children in reverse and hands each new slot the NEXT
+   * sibling's head marker as its boundary, so a run of consecutive new slots
+   * produces consecutive inserts whose boundaries are internal to the run: the
+   * one for slot 7 points at a marker sitting in the fragment of the one for
+   * slot 8. Whenever that holds the later fragment absorbs the earlier one and
+   * the action disappears — new slots at 3..8 collapse to a single insert.
+   */
+  private chunkInserts(): void {
+    const actions = this.uiActions;
+    if (!actions || actions.length < 2) return;
+    const merged: UIAction[] = [];
+    let chunk: Node | undefined;
+    for (const action of actions) {
+      if (action.type !== INSERT_UI_ACTION) {
+        // An intervening action has to keep its position relative to the
+        // inserts around it, so it ends a run.
+        chunk = undefined;
+        merged.push(action);
+        continue;
+      }
+      const { before, node } = action;
+      if (chunk && before && before.parentNode === chunk) {
+        chunk.insertBefore(node, before);
+        continue;
+      }
+      chunk = node.nodeType === Node.DOCUMENT_FRAGMENT_NODE ? node : undefined;
+      merged.push(action);
+    }
+    if (merged.length !== actions.length) this.uiActions = merged;
+  }
+
+  /**
+   * Runs after render, before commit. A child mounting for the first time emits
+   * exactly one action: its own staging fragment inserted before its own tail
+   * marker. While that marker is still out of the document the content can be
+   * spliced in ahead of it instead — same final position, but it rides along on
+   * whichever insert eventually commits the fragment holding it.
+   */
+  preCommit(): void {
+    this.chunkInserts();
+    const { instances } = this;
+    if (!instances) return;
+    for (const child of instances.values()) {
+      if (child.initialMounted) continue;
+      const { uiActions, tailNode } = child;
+      if (uiActions?.length !== 1) continue;
+      const action = uiActions[0]!;
+      if (action.type !== INSERT_UI_ACTION || action.before !== tailNode) continue;
+      // Already live: the child must do its own insert. Being out of the
+      // document covers both a pending fragment and the detached element
+      // subtree a nested child sits in.
+      if (tailNode.isConnected) continue;
+      tailNode.parentNode!.insertBefore(action.node, tailNode);
+      // Emptied rather than dropped: the child still has to reach the commit so
+      // `slot` catches up with `pendingSlot` and the prepared-node cache clears.
+      uiActions.length = 0;
+    }
+  }
+
   isUnmounted(renderIteration: number): boolean {
     if (this.unmounted) return true;
     if (this.confidentIteration === renderIteration) return false;
