@@ -34,7 +34,7 @@
     "test:visual": "npm test --prefix playground",
     "lint": "oxlint --type-aware",
     "lint:fix": "oxlint --type-aware --fix",
-    "fix": "npm run lint:fix && npm run format",
+    "fix": "npm run format && npm run lint:fix && npm run format",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "knip": "knip"

@@ -1,11 +1,10 @@
 import type { MapFiberGroup } from "./types";
 import { createMapGroup, queueMapGroupMember, shallowDeleteMapMember } from "./utils";
-import type { RenderGroup } from "./RenderGroup";
 import { AbstractRenderGroup } from "./AbstractRenderGroup";
 import { RenderClock } from "./RenderClock";
 import type { Fiber } from "../../instances/types";
 
-export class DeferredRenderGroup extends AbstractRenderGroup<MapFiberGroup> implements RenderGroup {
+export class DeferredRenderGroup extends AbstractRenderGroup<MapFiberGroup> {
   readonly name = "DeferredGroup";
   shouldExit: () => boolean;
   constructor(

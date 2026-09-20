@@ -1,13 +1,12 @@
 import type { SetFiberGroup } from "./types";
 import { createSetGroup, queueSetGroupMember, shallowDeleteSetMember } from "./utils";
-import type { RenderGroup } from "./RenderGroup";
 import { AbstractRenderGroup } from "./AbstractRenderGroup";
 import { unmountHookCleanup } from "../../hooks/process-hook";
 import { effectResolver } from "../../hooks/effect";
 import { RenderClock } from "./RenderClock";
 import { Fiber } from "../../instances/types";
 
-export class SyncRenderGroup extends AbstractRenderGroup<SetFiberGroup> implements RenderGroup {
+export class SyncRenderGroup extends AbstractRenderGroup<SetFiberGroup> {
   readonly name = "SyncGroup";
 
 
