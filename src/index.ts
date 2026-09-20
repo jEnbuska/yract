@@ -30,5 +30,5 @@ export { Root } from "./render/root";
 export type { ComponentGenerator } from "./general-types";
 export type { DependencyList } from "./general-types";
 
-export { shallow } from "./shallow"
-export type { Shallow } from "./shallow"
+export { shallow } from "./shallow";
+export type { Shallow } from "./shallow";

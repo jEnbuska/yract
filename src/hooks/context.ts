@@ -25,7 +25,7 @@ export function useContext<T>(
 export function useContext<T, const D extends unknown[], R>(
   ctx: Context<T>,
   depsSelector: (ctx: T) => D,
-  transform: (...args: D) => R,
+  transform: (ctx: T, ...args: D) => R,
 ): Generator<ContextHookDescriptor, R>;
 export function* useContext<T, D extends unknown[], R>(
   ctx: Context<T>,
@@ -47,7 +47,7 @@ export interface ContextHookState<T = unknown, D = T> {
   reason: symbol;
   ctx: Context<T>;
   depsSelector: (ctx: unknown) => unknown[];
-  transform?: (...args: unknown[]) => D;
+  transform?: (state: T, ...args: unknown[]) => D;
   /** Selected deps at the time of the most recent successful render. */
   lastRenderedDepsSelected: unknown[];
   /** Selected deps observed by the subscribe callback since the last render. */
@@ -118,7 +118,10 @@ export function processContext(
   state.lastRenderedDepsSelected = initialSelected;
   state.currentSelected = initialSelected;
   if (state.transform) {
-    state.lastTransformResult = state.transform(...initialSelected);
+    state.lastTransformResult = state.transform(
+      instance.ctx.get(descriptor.ctx.id),
+      ...initialSelected,
+    );
   } else {
     state.lastTransformResult = handle.ref.current;
   }

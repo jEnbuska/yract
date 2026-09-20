@@ -1,10 +1,10 @@
 import { createResolvable } from "../../create-resolvable";
 
-export class DeferredRenderThrottler {
+export class RenderClock {
   #workYieldDeadline = 0;
   readonly #chunkMs: number;
   readonly #awaitChannel = new MessageChannel();
-
+  renderIteration = 0;
   constructor(chunkMs: number) {
     this.#chunkMs = chunkMs;
   }

@@ -44,7 +44,7 @@ function sortRows(rows: PersonRow[] | undefined, sortDir: SortDir) {
 type PersonTableProps = {
   rows: PersonRow[] | undefined;
   Defer: Component<PropsWithChildren>;
-  deferring: boolean
+  deferring: boolean;
 };
 export function* PersonTable({ rows, deferring, Defer }: PersonTableProps) {
   const [sortProperty, setSortProperty] = yield* useState<"name" | "city">("name");

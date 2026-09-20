@@ -104,7 +104,7 @@ class DeferFiber extends ComponentFiber<DeferProps> {
   }
 
   private prepareAfterDeferredRender() {
-    this.schedulePostRenderCallback(MOUNT_REASON);
+    this.schedulePostCommit(MOUNT_REASON);
     this.hookStates = [
       {
         type: $EFFECT,

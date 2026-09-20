@@ -1,40 +1,47 @@
-import type { CollectionGroup, SetGroup } from "./types";
-import { queueSetGroupMember } from "./utils";
+import type { FiberGroup, SetFiberGroup } from "./types";
+import { createSetGroup, queueSetGroupMember } from "./utils";
 import { type Fiber } from "../../instances/types";
 import { applyDomAction } from "../../ui-actions/utils";
+import { unmountHookCleanup } from "../../hooks/process-hook";
+import { effectResolver } from "../../hooks/effect";
+import { stack } from "../../instances/utils";
+import { RenderClock } from "./RenderClock";
 
-export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
-  protected readonly restorable: TGroup[] = [];
-  protected readonly renders: TGroup[] = [];
-  protected readonly commits: TGroup[] = [];
-  protected readonly postRenderCallbacks: SetGroup[] = [];
-  protected readonly preCommit: SetGroup[] = [];
+export abstract class AbstractRenderGroup<TGroup extends FiberGroup> {
+  protected readonly rendersGroup: TGroup;
+  protected readonly commitsGroup: TGroup;
+  protected readonly preCommitGroup: SetFiberGroup = createSetGroup();
+  protected readonly postCommitGroup: SetFiberGroup = createSetGroup();
   protected renderHead = Number.MAX_SAFE_INTEGER;
   protected preCommitHead = -1;
-  #addFiber: (groups: TGroup[], fiber: Fiber) => boolean;
-  #removeFiber: (groups: TGroup[], fiber: Fiber) => void;
+  protected renderClock: RenderClock;
+  #addFiber: (groups: TGroup, fiber: Fiber) => boolean;
+  #removeFiber: (groups: TGroup, fiber: Fiber) => void;
 
   constructor(
-    addFiber: (groups: TGroup[], fiber: Fiber) => boolean,
-    removeFiber: (groups: TGroup[], fiber: Fiber) => void,
+    renderClock: RenderClock,
+    addFiber: (groups: TGroup, fiber: Fiber) => boolean,
+    removeFiber: (groups: TGroup, fiber: Fiber) => void,
+    createGroup: () => TGroup,
   ) {
-    this.schedulePostRenderCallback = this.schedulePostRenderCallback.bind(this);
+    this.renderClock = renderClock
+    this.schedulePostCommit = this.schedulePostCommit.bind(this);
     this.#addFiber = addFiber;
     this.#removeFiber = removeFiber;
+    this.commitsGroup = createGroup();
+    this.rendersGroup = createGroup();
   }
 
-  hasRenderQueue() {
+  cancelCommit(fiber: Fiber) {
+    this.#removeFiber(this.commitsGroup, fiber);
+  }
+
+  hasRenderQueue = () => {
     return this.renderHead !== Number.MAX_SAFE_INTEGER;
   }
 
-  queueRender(fiber: Fiber) {
-    if (!this.#addFiber(this.renders, fiber)) return;
-    const { depth } = fiber;
-    this.renderHead = Math.min(depth, this.renderHead);
-  }
-
   queuePreCommit(fiber: Fiber) {
-    queueSetGroupMember(this.preCommit, fiber)
+    queueSetGroupMember(this.preCommitGroup, fiber);
     const { depth } = fiber;
     this.preCommitHead = Math.max(depth, this.preCommitHead);
   }
@@ -43,13 +50,24 @@ export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
     return this.preCommitHead !== -1;
   }
 
-  *getPrecommitIterable() {
-    const preCommit = this.preCommit;
+  ensureUnmount(fiber: Fiber) {
+    fiber.unmounted = true;
+    const {rendersGroup, commitsGroup, preCommitGroup, postCommitGroup} = this;
+    rendersGroup.members.delete(fiber)
+    preCommitGroup.members.delete(fiber)
+    commitsGroup.members.delete(fiber)
+    postCommitGroup.members.delete(fiber)
+  }
+
+
+  *getPrecommitIterable(iteration: number) {
+    const { queues, members } = this.preCommitGroup;
     for (let i = this.preCommitHead; i >= 0; i--) {
-      const { queue, members } = preCommit[i]!;
+      const queue = queues[i]!;
       while (queue.length) {
         let fiber = queue.pop()!;
         if (!members.delete(fiber)) continue;
+        if (fiber.unmounted ||= fiber.isUnmounted(iteration)) continue;
         yield fiber;
       }
       this.preCommitHead--;
@@ -58,33 +76,43 @@ export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
   }
 
   cancelRender(fiber: Fiber) {
-    this.#removeFiber(this.renders, fiber);
+    this.#removeFiber(this.rendersGroup, fiber);
   }
 
-  schedulePostRenderCallback(fiber: Fiber) {
-    queueSetGroupMember(this.postRenderCallbacks, fiber);
+  schedulePostCommit(fiber: Fiber) {
+    queueSetGroupMember(this.postCommitGroup, fiber);
   }
 
-  *getPostRenderCallbackIterable(renderIteration: number) {
-    const effects = this.postRenderCallbacks;
-    for (let i = effects.length - 1; i >= 0; i--) {
-      const { queue, members } = effects[i]!;
+  cancelPostCommit(fiber: Fiber) {
+    this.postCommitGroup.members.delete(fiber);
+  }
+
+  postCommit() {
+    const { renderIteration } = this.renderClock;
+    const { members, queues } = this.postCommitGroup;
+    for (let i = queues.length - 1; i >= 0; i--) {
+      const queue = queues[i]!;
       while (queue.length) {
         const fiber = queue.pop()!;
+        if (!members.has(fiber)) continue;
         fiber.unmounted = fiber.isUnmounted(renderIteration);
         if (fiber.instances && fiber.unmounted) {
+          fiber.hookStates.forEach(unmountHookCleanup);
           for (const child of fiber.instances.values()) {
-            this.schedulePostRenderCallback(child);
+            child.unmounted = true;
+            this.schedulePostCommit(child);
           }
+          continue;
         }
-        yield fiber;
+        fiber.hookStates.forEach(effectResolver);
+        fiber.postCommitReasons?.clear();
       }
-      members.clear();
     }
+    members.clear();
   }
 
   scheduleCommit(fiber: Fiber) {
-    this.#addFiber(this.commits, fiber);
+    this.#addFiber(this.commitsGroup, fiber);
   }
 
   protected static applyUIActions(fiber: Fiber) {
@@ -94,14 +122,21 @@ export abstract class AbstractRenderGroup<TGroup extends CollectionGroup> {
       applyDomAction(uiActions![i]!, delegationRoot);
     }
     const { refsToAssign } = fiber;
-    // The prepared-node cache belongs to the render that filled it: once those
-    // nodes are in the document, reusing them would hand a live node back.
-
     fiber.slot = fiber.pendingSlot;
-    fiber.preparedSlots = undefined;
     fiber.pendingSlot = undefined;
     fiber.initialMounted = true;
     if (refsToAssign) for (const [ref, element] of refsToAssign) ref.current = element;
+  }
 
+  renderFiber(fiber: Fiber, renderIteration: number) {
+    try {
+      fiber.confidentIteration = renderIteration;
+      fiber.render();
+    } catch (cause) {
+      throw new Error(
+        `Failed to render component ${fiber.component.name} at:${"\n"}${stack(fiber)}`,
+        { cause },
+      );
+    }
   }
 }

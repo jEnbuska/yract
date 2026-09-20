@@ -17,15 +17,33 @@ import { $STATE } from "./constants";
  *   return <button onClick={() => setCount((c) => c + 1)}>{count}</button>;
  * }
  */
-export function* useState<T>(
+
+export function useState<T>(
   initialValue: T | (() => T),
+  deps?: DependencyList,
+): Generator<StateHookDescriptor<T>, [T, (value: T | ((prev: T) => T)) => Promise<void>]>;
+export function useState<T>(
+  initialValue?: T | (() => T),
+  deps?: DependencyList,
+): Generator<
+  StateHookDescriptor<T | undefined>,
+  [
+    T | undefined,
+    (value: T | undefined | ((prev: T | undefined) => T | undefined)) => Promise<void>,
+  ]
+>;
+export function* useState(
+  initialValue: any | (() => any),
   deps: DependencyList = [],
-): Generator<StateHookDescriptor<T>, [T, (value: T | ((prev: T) => T)) => Promise<void>]> {
-  const { value, setState }: StateHookState<T> = yield {
+): Generator<
+  StateHookDescriptor<any>,
+  [any, (value: any | ((prev: any) => any)) => Promise<void>]
+> {
+  const { value, setState }: StateHookState<any> = yield {
     type: $STATE,
     initialValue,
     deps,
-  } satisfies StateHookDescriptor<T>;
+  } satisfies StateHookDescriptor<any>;
   return [value, setState] as const;
 }
 
@@ -73,13 +91,6 @@ export function createStateSetter(
   const cached = cache.get(state);
   if (cached) return cached;
   return (newValue: unknown): Promise<void> => {
-    if (instance.rctx.scheduler.rendering) {
-      throw new HookRuleError(
-        instance,
-        `Was calling "setState" during <${instance.rctx.scheduler.rendering}> component render!
-"setState" should only be called from events and by useEffect`,
-      );
-    }
     const nextValue = resolveNextValue(newValue, state.pendingValue);
     // No change — cancel any pending rerender and resolve immediately.
     if (nextValue === state.value) {

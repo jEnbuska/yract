@@ -12,29 +12,27 @@ import { moveSlotNodes } from "./utils/move-slot-nodes";
 import { insertNode } from "./utils/insert-node";
 import type { DelegationRoot } from "../render/delegation";
 
-
 export function applyDomAction(action: UIAction, root: DelegationRoot) {
-    switch (action.type) {
-      case MOVE_UI_ACTION: {
-        moveSlotNodes(action.slot, action.parentDom, action.before);
-        break;
-      }
-      case REMOVE_UI_ACTION:
-        removeSlotNodes(action.slot);
-        break;
-      case INSERT_UI_ACTION:
-        insertNode(action.parentDom, action.node, action.before);
-        break;
-      case TEXT_UI_ACTION: {
-        const { slot } = action;
-        slot.headNode.textContent = slot.text;
-        break;
-      }
-      case UPDATE_UI_ACTION: {
-        const { slot, patch } = action;
-        updateElementProps(slot.headNode, patch, root);
-        break;
-      }
+  switch (action.type) {
+    case MOVE_UI_ACTION: {
+      moveSlotNodes(action.slot, action.parentDom, action.before);
+      break;
     }
-
+    case REMOVE_UI_ACTION:
+      removeSlotNodes(action.slot);
+      break;
+    case INSERT_UI_ACTION:
+      insertNode(action.parentDom, action.node, action.before);
+      break;
+    case TEXT_UI_ACTION: {
+      const { slot } = action;
+      slot.headNode.textContent = slot.text;
+      break;
+    }
+    case UPDATE_UI_ACTION: {
+      const { slot, patch } = action;
+      updateElementProps(slot.headNode, patch, root);
+      break;
+    }
+  }
 }

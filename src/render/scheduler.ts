@@ -2,49 +2,48 @@ import { createResolvable } from "../create-resolvable";
 import { effectResolver } from "../hooks/effect";
 import { stateResolver } from "../hooks/state";
 import { DeferredRenderGroup } from "./groups/DeferredRenderGroup";
-import { queueSetGroupMember, shallowDeleteSetMember } from "./groups/utils";
-import type { SetGroup } from "./groups/types";
+import { createSetGroup, queueSetGroupMember, shallowDeleteSetMember } from "./groups/utils";
 import { SyncRenderGroup } from "./groups/SyncRenderGroup";
-import type { RenderGroup } from "./groups/RenderGroup";
-import { unmountHookCleanup } from "../hooks/process-hook";
 import type { Fiber } from "../instances/types";
-import { DeferredRenderThrottler } from "./groups/DeferredRenderThrottler";
-import { UNMOUNT } from "../reasons";
+import { RenderClock } from "./groups/RenderClock";
+import { stack } from "../instances/utils";
 
 export class Scheduler {
-  private _rendering = "";
+
   renderIteration = 0;
-  get rendering() {
-    return this._rendering;
+  private readonly syncGroup: SyncRenderGroup;
+  private readonly deferredGroup: DeferredRenderGroup;
+  private renderClock = new RenderClock(20);
+  private renderTrigger = createResolvable<boolean>();
+
+  constructor() {
+    this.syncGroup = new SyncRenderGroup(this.renderClock)
+    this.deferredGroup = new DeferredRenderGroup(this.renderClock, this.syncGroup.hasRenderQueue)
+    void this.renderTrigger.promise.then(this.run);
   }
 
-  private readonly syncGroup = new SyncRenderGroup();
-  private readonly deferredGroup = new DeferredRenderGroup();
-  private throttler = new DeferredRenderThrottler(20);
   private getGroup(deferred: boolean) {
     if (deferred) return this.deferredGroup;
     return this.syncGroup;
   }
 
-  private resolveGroups: Array<SetGroup> = [];
+  private resolveGroups = createSetGroup();
 
-  private renderTrigger = createResolvable<boolean>();
-
-  constructor() {
-    void this.renderTrigger.promise.then(this.run);
-  }
-
-  queueRender(fiber: Fiber, deferred = fiber.isDeferred()): void {
-    this.getGroup(deferred).queueRender(fiber);
+  queueRender(fiber: Fiber): void {
+    this.getGroup(fiber.isDeferred()).queueRender(fiber);
     this.renderTrigger.resolve(true);
   }
 
-  cancelRender(fiber: Fiber, deferred = fiber.isDeferred()): void {
-    this.getGroup(deferred).cancelRender(fiber);
+  cancelRender(fiber: Fiber): void {
+    this.getGroup(fiber.isDeferred()).cancelRender(fiber);
   }
 
-  schedulePostRenderCallback(fiber: Fiber, deferred = fiber.isDeferred()): void {
-    this.getGroup(deferred).schedulePostRenderCallback(fiber);
+  schedulePostCommit(fiber: Fiber): void {
+    this.getGroup(fiber.isDeferred()).schedulePostCommit(fiber);
+  }
+
+  cancelPostCommit(fiber: Fiber): void {
+    this.getGroup(fiber.isDeferred()).cancelPostCommit(fiber);
   }
 
   scheduleStateResolve(fiber: Fiber): void {
@@ -55,102 +54,93 @@ export class Scheduler {
     shallowDeleteSetMember(this.resolveGroups, fiber);
   }
 
-  queuePreCommit(fiber: Fiber, deferred = fiber.isDeferred()): void {
-    this.getGroup(deferred).queuePreCommit(fiber);
+  cancelCommit(fiber: Fiber): void {
+    this.getGroup(fiber.isDeferred()).cancelCommit(fiber);
   }
 
-  scheduleCommit(fiber: Fiber, deferred = fiber.isDeferred()): void {
-    this.getGroup(deferred).scheduleCommit(fiber);
+  queuePreCommit(fiber: Fiber): void {
+    this.getGroup(fiber.isDeferred()).queuePreCommit(fiber);
+  }
+
+  ensureUnmount(fiber: Fiber): void {
+    this.getGroup(fiber.isDeferred()).ensureUnmount(fiber);
+  }
+
+
+  scheduleCommit(fiber: Fiber): void {
+    this.getGroup(fiber.isDeferred()).scheduleCommit(fiber);
   }
 
   private run = async (): Promise<void> => {
-    const { throttler } = this;
-    throttler.onRenderStart();
-    const { syncGroup, deferredGroup } = this;
+    const { syncGroup, deferredGroup, renderClock } = this;
     while (await this.renderTrigger.promise) {
       while (syncGroup.hasRenderQueue() || deferredGroup.hasRenderQueue()) {
-        this.renderIteration++;
-        this.handleSyncGroupRender();
-        this.runPostRenderCallbacks(syncGroup);
-        if(this.syncGroup.hasRenderQueue()) continue;
-        if (throttler.shouldThrottle()) {
-          await throttler.throttle()
-          if(this.syncGroup.hasRenderQueue()) continue;
+       renderClock.renderIteration++;
+       syncGroup.render();
+       syncGroup.preCommit();
+       syncGroup.commit();
+       syncGroup.postCommit();
+       if (syncGroup.hasRenderQueue()) continue;
+       if(!deferredGroup.hasRenderQueue()) break;
+       await renderClock.throttle();
+       while(!this.syncGroup.hasRenderQueue() && deferredGroup.hasRenderQueue()) {
+        if(await deferredGroup.render()) {
+          await deferredGroup.preCommit()
         }
-        await this.handleDeferredGroupRender();
+       }
       }
-      const iteration = this.renderIteration;
-
-      deferredGroup.commit(this.renderIteration);
+      deferredGroup.commit();
       const { resolveGroups } = this;
-      this.resolveGroups = [];
-
-
-      this.runPostRenderCallbacks(deferredGroup);
-      for (const { members, queue } of resolveGroups) {
-        for (const next of queue) {
-          if (!members.has(next)) continue;
-          if (next.unmounted || next.isUnmounted(iteration)) continue;
-          next.hookStates?.forEach(stateResolver);
-          next.resolveReasons?.clear();
+      this.resolveGroups = createSetGroup();
+      deferredGroup.postCommit();
+      const {members, queues} = resolveGroups
+      const {renderIteration} = this.renderClock
+      for(let i = 0; i<queues.length;i++) {
+        const queue = queues[i]!;
+        for (let j = 0; j<queues.length; j++) {
+          const fiber = queue[j]!
+          if (!members.has(fiber)) continue;
+          if (fiber.isUnmounted(renderIteration)) continue;
+          fiber.hookStates?.forEach(stateResolver);
+          fiber.resolveReasons?.clear();
         }
       }
 
       if (syncGroup.hasRenderQueue() || deferredGroup.hasRenderQueue()) {
-        continue
+        continue;
       }
       this.renderTrigger = createResolvable();
     }
   };
 
-  private handleSyncGroupRender(): void {
-    const { syncGroup } = this;
-    const iteration = this.renderIteration;
-    for (const fiber of syncGroup.getRenderIterable()) {
-      if (fiber.unmounted ||=fiber?.isUnmounted(iteration)) continue;
-      this.renderFiber(fiber);
-    }
-    for(const fiber of syncGroup.getPrecommitIterable()) {
-      fiber.preCommit()
-    }
-    syncGroup.commit();
-  }
 
   private async handleDeferredGroupRender() {
-    const { deferredGroup, syncGroup, throttler } = this;
-    const iteration = this.renderIteration;
-    deferredGroup.beforeRenderStart();
-    if (syncGroup.hasRenderQueue()) return;
-    for (const fiber of deferredGroup.getRenderIterable()) {
-      if (fiber.unmounted ||=fiber?.isUnmounted(iteration)) continue;
-      fiber.cancelPostRenderCallback(UNMOUNT);
-      this.renderFiber(fiber);
-      if (this.throttler.shouldThrottle()) {
-        await throttler.throttle()
-        if(syncGroup.hasRenderQueue()) return;
-      }
-    }
-    for (const fiber of deferredGroup.getPrecommitIterable()) {
-      if (throttler.shouldThrottle()) {
-        await throttler.throttle()
-        if(syncGroup.hasRenderQueue()) return;
-        if(deferredGroup.hasRenderQueue()) return;
-      }
-      if (fiber.unmounted ||= fiber.isUnmounted(iteration)) continue;
-      fiber.preCommit()
-    }
-  }
+    const { deferredGroup, syncGroup, renderClock } = this;
 
-
-  private runPostRenderCallbacks(group: RenderGroup) {
-    const iteration = this.renderIteration;
-    for (const next of group.getPostRenderCallbackIterable(iteration)) {
-      if (next.unmounted) {
-        next.hookStates.forEach(unmountHookCleanup);
-      } else {
-        next.hookStates.forEach(effectResolver);
-        next.postRenderCallbackReasons?.clear();
+    while(deferredGroup.hasRenderQueue() || deferredGroup.hasPrecommitQueue()) {
+      const iteration = this.renderIteration;
+      //if (syncGroup.hasRenderQueue()) return;
+      for (const fiber of deferredGroup.getRenderIterable()) {
+        if ((fiber.unmounted ||= fiber.isUnmounted(iteration))) {
+          continue;
+        }
+        this.renderFiber(fiber);
+        if (this.renderClock.shouldThrottle()) {
+          await renderClock.throttle();
+          if(syncGroup.hasRenderQueue()) return
+        }
       }
+      let preCommits = 0;
+      for (const fiber of deferredGroup.getPrecommitIterable(iteration)) {
+        if ((fiber.unmounted ||= fiber.isUnmounted(iteration))) continue;
+        fiber.preCommit();
+        if (renderClock.shouldThrottle()) {
+          await renderClock.throttle();
+          if (syncGroup.hasRenderQueue()) return;
+          if (deferredGroup.hasRenderQueue()) break;
+        }
+      }
+      console.log('pre commits', preCommits);
     }
   }
 
@@ -160,7 +150,7 @@ export class Scheduler {
       fiber.render();
     } catch (cause) {
       throw new Error(
-        `Failed to render component ${fiber.component.name} at:${"\n"}${fiber.stack()}`,
+        `Failed to render component ${fiber.component.name} at:${"\n"}${stack(fiber)}`,
         { cause },
       );
     }

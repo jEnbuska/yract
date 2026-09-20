@@ -40,9 +40,8 @@ import type { Fiber } from "../instances/types";
 function prepareFiber(fiber: Fiber) {
   const { instances } = fiber;
   // When even we hit an instance when walking the tree we remove the instance from the 'unmountedInstances' and it will be moved to nextInstances
-  fiber.unmountInstances = instances?.size ? new Map(instances) : undefined;
+  fiber.prevInstances = instances?.size ? new Map(instances) : undefined;
   fiber.refsToAssign = undefined;
-  fiber.preparedSlots ??= new Map<string, Slot>();
   fiber.instances = undefined;
   fiber.uiActions = [];
   return fiber as RequiredBy<Fiber, "uiActions">;

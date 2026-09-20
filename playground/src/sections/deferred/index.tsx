@@ -40,24 +40,24 @@ export function* DeferredDemo() {
   const [search, setSearch] = yield* useState("");
   const resolvable = yield* useRef<PromiseWithResolvers<void> | undefined>(undefined);
   const [count, setCount] = yield* useState(30_000);
-  const controllerRef = yield *useRef(new AbortController());
+  const controllerRef = yield* useRef(new AbortController());
   const updateCount = yield* useStable(async (n: number) => {
     if (n === count) return;
-    controllerRef.current.abort()
-    void setCount(n)
-    const { signal } = controllerRef.current = new AbortController();
-    const { resolve } = resolvable.current = Promise.withResolvers();
-    const rows = await getPersonRows(n, signal)
-    return setRows(rows).then(resolve)
+    controllerRef.current.abort();
+    void setCount(n);
+    const { signal } = (controllerRef.current = new AbortController());
+    const { resolve } = (resolvable.current = Promise.withResolvers());
+    const rows = await getPersonRows(n, signal);
+    return setRows(rows).then(resolve);
   });
 
   const [highlight, setHighlight] = yield* useState<string>(NO_HIGHLIGHT);
 
   const [rows, setRows] = yield* useState<PersonRow[] | undefined>();
-  yield *useEffect((signal) => {
-    signal.onabort = () => controllerRef.current.abort()
-    getPersonRows(count, controllerRef.current.signal).then(setRows)
-  }, [])
+  yield* useEffect((signal) => {
+    signal.onabort = () => controllerRef.current.abort();
+    void getPersonRows(count, controllerRef.current.signal).then(setRows);
+  }, []);
 
   const filtered = yield* useMemo(filterRows, [search, rows]);
   const highlighted = yield* useMemo(
@@ -84,7 +84,11 @@ export function* DeferredDemo() {
           <PersonFiltering
             value={search}
             setValue={setSearch}
-            matches={rows ? `${deferring ? '?' : filtered!.length}/${rows.length}`:`${search ? '?': count}/${count}`}
+            matches={
+              rows
+                ? `${deferring ? "?" : filtered!.length}/${rows.length}`
+                : `${search ? "?" : count}/${count}`
+            }
           />
           <PersonCount count={count} updateCount={updateCount} loading={deferring || !rows} />
           <PersonHighlight

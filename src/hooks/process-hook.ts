@@ -42,12 +42,6 @@ export function processHook(
 ): unknown {
   const hookStates = instance.hookStates!;
   switch (descriptor.type) {
-    case $STATE: {
-      const prev = getTypedPrev(hookStates, hookIndex, $STATE, instance);
-      const state = processState(descriptor, prev, instance);
-      hookStates[hookIndex] = state;
-      return state;
-    }
     case $REF: {
       const prev = getTypedPrev(hookStates, hookIndex, $REF, instance);
       const state = processRef(descriptor, prev);
@@ -90,6 +84,12 @@ export function processHook(
       hookStates[hookIndex] = state;
       return getContextValue(state, instance);
     }
+    case $STATE: {
+      const prev = getTypedPrev(hookStates, hookIndex, $STATE, instance);
+      const state = processState(descriptor, prev, instance);
+      hookStates[hookIndex] = state;
+      return state;
+    }
     default: {
       const _exhaustive: never = descriptor;
       throw new Error(
@@ -115,7 +115,7 @@ export function setupSkippedHookCleanups(instance: ComponentFiber, hookIndex: nu
         break;
     }
   }
-  instance.schedulePostRenderCallback(CLEANUP_SYMBOL);
+  instance.schedulePostCommit(CLEANUP_SYMBOL);
   const controller = new AbortController();
   hookStates.push({
     controller,

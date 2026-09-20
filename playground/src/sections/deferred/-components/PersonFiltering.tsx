@@ -23,7 +23,7 @@ export function* PersonFiltering({ value, setValue, matches }: OwnProps) {
           onValueChange={setValue}
           placeholder={"Name, city, department, id..."}
         />
-        <FieldDescription>{matches ? `${matches} matches`:''}</FieldDescription>
+        <FieldDescription>{matches ? `${matches} matches` : ""}</FieldDescription>
       </Field>
     </div>
   );

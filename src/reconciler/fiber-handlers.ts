@@ -13,8 +13,7 @@ import type { AnyElement, TagNamespace } from "../render/elements/namespaces";
 import type { ContextMap } from "../render/types";
 import { UNMOUNT } from "../reasons";
 
-import { prepareSlotNodes, updateWithPreparedSlot } from "../slots/utils";
-import { createFiber } from "../instances/register-create";
+import { prepareSlotNodes } from "../slots/utils";
 import type { WeakRefLike } from "../render/element-props";
 import type {
   CreateElementAction,
@@ -23,6 +22,7 @@ import type {
   CreateTextAction,
 } from "../ui-actions/types";
 import type { Fiber } from "../instances/types";
+import { createFiber } from "../instances/utils";
 
 export function handleMountSlot(
   fiber: Fiber,
@@ -32,13 +32,16 @@ export function handleMountSlot(
   ctx: ContextMap,
 ) {
   const { path } = intent;
-  let instance = fiber.unmountInstances?.get(path);
+  let instance = fiber.prevInstances?.get(path);
   if (instance) {
     instance.ctx = ctx;
     instance.parentDom = parentDom;
     extendIntentWithInstance(intent, instance);
-    fiber.unmountInstances?.delete(path);
-    if (instance.unmounted) instance.unmounted = false;
+    fiber.prevInstances?.delete(path);
+    if (instance.unmounted) {
+      console.log('was unmonted');
+      instance.unmounted = false;
+    }
     instance.setProps(intent);
   } else {
     instance = createFiber(extendIntentNodes(intent), ctx, fiber, fiber.rctx, parentDom, ns);
@@ -70,18 +73,9 @@ export function handleCreateNode(
   fiber: Fiber,
   action: CreateElementAction | CreateFragmentAction | CreateTextAction | CreateShallowAction,
 ): CreateSlotResponse<any> {
-  const { preparedSlots, rctx } = fiber;
+  const { rctx } = fiber;
   const { slot, ns } = action;
-  const { path } = slot;
-  const prepared = preparedSlots!.get(path);
-  let resultSlot: Slot<ElementSlotType | TextSlotType | FragmentSlotType | ShallowSlotType>;
-  if (prepared) {
-    resultSlot = updateWithPreparedSlot(slot, prepared, rctx.delegationRoot);
-  } else {
-    resultSlot = prepareSlotNodes(slot, rctx.delegationRoot, ns);
-  }
-  preparedSlots!.set(path, resultSlot);
-  return resultSlot;
+  return prepareSlotNodes(slot, rctx.delegationRoot, ns);
 }
 
 export function handleUpdateSlotProps(
@@ -89,12 +83,11 @@ export function handleUpdateSlotProps(
   slot: Slot<ComponentSlotType | ContextSlotType>,
 ) {
   const { instance, path } = slot;
-  fiber.unmountInstances?.delete(path);
+  fiber.prevInstances?.delete(path);
   instance.unmounted = false;
 
   instance.setProps(slot);
   (fiber.instances ??= new Map<string, Fiber>()).set(path, instance);
-  instance.cancelPostRenderCallback(UNMOUNT);
 }
 
 export function handleUpdateRef(fiber: Fiber, slot: Intent<ElementSlotType>) {

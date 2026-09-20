@@ -15,9 +15,8 @@ import { INSERT_UI_ACTION } from "../ui-actions/constants";
 import type { Fiber } from "./types";
 
 export class ComponentFiber<TProps extends Record<string, unknown> = Record<string, any>> {
-  public renders: number = 0;
+  public rendered: boolean = false;
   public readonly ns: TagNamespace;
-  public preparedSlots: Map<string, Slot> | undefined = undefined;
   public confidentIteration: number;
   initialMounted = false;
   unmounted: boolean | undefined = undefined;
@@ -29,11 +28,11 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
   ctx: ContextMap;
   readonly rctx: RenderContext;
   instances?: Map<string, Fiber> = undefined;
-  unmountInstances?: Map<string, Fiber> = undefined;
+  prevInstances?: Map<string, Fiber> = undefined;
   hookStates: HookState[] = [];
   renderReasons = new Set<symbol>();
   resolveReasons?: Set<symbol> = undefined;
-  postRenderCallbackReasons?: Set<symbol> = undefined;
+  postCommitReasons?: Set<symbol> = undefined;
   refsToAssign?: Map<WeakRefLike, AnyElement> = undefined;
   slot?: Slot = undefined;
   pendingSlot?: Slot = undefined;
@@ -41,10 +40,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
   protected propsPrepared = false;
   readonly headNode: Comment;
   readonly tailNode: Comment;
-
-
   deps?: DependencyList;
-
   readonly path: string;
 
   constructor(
@@ -74,16 +70,16 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     return resolveContext(this.ctx, DeferContext);
   }
 
-  queueRender(reason: symbol, deferred?: boolean): void {
+  queueRender(reason: symbol): void {
     this.renderReasons.add(reason);
-    this.rctx.scheduler.queueRender(this, deferred);
+    this.rctx.scheduler.queueRender(this);
   }
 
-  cancelRender(reason: symbol, deferred?: boolean): void {
+  cancelRender(reason: symbol): void {
     const { renderReasons } = this;
     if (!renderReasons.delete(reason)) return;
     if (!renderReasons.size) {
-      this.rctx.scheduler.cancelRender(this, deferred);
+      this.rctx.scheduler.cancelRender(this);
     }
   }
 
@@ -101,51 +97,49 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     }
   }
 
-  schedulePostRenderCallback(reason: symbol): void {
-    if (this.postRenderCallbackReasons?.has(reason)) return;
-    (this.postRenderCallbackReasons ??= new Set()).add(reason);
-    this.rctx.scheduler.schedulePostRenderCallback(this);
+  schedulePostCommit(reason: symbol): void {
+    if (this.postCommitReasons?.has(reason)) return;
+    (this.postCommitReasons ??= new Set()).add(reason);
+    this.rctx.scheduler.schedulePostCommit(this);
   }
 
-  cancelPostRenderCallback(reason: symbol): void {
-    if (!this.postRenderCallbackReasons?.delete(reason)) return;
-    if (this.postRenderCallbackReasons.size) return;
-    this.rctx.scheduler.schedulePostRenderCallback(this);
-  }
-
-  stack(): string {
-    let str = this.parent?.stack() ?? "";
-    str += "\t".repeat(this.depth);
-    str += `<${this.component.name}>`;
-    str += "\n";
-    return str;
+  cancelPostCommit(reason: symbol): void {
+    if (!this.postCommitReasons?.delete(reason)) return;
+    if (this.postCommitReasons.size) return;
+    this.rctx.scheduler.cancelPostCommit(this);
   }
 
   render() {
     const scheduler = this.rctx.scheduler;
     if (!this.propsPrepared) {
-
       this.props = stripFrameworkProps<any>(this.props);
       this.propsPrepared = true;
     }
     const generator = this.component(this.props);
     const child = resolveComponentGenerator(generator, this);
     if (!this.slot) {
-      if (!this.initialMounted && this.parent) scheduler.queuePreCommit(this.parent);
+      if (!this.initialMounted && this.parent) {
+        scheduler.queuePreCommit(this.parent);
+        this.rendered = true;
+      }
       this.pendingSlot = mountFiber(this, child);
     } else {
       this.pendingSlot = reconcilerFiber(this, child);
     }
-    const { unmountInstances } = this;
+    const { prevInstances } = this;
 
-    if (unmountInstances?.size) {
-      for (const child of unmountInstances.values()) {
-        child.unmounted = true;
-        if (!child.renders) continue;
-        unmountInstances.delete(child.path);
-        child.schedulePostRenderCallback(UNMOUNT);
+    if (prevInstances?.size) {
+      for (const child of prevInstances.values()) {
+        prevInstances.delete(child.path);
+        scheduler.ensureUnmount(child);
+        if (child.rendered) {
+          child.schedulePostCommit(UNMOUNT);
+        }
       }
+      this.prevInstances = undefined;
     }
+
+
     // Always: even a render that changed nothing has to reach the commit, or
     // `slot` never catches up with `pendingSlot` and the prepared-node cache
     // outlives the render that filled it.
@@ -155,7 +149,6 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     // not mounted either queues ITS parent when it renders, so the collapse
     // cascades up to the highest ancestor that is still mounting.
     this.renderReasons.clear();
-    this.renders++;
   }
 
   /**
@@ -198,19 +191,27 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
    * whichever insert eventually commits the fragment holding it.
    */
   preCommit(): void {
+    const __g: any = globalThis as any;
+    const __T = (__g.__trace ??= []);
+    const __W = (n: any) => ["PersonTableBody", "Defer", "Table"].includes(String(n));
+    const __rec = (m: string) => { if (__T.length < 4000) __T.push(`${__T.length} ${m}`); };
+    if (__W(this.component?.name))
+      __rec(`preCommit ${this.component?.name} d=${this.depth} deferred=${this.isDeferred()} own=${this.uiActions?.length} kids=${this.instances?.size}`);
     this.chunkInserts();
     const { instances } = this;
     if (!instances) return;
     for (const child of instances.values()) {
-      if (child.initialMounted) continue;
+      const __t = __W(child.component?.name);
+      if (child.initialMounted) { if (__t) __rec(`skip ${this.component?.name}->${child.component?.name} initialMounted`); continue; }
       const { uiActions, tailNode } = child;
-      if (uiActions?.length !== 1) continue;
+      if (uiActions?.length !== 1) { if (__t) __rec(`skip ${this.component?.name}->${child.component?.name} actions=${uiActions?.length}`); continue; }
       const action = uiActions[0]!;
-      if (action.type !== INSERT_UI_ACTION || action.before !== tailNode) continue;
+      if (action.type !== INSERT_UI_ACTION || action.before !== tailNode) { if (__t) __rec(`skip ${this.component?.name}->${child.component?.name} notOwnTailInsert`); continue; }
       // Already live: the child must do its own insert. Being out of the
       // document covers both a pending fragment and the detached element
       // subtree a nested child sits in.
-      if (tailNode.isConnected) continue;
+      if (tailNode.isConnected) { if (__t) __rec(`skip ${this.component?.name}->${child.component?.name} tailConnected`); continue; }
+      if (__t) __rec(`HOIST ${this.component?.name}(d=${this.depth}) <- ${child.component?.name}(d=${child.depth}) fragKids=${(action.node as any).childNodes?.length}`);
       tailNode.parentNode!.insertBefore(action.node, tailNode);
       // Emptied rather than dropped: the child still has to reach the commit so
       // `slot` catches up with `pendingSlot` and the prepared-node cache clears.

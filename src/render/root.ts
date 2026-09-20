@@ -10,7 +10,8 @@ import type { DraftBy } from "../general-types";
 import type { ComponentSlotType, Slot } from "../slots/slot";
 import { componentSlotType } from "../slots/slot";
 import { emptyMap } from "../general";
-import { registerCreateInstance } from "../instances/register-create";
+
+import { registerCreateInstance } from "../instances/utils";
 
 // Just a hack to fix circular imports
 registerCreateInstance(createFiber);

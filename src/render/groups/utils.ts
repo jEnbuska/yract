@@ -1,44 +1,47 @@
-import type { MapGroup, SetGroup } from "./types";
+import type { MapFiberGroup, SetFiberGroup } from "./types";
 import type { Fiber } from "../../instances/types";
 
-export function queueMapGroupMember(groups: MapGroup[], fiber: Fiber): boolean {
-  const { depth } = fiber;
-  while (groups.length <= depth) {
-    groups.push({
-      queue: [],
-      members: new Map(),
-    });
-  }
-  const { members, queue } = groups[depth]!;
+export function queueMapGroupMember({ members, queues }: MapFiberGroup, fiber: Fiber): boolean {
   const booked = members.get(fiber);
   if (booked) return false; // Already on the list and part of members
   members.set(fiber, true);
-
-  if (booked !== false) queue.push(fiber); // Not in the queue yet
+  if (booked === false) return true;
+  const { depth } = fiber;
+  while (queues.length <= depth) queues.push([]);
+  queues[depth]!.push(fiber);
   return true;
 }
 
-export function queueSetGroupMember(groups: SetGroup[], fiber: Fiber): boolean {
-  const { depth } = fiber;
-  while (groups.length <= depth) {
-    groups.push({
-      queue: [],
-      members: new Set(),
-    });
-  }
-  const { members, queue } = groups[depth]!;
-  if (members.has(fiber)) return false; // Already on the list and part of members
+export function queueSetGroupMember({ members, queues }: SetFiberGroup, fiber: Fiber): boolean {
+  if (members.has(fiber)) return false;
   members.add(fiber);
+  const { depth } = fiber;
+  while (queues.length <= depth) {
+    queues.push([]);
+  }
+  const queue = queues[depth]!;
   queue.push(fiber);
   return true;
 }
 
-export function shallowDeleteSetMember(groups: SetGroup[], fiber: Fiber) {
-  groups[fiber.depth]?.members.delete(fiber);
+export function createMapGroup(): MapFiberGroup {
+  return {
+    members: new Map(),
+    queues: [],
+  };
 }
 
-export function shallowDeleteMapMember(groups: MapGroup[], fiber: Fiber) {
-  const members = groups[fiber.depth]?.members;
-  if (!members?.has(fiber)) return;
-  members.set(fiber, false);
+export function createSetGroup(): SetFiberGroup {
+  return {
+    members: new Set(),
+    queues: [],
+  };
+}
+
+export function shallowDeleteMapMember(group: MapFiberGroup, fiber: Fiber) {
+  group.members.set(fiber, false);
+}
+
+export function shallowDeleteSetMember(group: SetFiberGroup, fiber: Fiber) {
+  group.members.delete(fiber);
 }
