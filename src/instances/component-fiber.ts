@@ -14,6 +14,22 @@ import type { UIAction } from "../ui-actions/types";
 import { INSERT_UI_ACTION } from "../ui-actions/constants";
 import type { Fiber } from "./types";
 
+/**
+ * The document fragments a fiber is about to insert. A node inside one of these
+ * is still being staged and may be rearranged freely; a node anywhere else is
+ * either live or belongs to a commit that is not ours to fold into.
+ */
+function stagingFragments(uiActions: ReadonlyArray<UIAction>): Set<Node> | undefined {
+  let fragments: Set<Node> | undefined;
+  for (const action of uiActions) {
+    if (action.type !== INSERT_UI_ACTION) continue;
+    const { node } = action;
+    if (node.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) continue;
+    (fragments ??= new Set<Node>()).add(node);
+  }
+  return fragments;
+}
+
 export class ComponentFiber<TProps extends Record<string, unknown> = Record<string, any>> {
   public rendered: boolean = false;
   public readonly ns: TagNamespace;
@@ -70,9 +86,9 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     return resolveContext(this.ctx, DeferContext);
   }
 
-  queueRender(reason: symbol): void {
+  scheduleRender(reason: symbol): void {
     this.renderReasons.add(reason);
-    this.rctx.scheduler.queueRender(this);
+    this.rctx.scheduler.scheduleRender(this);
   }
 
   cancelRender(reason: symbol): void {
@@ -119,7 +135,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     const child = resolveComponentGenerator(generator, this);
     if (!this.slot) {
       if (!this.initialMounted && this.parent) {
-        scheduler.queuePreCommit(this.parent);
+        scheduler.schedulePrepareCommit(this.parent);
         this.rendered = true;
       }
       this.pendingSlot = mountFiber(this, child);
@@ -130,24 +146,12 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
 
     if (prevInstances?.size) {
       for (const child of prevInstances.values()) {
-        prevInstances.delete(child.path);
         scheduler.ensureUnmount(child);
-        if (child.rendered) {
-          child.schedulePostCommit(UNMOUNT);
-        }
+        if (child.rendered) child.schedulePostCommit(UNMOUNT);
       }
-      this.prevInstances = undefined;
     }
-
-
-    // Always: even a render that changed nothing has to reach the commit, or
-    // `slot` never catches up with `pendingSlot` and the prepared-node cache
-    // outlives the render that filled it.
+    this.prevInstances = undefined;
     scheduler.scheduleCommit(this);
-    // Nothing of ours is in the document yet, so our parent can fold our whole
-    // staging fragment into its own and spare us an insert. A parent that has
-    // not mounted either queues ITS parent when it renders, so the collapse
-    // cascades up to the highest ancestor that is still mounting.
     this.renderReasons.clear();
   }
 
@@ -184,38 +188,63 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
   }
 
   /**
-   * Runs after render, before commit. A child mounting for the first time emits
-   * exactly one action: its own staging fragment inserted before its own tail
-   * marker. While that marker is still out of the document the content can be
-   * spliced in ahead of it instead — same final position, but it rides along on
-   * whichever insert eventually commits the fragment holding it.
+   * Runs between render and commit and rewrites this fiber's `uiActions` so the
+   * commit that eventually applies them touches the live DOM as few times as
+   * possible. It is purely an optimisation — never a correctness step — and two
+   * invariants keep it that way:
+   *
+   * 1. **It never updates live DOM.** The only nodes it moves are ones sitting
+   *    inside a staging fragment this fiber produced during a render that has
+   *    not committed yet. Anything already in the document, and any detached
+   *    subtree an earlier commit built, is left alone, so a prepare pass is
+   *    never observable — no layout, no paint, no measurable difference.
+   *
+   * 2. **It is interruptible.** Deferred rendering gives no guarantee about who
+   *    runs this or when: a fiber may be skipped entirely, a child may be
+   *    prepared long after its parent, a parent long after its child, and a
+   *    pass may be abandoned part-way through the queue. So every step is
+   *    optional and idempotent — running it zero times, once, or repeatedly, in
+   *    any order, has to leave the same DOM behind. Skipping a fiber only costs
+   *    extra DOM operations at commit.
+   *
+   * The optimisation itself: a child mounting for the first time emits exactly
+   * one action — its own staging fragment inserted before its own tail marker.
+   * While that marker is still sitting in a fragment of ours, the content can
+   * be spliced in ahead of it instead, reaching the same final position but
+   * riding along on our insert. A child that already committed once, or that
+   * belongs to the other render group and so commits in a different batch, must
+   * keep its own insert: folding it into our fragment would tie its content to
+   * a commit that happens later, or never.
    */
-  preCommit(): void {
-    const __g: any = globalThis as any;
-    const __T = (__g.__trace ??= []);
-    const __W = (n: any) => ["PersonTableBody", "Defer", "Table"].includes(String(n));
-    const __rec = (m: string) => { if (__T.length < 4000) __T.push(`${__T.length} ${m}`); };
-    if (__W(this.component?.name))
-      __rec(`preCommit ${this.component?.name} d=${this.depth} deferred=${this.isDeferred()} own=${this.uiActions?.length} kids=${this.instances?.size}`);
+  prepareCommit(): void {
     this.chunkInserts();
-    const { instances } = this;
-    if (!instances) return;
+    const { instances, pendingSlot, uiActions } = this;
+    // Nothing of ours is waiting to commit, so there is no fragment to fold
+    // anything into. `uiActions` can still hold the actions of an earlier
+    // render, and those fragments are committed and empty.
+    if (!instances || !pendingSlot || !uiActions?.length) return;
+    const staging = stagingFragments(uiActions);
+    if (!staging) return;
+    const deferred = this.isDeferred();
     for (const child of instances.values()) {
-      const __t = __W(child.component?.name);
-      if (child.initialMounted) { if (__t) __rec(`skip ${this.component?.name}->${child.component?.name} initialMounted`); continue; }
-      const { uiActions, tailNode } = child;
-      if (uiActions?.length !== 1) { if (__t) __rec(`skip ${this.component?.name}->${child.component?.name} actions=${uiActions?.length}`); continue; }
-      const action = uiActions[0]!;
-      if (action.type !== INSERT_UI_ACTION || action.before !== tailNode) { if (__t) __rec(`skip ${this.component?.name}->${child.component?.name} notOwnTailInsert`); continue; }
-      // Already live: the child must do its own insert. Being out of the
-      // document covers both a pending fragment and the detached element
-      // subtree a nested child sits in.
-      if (tailNode.isConnected) { if (__t) __rec(`skip ${this.component?.name}->${child.component?.name} tailConnected`); continue; }
-      if (__t) __rec(`HOIST ${this.component?.name}(d=${this.depth}) <- ${child.component?.name}(d=${child.depth}) fragKids=${(action.node as any).childNodes?.length}`);
+      if (child.initialMounted) continue;
+      // A child in the other render group commits in a different batch, so its
+      // content must not be made to depend on our insert.
+      if (child.isDeferred() !== deferred) continue;
+      const { uiActions: childActions, tailNode } = child;
+      if (childActions?.length !== 1) continue;
+      const action = childActions[0]!;
+      if (action.type !== INSERT_UI_ACTION || action.before !== tailNode) continue;
+      // Only ever splice into a fragment of ours that has not committed. Every
+      // other root — the document, or a detached subtree built by an earlier
+      // commit — belongs to someone else, and the child does its own insert.
+      if (!staging.has(tailNode.getRootNode())) continue;
       tailNode.parentNode!.insertBefore(action.node, tailNode);
       // Emptied rather than dropped: the child still has to reach the commit so
       // `slot` catches up with `pendingSlot` and the prepared-node cache clears.
-      uiActions.length = 0;
+      // Emptying is also what makes the fold idempotent — a repeat pass sees
+      // zero actions and skips.
+      childActions.length = 0;
     }
   }
 
@@ -248,6 +277,6 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     if (shallowEqual(this.props, props)) return;
     this.props = props as TProps;
     this.propsPrepared = false;
-    this.queueRender(PROPS_REASON);
+    this.scheduleRender(PROPS_REASON);
   }
 }

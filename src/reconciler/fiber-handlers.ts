@@ -46,7 +46,7 @@ export function handleMountSlot(
   } else {
     instance = createFiber(extendIntentNodes(intent), ctx, fiber, fiber.rctx, parentDom, ns);
     intent.instance = instance;
-    instance.rctx.scheduler.queueRender(instance);
+    instance.rctx.scheduler.scheduleRender(instance);
   }
   (fiber.instances ??= new Map<string, Fiber>()).set(path, instance);
   return intent as Slot<ComponentSlotType>;

@@ -39,7 +39,7 @@ function toSettings(updatePerson: UpdatePerson, highlight: string): PersonTableS
 export function* DeferredDemo() {
   const [search, setSearch] = yield* useState("");
   const resolvable = yield* useRef<PromiseWithResolvers<void> | undefined>(undefined);
-  const [count, setCount] = yield* useState(30_000);
+  const [count, setCount] = yield* useState(5000);
   const controllerRef = yield* useRef(new AbortController());
   const updateCount = yield* useStable(async (n: number) => {
     if (n === count) return;

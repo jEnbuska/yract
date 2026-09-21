@@ -1,4 +1,4 @@
-import { createResolvable } from "../../create-resolvable";
+import { createResolvable } from "../create-resolvable";
 
 export class RenderClock {
   #workYieldDeadline = 0;
@@ -25,4 +25,6 @@ export class RenderClock {
   shouldThrottle(): boolean {
     return Date.now() >= this.#workYieldDeadline;
   }
+
+
 }

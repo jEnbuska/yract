@@ -60,6 +60,6 @@ export class ContextFiber extends ComponentFiber<{ value: unknown }> {
     if (!depsChanged(this.deps, deps)) return;
     this.deps = deps;
     this.props = intent.props;
-    this.queueRender(PROPS_REASON);
+    this.scheduleRender(PROPS_REASON);
   }
 }

@@ -115,7 +115,7 @@ export function createStateSetter(
     state.pendingValue = nextValue;
     const { promise, resolve } = createResolvable();
     state.pendingResolve = resolve;
-    instance.queueRender(state.identifier);
+    instance.scheduleRender(state.identifier);
     instance.scheduleStateResolve(state.identifier);
     return promise;
   };

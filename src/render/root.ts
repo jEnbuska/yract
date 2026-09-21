@@ -1,4 +1,4 @@
-import { Scheduler } from "./scheduler";
+import { Scheduler } from "../scheduler/Scheduler";
 import { DelegationRoot } from "./delegation";
 import type { RenderContext } from "./types";
 import { dispatchDelegatedEvent } from "./dispatch";
@@ -84,6 +84,6 @@ class RootInstance extends ComponentFiber {
     this.child = child;
     this.parentDom.appendChild(this.headNode);
     this.parentDom.appendChild(this.tailNode);
-    this.queueRender(Symbol("MOUNT"));
+    this.scheduleRender(Symbol("MOUNT"));
   }
 }

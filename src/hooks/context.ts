@@ -107,7 +107,7 @@ export function processContext(
         instance.cancelRender(state.reason);
       } else {
         state.currentSelected = current;
-        instance.queueRender(state.reason);
+        instance.scheduleRender(state.reason);
       }
     },
   };
