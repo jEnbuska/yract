@@ -24,6 +24,8 @@ export class SyncRenderGroup  {
     return !this.rendersGroup.isEmpty()
   }
 
+  /** --- Scheduling ---**/
+
   scheduleRender(fiber: Fiber) {
     this.rendersGroup.add(fiber)
   }
@@ -37,6 +39,7 @@ export class SyncRenderGroup  {
     this.postCommitGroup.add(fiber)
   }
 
+  /** --- Scheduling cancellations ---**/
 
   cancelRender(fiber: Fiber) {
     this.rendersGroup.cancel(fiber)
@@ -51,13 +54,13 @@ export class SyncRenderGroup  {
     this.postCommitGroup.cancel(fiber)
   }
 
+  /** Called on component render and it detects it's child component unmounted  **/
+
   ensureUnmount(fiber: Fiber) {
     fiber.unmounted = true;
     this.rendersGroup.delete(fiber);
     this.postCommitGroup.cancel(fiber);
   }
-
-
 
   render() {
     const {rendersGroup, renderClock} = this
@@ -72,7 +75,7 @@ export class SyncRenderGroup  {
         renderFiber(fiber, renderIteration);
       }
     }
-    rendersGroup.prune();
+    rendersGroup.clear();
   }
 
   private prepareCommit() {
@@ -86,7 +89,7 @@ export class SyncRenderGroup  {
         fiber.prepareCommit()
       }
     }
-    prepareCommitGroup.prune();
+    prepareCommitGroup.clear();
   }
 
   commit() {
@@ -102,13 +105,12 @@ export class SyncRenderGroup  {
       }
       queue.length = 0;
     }
-    commitsGroup.prune();
+    commitsGroup.clear();
   }
 
   postCommit() {
     const {postCommitGroup} = this;
     handlePostCommit(postCommitGroup, this.renderClock.renderIteration)
-    postCommitGroup.prune();
   }
 
 }

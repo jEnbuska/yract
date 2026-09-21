@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DeferredFiberQueuedCollection } from "../scheduler/DeferredFiberQueuedCollection";
+import { DeferredPopCollection } from "../scheduler/DeferredPopCollection";
 import type { Fiber } from "../instances/types";
 
 /**
@@ -25,19 +25,19 @@ function stubFiber(depth: number, name = `f${depth}`): Fiber {
 }
 
 /** What a `cancel()` would do: mark the booking dead, leave the queue entry. */
-function cancel(collection: DeferredFiberQueuedCollection, fiber: Fiber): void {
+function cancel(collection: DeferredPopCollection, fiber: Fiber): void {
   collection.members.set(fiber, false);
   collection.cancelled++;
 }
 
 /** Entries physically sitting in the queues, flattened shallow-to-deep. */
-function queued(collection: DeferredFiberQueuedCollection): Fiber[] {
+function queued(collection: DeferredPopCollection): Fiber[] {
   return collection.queues.flat();
 }
 
 describe("FiberMapCollection.queue", () => {
   it("books a fresh fiber and pushes it at its depth", () => {
-    const collection = new DeferredFiberQueuedCollection();
+    const collection = new DeferredPopCollection();
     const fiber = stubFiber(3);
 
     expect(collection.add(fiber)).toBe(true);
@@ -49,7 +49,7 @@ describe("FiberMapCollection.queue", () => {
   });
 
   it("grows `queues` so every depth up to the fiber's has a bucket", () => {
-    const collection = new DeferredFiberQueuedCollection();
+    const collection = new DeferredPopCollection();
 
     collection.add(stubFiber(4));
 
@@ -58,7 +58,7 @@ describe("FiberMapCollection.queue", () => {
   });
 
   it("keeps insertion order within one depth", () => {
-    const collection = new DeferredFiberQueuedCollection();
+    const collection = new DeferredPopCollection();
     const first = stubFiber(2, "first");
     const second = stubFiber(2, "second");
 
@@ -70,7 +70,7 @@ describe("FiberMapCollection.queue", () => {
   });
 
   it("buckets fibers by their own depth", () => {
-    const collection = new DeferredFiberQueuedCollection();
+    const collection = new DeferredPopCollection();
     const shallow = stubFiber(0, "shallow");
     const deep = stubFiber(5, "deep");
 
@@ -83,7 +83,7 @@ describe("FiberMapCollection.queue", () => {
   });
 
   it("is a no-op while the fiber is already booked", () => {
-    const collection = new DeferredFiberQueuedCollection();
+    const collection = new DeferredPopCollection();
     const fiber = stubFiber(1);
     collection.add(fiber);
 
@@ -95,7 +95,7 @@ describe("FiberMapCollection.queue", () => {
   });
 
   it("revives a cancelled booking without pushing a second entry", () => {
-    const collection = new DeferredFiberQueuedCollection();
+    const collection = new DeferredPopCollection();
     const fiber = stubFiber(2);
     collection.add(fiber);
     cancel(collection, fiber);
@@ -112,7 +112,7 @@ describe("FiberMapCollection.queue", () => {
   });
 
   it("keeps `size` and `cancelled` consistent across a queue/cancel/queue cycle", () => {
-    const collection = new DeferredFiberQueuedCollection();
+    const collection = new DeferredPopCollection();
     const a = stubFiber(1, "a");
     const b = stubFiber(1, "b");
 
@@ -126,7 +126,7 @@ describe("FiberMapCollection.queue", () => {
   });
 
   it("treats depth 0 as a real depth rather than a falsy edge case", () => {
-    const collection = new DeferredFiberQueuedCollection();
+    const collection = new DeferredPopCollection();
     const root = stubFiber(0);
 
     expect(collection.add(root)).toBe(true);
@@ -143,7 +143,7 @@ describe("FiberMapCollection.queue", () => {
    * `members.get(fiber) === true`.
    */
   it("documents the invariant a cancel must uphold", () => {
-    const collection = new DeferredFiberQueuedCollection();
+    const collection = new DeferredPopCollection();
     const neverQueued = stubFiber(1);
 
     cancel(collection, neverQueued);

@@ -7,7 +7,8 @@ export class SyncFiberQueuedCollection {
   #isEmpty = true;
 
 
-  prune = () => {
+  clear () {
+    if(!this.#members.size && !this.#cancelled.size) return;
     this.#members.clear();
     this.#cancelled.clear();
     const {queues} = this;

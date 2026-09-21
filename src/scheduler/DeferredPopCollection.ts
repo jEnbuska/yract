@@ -1,37 +1,39 @@
 import type { Fiber } from "../instances/types";
+import { waitForIdle } from "./utils";
 
-export class DeferredFiberQueuedCollection {
+export class DeferredPopCollection {
 
   head: number;
   #members = new Set<Fiber>();
   #cancelled = new Set<Fiber>();
-  #deleted = 0;
 
-  isEmpty: () => boolean;
   protected isNewHead: (depth: number) => boolean;
   readonly queues: Fiber[][] = [];
+  #direction: 1 | -1
+  #pruneScheduled = false;
 
-  constructor(direction: 'ascending' | 'descending' = 'ascending') {
-    if(direction === 'ascending') {
+  constructor(direction: -1 | 1) {
+    this.#direction = direction;
+    if(direction === 1) {
       // Drained shallowest-first, so the head tracks the smallest depth queued.
       this.head = Number.MAX_SAFE_INTEGER;
-      this.isEmpty = () => this.head >= this.queues.length
       this.isNewHead = (depth) => this.head > depth
     } else {
       // Drained deepest-first, so the head tracks the largest depth queued.
       this.head = -1;
-      this.isEmpty = () => this.head < 0
       this.isNewHead = (depth) => this.head < depth
     }
   }
 
-  shouldPrune() {
-    return (this.#cancelled.size + this.#deleted) >= 30_000
+  isEmpty() {
+    return !this.#members.size
   }
 
-  prune = () => {
-    if(!(this.#cancelled.size + this.#deleted)) return;
-    const cancelled = this.#cancelled;
+  #prune() {
+    let pruned = 0;
+    const noThingToCancel = !this.#cancelled.size;
+    if(noThingToCancel) return;
+    this.#cancelled.clear();
     const {queues} = this;
     const members = this.#members
     for(let i = 0; i < queues.length; i++) {
@@ -42,13 +44,22 @@ export class DeferredFiberQueuedCollection {
         if(members.has(fiber)) {
           nextQueue.push(fiber);
         } else {
+          pruned++;
           members.delete(fiber);
         }
       }
       queues[i] = nextQueue;
     }
-    cancelled.clear();
-    this.#cancelled.clear()
+  }
+
+
+  async schedulePrune() {
+    if(this.#pruneScheduled || !this.#cancelled.size) return;
+    this.#pruneScheduled = true;
+    await waitForIdle()
+    this.#pruneScheduled = false;
+    if(!this.#cancelled.size) return;
+    this.#prune();
   }
 
   add(fiber: Fiber) {
@@ -62,9 +73,7 @@ export class DeferredFiberQueuedCollection {
       return false;
     }
 
-    if(members.has(fiber)) {
-      return false;
-    }
+    if(members.has(fiber)) return false;
     members.add(fiber);
     const {queues} = this;
     while (queues.length <= depth) {
@@ -74,27 +83,42 @@ export class DeferredFiberQueuedCollection {
     return true;
   }
 
-  cancel(fiber: Fiber) {
-    if(!this.#members.delete(fiber)) return;
-    this.#cancelled.add(fiber);
-  }
-
   has(fiber: Fiber) {
     return this.#members.has(fiber)
   }
 
   clear() {
-    const members = this.#members
-    this.#deleted +=members.size;
+    if(!this.#members.size && !this.#cancelled.size) return;
     this.#members.clear();
+    this.#cancelled.clear();
+    const {queues} = this;
+    for(let i = 0; i< queues.length; i++) {
+      this.queues[i] = [];
+    }
   }
 
   delete(fiber: Fiber) {
     if(this.#members.delete(fiber)) {
-      this.#deleted++;
+      this.#cancelled.add(fiber)
       return true;
     }
-    this.#cancelled.delete(fiber);
     return false;
+  }
+
+  pop(): Fiber {
+    const {queues} = this;
+    while(true) {
+      let {head} = this;
+      const queue = queues[head]!;
+      if(!queue.length) {
+        this.head +=this.#direction;
+        continue;
+      }
+      const fiber = queue.pop()!
+      if(this.#members.delete(fiber)) {
+        return fiber;
+      }
+      this.#cancelled.delete(fiber)
+    }
   }
 } 
