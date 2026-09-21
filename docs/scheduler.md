@@ -346,7 +346,7 @@ UI patches interaction disabled content end (#163) -->
 
 | File                        | Responsibility                                                                  |
 | :-------------------------- | :------------------------------------------------------------------------------ |
-| `src/render/scheduler.ts`   | Priority queue, work loop, preemption, time slicing                             |
+| `../src/scheduler/Scheduler.ts`   | Priority queue, work loop, preemption, time slicing                             |
 | `src/render/patch-queue.ts` | DOM operation collection and atomic commit                                      |
 | `src/render/mount.ts`       | `commitOrDefer`, `executeRerender`, `rerenderInstance`                          |
 | `src/render/driver.ts`      | Generator driver with context scoping                                           |

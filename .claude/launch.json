@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "playground"],
       "port": 5174
+    },
+    {
+      "name": "react-playground",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "react-playground"],
+      "port": 5175
     }
   ]
 }
