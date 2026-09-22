@@ -20,7 +20,7 @@ export function PersonFiltering({ value, setValue, matches }: OwnProps) {
         <FieldLabel>Search persons</FieldLabel>
         <TextInput
           value={value}
-          onValueChange={setValue}
+          onInput={(event) => setValue?.(event.currentTarget.value)}
           placeholder={"Name, city, department, id..."}
         />
         <FieldDescription>{matches} matches</FieldDescription>

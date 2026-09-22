@@ -905,20 +905,24 @@ Assigns the DOM element to `myRef.current` after mount. Use with `useRef`.
 
 ## Events
 
-All `onXxx` props receive a `SyntheticEvent` wrapping the native DOM event.
+All `onXxx` props receive the **native DOM event** — there is no wrapper. The
+only refinement is `currentTarget`, narrowed to the element the handler sits on
+so element-specific properties need no cast.
 
 ```tsx
-import type { SyntheticEvent } from "yract";
-
 function* TextInput() {
   const [value, setValue] = yield* useState("");
-  return (
-    <input value={value} onChange={(e: SyntheticEvent<InputEvent>) => setValue(e.target.value)} />
-  );
+  return <input value={value} onInput={(e) => setValue(e.currentTarget.value)} />;
 }
 ```
 
-`SyntheticEvent<E>` exposes `.nativeEvent: E` alongside convenience aliases (`target`, `currentTarget`, `preventDefault()`, `stopPropagation()`).
+Handlers are attached straight to their own element with `addEventListener`, so
+`preventDefault()`, `stopPropagation()` and `stopImmediatePropagation()` behave
+exactly as the platform defines them — including on events that do not bubble,
+such as `ended`, `scroll` and `mouseenter`.
+
+`on*Capture` props are **not supported**; every listener is registered in the
+bubble phase.
 
 ---
 

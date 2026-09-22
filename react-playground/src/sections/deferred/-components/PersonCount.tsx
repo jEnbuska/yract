@@ -1,5 +1,5 @@
 import { Field, FieldDescription, FieldLabel, Range } from "../../../dos";
-import { useEffect, useState } from "react";
+import { type ChangeEvent, useCallback, useEffect, useState } from "react";
 
 type OwnProps = {
   count: number;
@@ -17,10 +17,13 @@ export function PersonCount({ count, setCount, loading, disabled }: OwnProps) {
     const handle = setTimeout(() => setCount(state), 500);
     return () => clearTimeout(handle);
   }, [state, setCount]);
+  const onChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    setState(Number(event.target.value));
+  }, []);
   return (
     <Field>
       <FieldLabel>Number of persons</FieldLabel>
-      <Range value={state} min={10} max={90_000} onValueChange={setState} disabled={disabled} />
+      <Range value={state} min={10} max={90_000} onChange={onChange} disabled={disabled} />
       <FieldDescription>
         {loading ? "Loading" : "Idle"} <b>({state})</b>
       </FieldDescription>

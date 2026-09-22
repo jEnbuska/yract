@@ -7,7 +7,6 @@
  *
  * @module jsx-types
  */
-import type { SyntheticEvent } from "./events";
 import type { Children, FrameworkProps } from "./jsx";
 import type { WeakRefLike } from "./render/element-props";
 
@@ -560,9 +559,15 @@ export interface CSSProperties {
  *  - `input`       → `onInput`
  *  - `mouseenter`  → `onMouseenter`
  */
+/**
+ * TODO: no `on*Capture` variants. Adding a second mapped clause keyed
+ * `on${Capitalize<string & K>}Capture` is the type half of capture support;
+ * the runtime half is the TODO on `ensureListener` in `render/element-props.ts`.
+ * Both are needed — either alone leaves handlers silently in the wrong phase.
+ */
 export type EventHandlers<T extends EventTarget = EventTarget> = {
   [K in keyof HTMLElementEventMap as `on${Capitalize<string & K>}`]?: (
-    event: SyntheticEvent<HTMLElementEventMap[K], T>,
+    event: HTMLElementEventMap[K] & { readonly currentTarget: T },
   ) => void;
 };
 

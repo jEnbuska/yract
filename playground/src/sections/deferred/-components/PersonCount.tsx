@@ -20,7 +20,7 @@ export function* PersonCount({ count, updateCount, loading }: OwnProps) {
         value={state}
         min={10}
         max={90_000}
-        onValueChange={setState}
+        onInput={(event) => setState(Number(event.currentTarget.value))}
         onClick={onClick}
       />
       <FieldDescription>

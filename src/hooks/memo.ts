@@ -11,6 +11,10 @@ import type { DependencyList } from "../general-types";
 
 export function useMemo<T, const Deps extends any[]>(
   fn: (...args: Deps) => T,
+  deps: Deps,
+): Generator<MemoHookDescriptor<T, Deps>, T>;
+export function useMemo<T, const Deps extends any[]>(
+  fn: (...args: Deps) => T,
   deps: [...Deps, ...any[]],
 ): Generator<MemoHookDescriptor<T, Deps>, T>;
 export function useMemo<T>(

@@ -175,8 +175,8 @@ const PersonTableRow = memo(function PersonTableRow({ row }: { row: PersonRow })
         <Select
           value={row.department}
           aria-labelledby={`${row.id}-name person-department`}
-          onValueChange={(department) => {
-            updatePerson({ ...row, department });
+          onChange={(e) => {
+            updatePerson({ ...row, department: e.target.value });
           }}
         >
           {DEPARTMENTS.map((d) => (

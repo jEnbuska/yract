@@ -1,6 +1,7 @@
 import { Field, FieldDescription, FieldLabel, Select } from "../../../dos";
 import { CITIES } from "../../../global-state";
 import { NO_HIGHLIGHT } from "./PersonTable.shared";
+import { type ChangeEvent, useCallback } from "react";
 
 type OwnProps = {
   highlight: string;
@@ -9,6 +10,12 @@ type OwnProps = {
 };
 
 export function PersonHighlight({ highlight, setHighlight, matches }: OwnProps) {
+  const onChange = useCallback(
+    (e: ChangeEvent<HTMLSelectElement>) => {
+      setHighlight(e.target.value);
+    },
+    [setHighlight],
+  );
   return (
     <Field>
       <FieldLabel id="person-highlight-label">Highlight city</FieldLabel>
@@ -16,7 +23,7 @@ export function PersonHighlight({ highlight, setHighlight, matches }: OwnProps) 
         value={highlight}
         aria-labelledby="person-highlight-label"
         data-testid="highlight-select"
-        onValueChange={setHighlight}
+        onChange={onChange}
       >
         <option value={NO_HIGHLIGHT}>— none —</option>
         {CITIES.map((city) => (

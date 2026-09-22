@@ -1,83 +1,10 @@
 /**
- * actions.ts — Handler registry, prop-to-event mapping, and DelegationRoot.
+ * Prop-name to DOM-event mapping.
  *
- * A single native listener per event type is attached on the root container.
- * When an event fires, the dispatch algorithm (dispatch.ts) walks the DOM path
- * from target to root, looking up handlers in the registry at each element.
+ * Handlers are attached directly to their own element (see
+ * `registerElementEvent` in `element-props.ts`), so all this has to do is turn
+ * an `on*` prop name into the event name to listen for.
  */
-import type { SyntheticEvent } from "../events";
-
-// ---------------------------------------------------------------------------
-// Handler registry
-// ---------------------------------------------------------------------------
-
-interface HandlerEntry {
-  bubble?: (e: SyntheticEvent) => void;
-  capture?: (e: SyntheticEvent) => void;
-}
-
-const handlerRegistry = new WeakMap<Element, Map<string, HandlerEntry>>();
-
-export function registerHandler(
-  el: Element,
-  domEvent: string,
-  handler: (e: SyntheticEvent) => void,
-  isCapture: boolean,
-): void {
-  let map = handlerRegistry.get(el);
-  if (!map) {
-    map = new Map();
-    handlerRegistry.set(el, map);
-  }
-  let entry = map.get(domEvent);
-  if (!entry) {
-    entry = {};
-    map.set(domEvent, entry);
-  }
-  if (isCapture) {
-    entry.capture = handler;
-  } else {
-    entry.bubble = handler;
-  }
-}
-
-export function unregisterHandler(el: Element, domEvent: string, isCapture: boolean): void {
-  const map = handlerRegistry.get(el);
-  if (!map) return;
-  const entry = map.get(domEvent);
-  if (!entry) return;
-  if (isCapture) {
-    delete entry.capture;
-  } else {
-    delete entry.bubble;
-  }
-  if (!entry.capture && !entry.bubble) {
-    map.delete(domEvent);
-  }
-}
-
-export function getHandlers(el: Element, domEvent: string): HandlerEntry | undefined {
-  return handlerRegistry.get(el)?.get(domEvent);
-}
-
-// ---------------------------------------------------------------------------
-// Non-delegated events
-// ---------------------------------------------------------------------------
-
-export const NON_DELEGATED_EVENTS = new Set([
-  "scroll",
-  "scrollend",
-  "cancel",
-  "close",
-  "invalid",
-  "load",
-  "error",
-  "toggle",
-  "mouseenter",
-  "mouseleave",
-  "pointerenter",
-  "pointerleave",
-]);
 
 // ---------------------------------------------------------------------------
 // Prop name → DOM event mapping
@@ -89,22 +16,17 @@ const PROP_TO_DOM_EVENT: Record<string, string> = {
   onBlur: "focusout",
 };
 
-export function resolveEventProp(propKey: string): { domEvent: string; isCapture: boolean } {
-  let isCapture = false;
-  let baseProp = propKey;
-
-  if (propKey.endsWith("Capture") && propKey.length >= 10) {
-    const withoutCapture = propKey.slice(0, -7);
-    if (withoutCapture.length > 2) {
-      isCapture = true;
-      baseProp = withoutCapture;
-    }
-  }
-
-  const mapped = PROP_TO_DOM_EVENT[baseProp];
-  if (mapped) {
-    return { domEvent: mapped, isCapture };
-  }
-
-  return { domEvent: baseProp.slice(2).toLowerCase(), isCapture };
+/**
+ * Maps an `on*` prop name to the DOM event name it listens for.
+ *
+ * TODO: `on*Capture` is not handled. Capture support means stripping the
+ * suffix here and returning the flag alongside `domEvent`, and it only works
+ * together with the two TODOs it pairs with: the `addEventListener` third
+ * argument in `ensureListener` (`render/element-props.ts`) and the
+ * `on*Capture` clause in `EventHandlers` (`jsx-types.ts`).
+ */
+export function resolveEventProp(propKey: string): { domEvent: string } {
+  const mapped = PROP_TO_DOM_EVENT[propKey];
+  if (mapped) return { domEvent: mapped };
+  return { domEvent: propKey.slice(2).toLowerCase() };
 }

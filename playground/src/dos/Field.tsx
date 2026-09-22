@@ -13,7 +13,7 @@
  * When `invalid` is set the control points at the error instead of the
  * description, so a screen reader reads the problem rather than the hint.
  */
-import type { ComponentProps, SyntheticEvent } from "yract";
+import type { ComponentProps } from "yract";
 import { useContext, useId } from "yract";
 import { FieldContext } from "./contexts";
 
@@ -59,15 +59,10 @@ function describedBy(invalid: boolean, descriptionId: string, errorId: string): 
 
 export interface TextInputProps extends ComponentProps<"input"> {
   value: string;
-  /**
-   * Receives the new value, not the DOM event — the control unwraps it.
-   * Named apart from the native `onChange`, which still passes through.
-   */
-  onValueChange?: (value: string) => void;
   type?: "text" | "email" | "password" | "search" | "tel" | "url";
 }
 
-export function* TextInput({ value, onValueChange, type = "text", ...rest }: TextInputProps) {
+export function* TextInput({ value, type = "text", ...rest }: TextInputProps) {
   const { controlId, descriptionId, errorId, invalid } = yield* useContext(FieldContext);
   return (
     <input
@@ -78,17 +73,12 @@ export function* TextInput({ value, onValueChange, type = "text", ...rest }: Tex
       value={value}
       aria-invalid={invalid ? "true" : undefined}
       aria-describedby={describedBy(invalid, descriptionId, errorId)}
-      onInput={(event: SyntheticEvent<Event, HTMLInputElement>) => {
-        onValueChange?.(event.currentTarget?.value ?? "");
-      }}
     />
   );
 }
 
 export interface SelectProps extends ComponentProps<"select"> {
   value: string;
-  /** Receives the new value. The native `onChange` still passes through. */
-  onValueChange?: (value: string) => void;
 }
 
 /**
@@ -96,7 +86,7 @@ export interface SelectProps extends ComponentProps<"select"> {
  * Rest props land on the `<select>`, not the presentational wrapper — that is
  * the element a caller means when passing `aria-labelledby` or `disabled`.
  */
-export function* Select({ value, onValueChange, children, ...rest }: SelectProps) {
+export function* Select({ value, children, ...rest }: SelectProps) {
   const { controlId, descriptionId, errorId, invalid } = yield* useContext(FieldContext);
   return (
     <div className="dos-select-wrap">
@@ -106,9 +96,6 @@ export function* Select({ value, onValueChange, children, ...rest }: SelectProps
         id={controlId}
         value={value}
         aria-describedby={describedBy(invalid, descriptionId, errorId)}
-        onChange={(event: SyntheticEvent<Event, HTMLSelectElement>) =>
-          onValueChange?.(event.currentTarget?.value ?? "")
-        }
       >
         {children}
       </select>
@@ -121,15 +108,13 @@ export interface RangeProps extends ComponentProps<"input"> {
   min: number;
   max: number;
   step?: number;
-  /** Receives the new value. The native `onChange` still passes through. */
-  onValueChange?: (value: number) => void;
 }
 
 /**
  * Set `aria-valuetext` when the number needs a unit — without it a screen
  * reader announces a bare number and the listener never learns what it counts.
  */
-export function* Range({ value, min, max, step = 1, onValueChange, ...rest }: RangeProps) {
+export function* Range({ value, min, max, step = 1, ...rest }: RangeProps) {
   const { controlId, descriptionId, errorId, invalid } = yield* useContext(FieldContext);
   return (
     <input
@@ -142,9 +127,6 @@ export function* Range({ value, min, max, step = 1, onValueChange, ...rest }: Ra
       min={String(min)}
       max={String(max)}
       step={String(step)}
-      onInput={(event: SyntheticEvent<Event, HTMLInputElement>) =>
-        onValueChange?.(Number(event.currentTarget?.value ?? min))
-      }
     />
   );
 }

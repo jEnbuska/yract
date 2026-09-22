@@ -6,7 +6,6 @@
  * patch shape, this file covers "given this patch, the DOM looks like X."
  */
 import { beforeEach, describe, expect, it } from "vitest";
-import { getHandlers } from "../render/delegation";
 import { type ElementPatch, updateElementProps, type WeakRefLike } from "../render/element-props";
 
 function makeRoot(): Element {
@@ -155,60 +154,70 @@ describe("updateElementProps: attrs", () => {
 });
 
 describe("updateElementProps: events", () => {
-  it("registers a handler in the delegation registry for setEvents entries", () => {
+  it("attaches the handler so the event reaches it", () => {
     const container = makeRoot();
     const el = document.createElement("button");
     container.appendChild(el);
 
-    const onClick = () => {};
-    updateElementProps(el, { setEvents: { onClick } });
+    const calls: string[] = [];
+    updateElementProps(el, { setEvents: { onClick: () => calls.push("hit") } });
 
-    expect(getHandlers(el, "click")?.bubble).toBe(onClick);
+    el.click();
+
+    expect(calls).toEqual(["hit"]);
   });
 
-  it("clears the handler for removeEvents entries", () => {
+  it("stops the handler firing for removeEvents entries", () => {
     const container = makeRoot();
     const el = document.createElement("button");
     container.appendChild(el);
 
-    const onClick = () => {};
-    updateElementProps(el, { setEvents: { onClick } });
-    expect(getHandlers(el, "click")?.bubble).toBe(onClick);
+    const calls: string[] = [];
+    updateElementProps(el, { setEvents: { onClick: () => calls.push("hit") } });
+    el.click();
+    expect(calls).toEqual(["hit"]);
 
     updateElementProps(el, { removeEvents: ["onClick"] });
-    expect(getHandlers(el, "click")).toBeUndefined();
+    el.click();
+
+    expect(calls).toEqual(["hit"]);
   });
 
-  it("event swap: remove runs before set, so final registered handler is the new one", () => {
+  it("event swap: remove runs before set, so only the new handler fires", () => {
     const container = makeRoot();
     const el = document.createElement("button");
     container.appendChild(el);
 
-    const prevHandler = () => {};
-    const nextHandler = () => {};
+    const calls: string[] = [];
 
-    updateElementProps(el, { setEvents: { onClick: prevHandler } });
-    expect(getHandlers(el, "click")?.bubble).toBe(prevHandler);
+    updateElementProps(el, { setEvents: { onClick: () => calls.push("prev") } });
 
     // The swap patch emitted by diffElementProps — bucket order matters.
     updateElementProps(el, {
       removeEvents: ["onClick"],
-      setEvents: { onClick: nextHandler },
+      setEvents: { onClick: () => calls.push("next") },
     });
 
-    expect(getHandlers(el, "click")?.bubble).toBe(nextHandler);
+    el.click();
+
+    expect(calls).toEqual(["next"]);
   });
 
-  it("capture-variant props register on the capture side", () => {
+  it("swapping the handler does not stack a second listener", () => {
     const container = makeRoot();
     const el = document.createElement("button");
     container.appendChild(el);
 
-    const handler = () => {};
-    updateElementProps(el, { setEvents: { onClickCapture: handler } });
+    const calls: string[] = [];
+    // Inline handlers change identity every render, so this is the common path.
+    for (let i = 0; i < 3; i++) {
+      updateElementProps(el, { setEvents: { onClick: () => calls.push(`h${i}`) } });
+    }
 
-    expect(getHandlers(el, "click")?.capture).toBe(handler);
-    expect(getHandlers(el, "click")?.bubble).toBeUndefined();
+    el.click();
+
+    // One stable listener per element+prop, re-pointed rather than re-attached.
+    expect(calls).toEqual(["h2"]);
   });
 });
 
@@ -271,8 +280,9 @@ describe("updateElementProps: bucket ordering", () => {
     el.style.color = "red";
     container.appendChild(el);
 
-    const prevHandler = () => {};
-    const nextHandler = () => {};
+    const fired: string[] = [];
+    const prevHandler = () => fired.push("prev");
+    const nextHandler = () => fired.push("next");
     updateElementProps(el, { setEvents: { onClick: prevHandler } });
 
     const nextRef = makeWeakRef<HTMLDivElement>();
@@ -287,7 +297,8 @@ describe("updateElementProps: bucket ordering", () => {
 
     expect(el.hasAttribute("title")).toBe(false);
     expect(el.id).toBe("new");
-    expect(getHandlers(el, "click")?.bubble).toBe(nextHandler);
+    el.click();
+    expect(fired).toEqual(["next"]);
     expect(el.style.color).toBe("blue");
     expect(nextRef.current).toBe(el);
   });

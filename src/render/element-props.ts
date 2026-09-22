@@ -22,11 +22,13 @@
  * must be `object | undefined`. Anything else throws from the diff (and
  * from the initial-mount writer) so programming mistakes surface loudly.
  */
-import type { SyntheticEvent } from "../events";
-import { resolveEventProp } from "./delegation";
+import {
+  type ElementEventHandler,
+  registerElementEvent,
+  unRegisterElementEvent,
+} from "./elements/events";
 import { clearSvgElementAttr, isSvg, writeSvgAttr } from "./elements/svg";
 import type { AnyElement } from "./elements/namespaces";
-import { getOrInsert, getOrInsertComputed } from "../general";
 
 // ── Key classification ─────────────────────────────────────────────────────
 
@@ -105,44 +107,6 @@ function assertPropValue(key: string, value: unknown): void {
   }
 }
 
-// ── Event registration helpers ─────────────────────────────────────────────
-
-type ListenerWrapper = {
-  current: undefined | ((...agrs: any[]) => any);
-  initialized: boolean;
-};
-const elementEventMaps = new WeakMap<AnyElement, Map<string, ListenerWrapper>>();
-function registerElementEvent(
-  el: AnyElement,
-  propKey: string,
-  handler: (e: SyntheticEvent) => void,
-): void {
-  const map = getOrInsertComputed(elementEventMaps, el, () => new Map<string, ListenerWrapper>());
-  const wrapper = getOrInsert(map, propKey, { current: undefined, initialized: false });
-  const { domEvent, isCapture: _ } = resolveEventProp(propKey);
-  if (!wrapper.initialized) {
-    ensureListener(el, domEvent, wrapper);
-  }
-  wrapper.current = handler;
-}
-
-function ensureListener(el: AnyElement, domEvent: string, wrapper: ListenerWrapper) {
-  wrapper.initialized = true;
-  el.addEventListener(domEvent, function (e: Event) {
-    wrapper.current?.(e);
-  });
-}
-
-function unRegisterElementEvent(el: AnyElement, propKey: string): void {
-  const map = getOrInsertComputed(elementEventMaps, el, () => new Map<string, ListenerWrapper>());
-  const wrapper = getOrInsert(map, propKey, { current: undefined, initialized: false });
-  const { domEvent, isCapture: _ } = resolveEventProp(propKey);
-  if (!wrapper.initialized) {
-    ensureListener(el, domEvent, wrapper);
-  }
-  wrapper.current = undefined;
-}
-
 /** Local shape for the `ref` prop — the universal `VNodeProps` type doesn't
  * declare `ref` (it lives on `HTMLAttributes`/`SVGAttributes` only), so the
  * runtime accesses it through this lightweight cast. */
@@ -167,7 +131,7 @@ function writeElementAttr(el: AnyElement, key: string, value: unknown): void {
     default: {
       if (isEventKey(key)) {
         if (typeof value === "function") {
-          registerElementEvent(el, key, value as (e: SyntheticEvent) => void);
+          registerElementEvent(el, key, value as ElementEventHandler);
         } else {
           unRegisterElementEvent(el, key);
         }
@@ -256,7 +220,7 @@ export interface ElementPatch {
   removeAttrs?: string[];
   setAttrs?: Record<string, unknown>;
   removeEvents?: string[];
-  setEvents?: Record<string, (e: SyntheticEvent) => void>;
+  setEvents?: Record<string, ElementEventHandler>;
   style?: Record<string, unknown> | null;
   refSwap?: { prev?: WeakRefLike; next?: WeakRefLike };
 }
@@ -353,7 +317,7 @@ export function diffElementProps(
 
     if (isEventKey(key)) {
       if (typeof prev === "function") (ensure().removeEvents ??= []).push(key);
-      (ensure().setEvents ??= {})[key] = next as (e: SyntheticEvent) => void;
+      (ensure().setEvents ??= {})[key] = next as ElementEventHandler;
       continue;
     }
 

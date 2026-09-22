@@ -2,6 +2,29 @@ import type { Children, FrameworkProps } from "./jsx";
 import type { DependencyList } from "./general-types";
 import type { ComponentSlotType, ContextSlotType, SlotProps } from "./slots/slot";
 
+function getOrInsertComputedNative(
+  map: Map<any, any> | WeakMap<any, any>,
+  key: any,
+  cb: (key: any) => any,
+): any {
+  return map.getOrInsertComputed(key, cb);
+}
+function getOrInsertComputedPolyfill(
+  map: Map<any, any> | WeakMap<any, any>,
+  key: any,
+  cb: (key: any) => any,
+): any {
+  if (map.has(key)) return map.get(key)!;
+  const value = cb(key);
+  map.set(key, value);
+  return value;
+}
+
+const _getOrInsertComputed =
+  typeof Map.prototype.getOrInsertComputed === "function" &&
+  typeof WeakMap.prototype.getOrInsertComputed === "function"
+    ? getOrInsertComputedNative
+    : getOrInsertComputedPolyfill;
 /**
  * `Map.prototype.getOrInsertComputed` without the engine requirement — that
  * method needs V8 14.6 (Node 26), which puts it out of reach on current LTS.
@@ -17,18 +40,26 @@ export function getOrInsertComputed<K extends object, V>(
   compute: (key: K) => V,
 ): V;
 export function getOrInsertComputed(map: any, key: any, compute: (key: any) => any): any {
+  return _getOrInsertComputed(map, key, compute);
+}
+function getOrInsertNative(map: Map<any, any> | WeakMap<any, any>, key: any, value: any) {
+  return map.getOrInsert(key, value);
+}
+function getOrInsertPolyfill(map: Map<any, any> | WeakMap<any, any>, key: any, value: any): any {
   if (map.has(key)) return map.get(key)!;
-  const value = compute(key);
   map.set(key, value);
   return value;
 }
 
+const _getOrInsert =
+  typeof Map.prototype.getOrInsert === "function" &&
+  typeof WeakMap.prototype.getOrInsert === "function"
+    ? getOrInsertNative
+    : getOrInsertPolyfill;
 export function getOrInsert<K extends object | symbol, V>(map: WeakMap<K, V>, key: K, value: V): V;
 export function getOrInsert<K, V>(map: Map<K, V>, key: K, value: V): V;
 export function getOrInsert(map: any, key: any, value: any): any {
-  if (map.has(key)) return map.get(key)!;
-  map.set(key, value);
-  return value;
+  return _getOrInsert(map, key, value);
 }
 
 const _values = new WeakMap<ReadonlyMap<any, any>, any[]>();

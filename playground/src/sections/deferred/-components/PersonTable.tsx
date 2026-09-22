@@ -159,8 +159,8 @@ function* PersonTableRow(props: { row: PersonRow }) {
         <Select
           value={row.department}
           aria-labelledby={`${row.id}-name person-department`}
-          onValueChange={(department) => {
-            updatePerson({ ...row, department });
+          onChange={(e) => {
+            updatePerson({ ...row, department: e.currentTarget.value });
           }}
         >
           {DEPARTMENTS.map((d) => (

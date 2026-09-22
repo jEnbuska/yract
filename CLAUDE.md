@@ -112,7 +112,6 @@ function* Counter(_props: object) {
 | `jsx.ts`                              | `Child`/`Children`, `Component`, `FrameworkProps` (`key`, `shown`, `deps`), `Fragment`                      |
 | `jsx-types.ts`                        | Intrinsic element type definitions (HTML/SVG attribute types)                                               |
 | `jsx-runtime.ts`                      | Automatic JSX transform (`jsx`, `jsxs`, `jsxDEV`)                                                           |
-| `events.ts`                           | `SyntheticEvent`/`SEvent` and the proxy-based event wrapper                                                 |
 | `context.ts`                          | `createContext`, `resolveContext`, context map helpers                                                      |
 | `general.ts` / `general-types.ts`     | Shared helpers and `ComponentGenerator`, `DependencyList`                                                   |
 | `reasons.ts`                          | Symbols identifying why a fiber was scheduled                                                               |
@@ -135,9 +134,8 @@ function* Counter(_props: object) {
 | `render/root.ts` / `render/index.ts`  | `createRoot()`, `render()` entry points                                                                     |
 | `render/scheduler.ts`                 | Cooperative scheduler; applies queued `UIAction`s at commit                                                 |
 | `render/element-props.ts`             | `diffElementProps` (reconcile) → `ElementPatch` → `updateElementProps` (commit)                             |
-| `render/delegation.ts`                | Handler registry, `DelegationRoot`, prop→event mapping                                                      |
-| `render/dispatch.ts`                  | Delegated event dispatch (capture→bubble phases)                                                            |
-| `render/events.ts`                    | Per-element listeners for non-delegated events                                                              |
+| `render/delegation.ts`                | Prop-name → DOM-event mapping (`resolveEventProp`)                                                          |
+| `render/elements/events.ts`           | Per-element listener registration; one stable listener per element + prop                                   |
 | `render/types.ts`                     | `RenderContext`, hook state types                                                                           |
 
 ---

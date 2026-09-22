@@ -5,7 +5,7 @@
  * context, so the caller never wires `htmlFor` or `aria-describedby` by hand.
  */
 import { use, useId } from "react";
-import type { ChangeEvent, ComponentProps, ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { FieldContext } from "./contexts";
 
 export interface FieldProps extends ComponentProps<"div"> {
@@ -49,14 +49,11 @@ function describedBy(invalid: boolean, descriptionId: string, errorId: string): 
   return invalid ? errorId : descriptionId;
 }
 
-export interface TextInputProps extends Omit<ComponentProps<"input">, "onChange" | "value"> {
-  value: string;
-  /** Receives the new value, not the DOM event — the control unwraps it. */
-  onValueChange?: (value: string) => void;
+export interface TextInputProps extends ComponentProps<"input"> {
   type?: "text" | "email" | "password" | "search" | "tel" | "url";
 }
 
-export function TextInput({ value, onValueChange, type = "text", ...rest }: TextInputProps) {
+export function TextInput({ value, type = "text", ...rest }: TextInputProps) {
   const { controlId, descriptionId, errorId, invalid } = use(FieldContext);
   return (
     <input
@@ -67,14 +64,12 @@ export function TextInput({ value, onValueChange, type = "text", ...rest }: Text
       value={value}
       aria-invalid={invalid ? "true" : undefined}
       aria-describedby={describedBy(invalid, descriptionId, errorId)}
-      onChange={(event: ChangeEvent<HTMLInputElement>) => onValueChange?.(event.target.value)}
     />
   );
 }
 
-export interface SelectProps extends Omit<ComponentProps<"select">, "onChange" | "value"> {
+export interface SelectProps extends Omit<ComponentProps<"select">, "value"> {
   value: string;
-  onValueChange?: (value: string) => void;
 }
 
 /**
@@ -82,7 +77,7 @@ export interface SelectProps extends Omit<ComponentProps<"select">, "onChange" |
  * Rest props land on the `<select>`, not the presentational wrapper — that is
  * the element a caller means when passing `aria-labelledby` or `disabled`.
  */
-export function Select({ value, onValueChange, children, ...rest }: SelectProps) {
+export function Select({ value, children, ...rest }: SelectProps) {
   const { controlId, descriptionId, errorId, invalid } = use(FieldContext);
   return (
     <div className="dos-select-wrap">
@@ -92,7 +87,6 @@ export function Select({ value, onValueChange, children, ...rest }: SelectProps)
         id={controlId}
         value={value}
         aria-describedby={describedBy(invalid, descriptionId, errorId)}
-        onChange={(event: ChangeEvent<HTMLSelectElement>) => onValueChange?.(event.target.value)}
       >
         {children}
       </select>
@@ -100,15 +94,14 @@ export function Select({ value, onValueChange, children, ...rest }: SelectProps)
   );
 }
 
-export interface RangeProps extends Omit<ComponentProps<"input">, "onChange" | "value"> {
+export interface RangeProps extends Omit<ComponentProps<"input">, "value"> {
   value: number;
   min: number;
   max: number;
   step?: number;
-  onValueChange?: (value: number) => void;
 }
 
-export function Range({ value, min, max, step = 1, onValueChange, ...rest }: RangeProps) {
+export function Range({ value, min, max, step = 1, ...rest }: RangeProps) {
   const { controlId, descriptionId, errorId, invalid } = use(FieldContext);
   return (
     <input
@@ -121,9 +114,6 @@ export function Range({ value, min, max, step = 1, onValueChange, ...rest }: Ran
       min={String(min)}
       max={String(max)}
       step={String(step)}
-      onChange={(event: ChangeEvent<HTMLInputElement>) =>
-        onValueChange?.(Number(event.target.value))
-      }
     />
   );
 }

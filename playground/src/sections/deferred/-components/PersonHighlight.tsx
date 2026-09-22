@@ -16,7 +16,7 @@ export function* PersonHighlight({ highlight, setHighlight, matches }: OwnProps)
         value={highlight}
         aria-labelledby="person-highlight-label"
         data-testid="highlight-select"
-        onValueChange={setHighlight}
+        onChange={(e) => setHighlight(e.currentTarget.value)}
       >
         <option value={NO_HIGHLIGHT}>— none —</option>
         {CITIES.map((city) => (

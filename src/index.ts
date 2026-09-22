@@ -1,6 +1,5 @@
 export { type Context, type ContextProps, createContext, resolveContext } from "./context";
 
-export type { SEvent, SyntheticEvent } from "./events";
 export {
   useContext,
   useEffect,
