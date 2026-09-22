@@ -25,6 +25,4 @@ export class RenderClock {
   shouldThrottle(): boolean {
     return Date.now() >= this.#workYieldDeadline;
   }
-
-
 }

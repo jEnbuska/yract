@@ -1,7 +1,7 @@
 /**
  * Public render entry points.
  *
- * `createRoot(container)` wires up one Scheduler + one DelegationRoot for
+ * `createRoot(container)` wires up one Scheduler + one DelegationRoot <-- remove this>for
  * the container, returns a `Root` handle, and lets the caller mount/unmount
  * VNodes into it. `render(vnode, container)` is a one-shot convenience
  * wrapper that creates a Root, mounts `vnode`, and returns the Root.

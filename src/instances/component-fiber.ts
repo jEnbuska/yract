@@ -1,6 +1,6 @@
 import { resolveContext } from "../context";
 import type { Component } from "../jsx";
-import type { ContextMap, HookState, RenderContext } from "../render/types";
+import type { ContextMap, HookState } from "../render/types";
 import { mountFiber, reconcilerFiber } from "../reconciler/reconciler";
 import { PROPS_REASON, UNMOUNT } from "../reasons";
 import type { ComponentSlotType, ContextSlotType, Slot } from "../slots/slot";
@@ -13,6 +13,7 @@ import { resolveComponentGenerator } from "../render/resolve-component-generator
 import type { UIAction } from "../ui-actions/types";
 import { INSERT_UI_ACTION } from "../ui-actions/constants";
 import type { Fiber } from "./types";
+import type { Scheduler } from "../scheduler/Scheduler";
 
 /**
  * The document fragments a fiber is about to insert. A node inside one of these
@@ -42,7 +43,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
   parentDom: Node;
   uiActions?: Array<UIAction> | undefined = undefined;
   ctx: ContextMap;
-  readonly rctx: RenderContext;
+  readonly scheduler: Scheduler;
   instances?: Map<string, Fiber> = undefined;
   prevInstances?: Map<string, Fiber> = undefined;
   hookStates: HookState[] = [];
@@ -63,7 +64,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     intent: Omit<DraftBy<Slot<ComponentSlotType>, "instance" | "prevProps">, "type">,
     ctx: ContextMap,
     parent: Fiber | null,
-    rctx: RenderContext,
+    scheduler: Scheduler,
     parentDom: Node,
     ns: TagNamespace,
   ) {
@@ -74,12 +75,12 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     this.parent = parent;
     this.ctx = ctx;
     this.parentDom = parentDom;
-    this.rctx = rctx;
+    this.scheduler = scheduler;
     this.props = intent.props as TProps;
     this.deps = intent.props.deps;
     this.depth = (parent?.depth ?? -1) + 1;
     this.ns = ns;
-    this.confidentIteration = this.rctx.scheduler.renderIteration;
+    this.confidentIteration = scheduler.renderIteration;
   }
 
   isDeferred() {
@@ -88,45 +89,45 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
 
   scheduleRender(reason: symbol): void {
     this.renderReasons.add(reason);
-    this.rctx.scheduler.scheduleRender(this);
+    this.scheduler.scheduleRender(this);
   }
 
   cancelRender(reason: symbol): void {
     const { renderReasons } = this;
     if (!renderReasons.delete(reason)) return;
     if (!renderReasons.size) {
-      this.rctx.scheduler.cancelRender(this);
+      this.scheduler.cancelRender(this);
     }
   }
 
   scheduleStateResolve(reason: symbol): void {
     if (this.resolveReasons?.has(reason)) return;
     (this.resolveReasons ??= new Set()).add(reason);
-    this.rctx.scheduler.scheduleStateResolve(this);
+    this.scheduler.scheduleStateResolve(this);
   }
 
   cancelStateResolve(reason: symbol): void {
     const { resolveReasons } = this;
     resolveReasons?.delete(reason);
     if (resolveReasons?.size === 0) {
-      this.rctx.scheduler.cancelStateResolve(this);
+      this.scheduler.cancelStateResolve(this);
     }
   }
 
   schedulePostCommit(reason: symbol): void {
     if (this.postCommitReasons?.has(reason)) return;
     (this.postCommitReasons ??= new Set()).add(reason);
-    this.rctx.scheduler.schedulePostCommit(this);
+    this.scheduler.schedulePostCommit(this);
   }
 
   cancelPostCommit(reason: symbol): void {
     if (!this.postCommitReasons?.delete(reason)) return;
     if (this.postCommitReasons.size) return;
-    this.rctx.scheduler.cancelPostCommit(this);
+    this.scheduler.cancelPostCommit(this);
   }
 
   render() {
-    const scheduler = this.rctx.scheduler;
+    const scheduler = this.scheduler;
     if (!this.propsPrepared) {
       this.props = stripFrameworkProps<any>(this.props);
       this.propsPrepared = true;
@@ -269,7 +270,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
       "type"
     >,
   ): void {
-    this.confidentIteration = this.rctx.scheduler.renderIteration;
+    this.confidentIteration = this.scheduler.renderIteration;
     const { deps } = intent.props;
     if (!depsChanged(this.deps, deps)) return;
     this.deps = deps;

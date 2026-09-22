@@ -20,9 +20,8 @@ export function renderFiber(fiber: Fiber, renderIteration: number) {
 
 export function applyUIActions(fiber: Fiber) {
   const { uiActions } = fiber;
-  const { delegationRoot } = fiber.rctx;
   for (let i = 0; i < uiActions!.length; i++) {
-    applyDomAction(uiActions![i]!, delegationRoot);
+    applyDomAction(uiActions![i]!);
   }
   fiber.slot = fiber.pendingSlot;
   fiber.pendingSlot = undefined;
@@ -39,24 +38,27 @@ export async function waitForIdle() {
   return promise;
 }
 
-export function handlePostCommit(commitGroup: { queues: Fiber[][], has(fiber: Fiber): boolean, clear(): void }, renderIteration: number) {
-  const {queues} = commitGroup
+export function handlePostCommit(
+  commitGroup: { queues: Fiber[][]; has(fiber: Fiber): boolean; clear(): void },
+  renderIteration: number,
+) {
+  const { queues } = commitGroup;
   for (let i = queues.length - 1; i >= 0; i--) {
     const queue = queues[i]!;
     for (let j = 0; j < queue.length; j++) {
       const fiber = queue[j]!;
       if (!commitGroup.has(fiber)) continue;
       fiber.unmounted ||= fiber.isUnmounted(renderIteration);
-      if(!fiber.unmounted) {
+      if (!fiber.unmounted) {
         fiber.hookStates.forEach(effectResolver);
         fiber.postCommitReasons?.clear();
         continue;
       }
       fiber.hookStates.forEach(unmountHookCleanup);
-      if(!fiber.instances) continue;
+      if (!fiber.instances) continue;
       for (const child of fiber.instances.values()) {
         child.unmounted = true;
-        child.schedulePostCommit(UNMOUNT)
+        child.schedulePostCommit(UNMOUNT);
       }
     }
   }

@@ -1,7 +1,7 @@
 import { ComponentFiber } from "./component-fiber";
 import type { DraftBy } from "../general-types";
 import type { ContextSlotType, Slot } from "../slots/slot";
-import type { ContextMap, RenderContext } from "../render/types";
+import type { ContextMap } from "../render/types";
 import type { TagNamespace } from "../render/elements/namespaces";
 import type { ContextProperties } from "../context";
 import { depsChanged } from "../general";
@@ -16,12 +16,11 @@ export class ContextFiber extends ComponentFiber<{ value: unknown }> {
   constructor(
     intent: DraftBy<Slot<ContextSlotType>, "instance" | "prevProps">,
     ctx: ContextMap,
-    parent: Fiber | null,
-    rctx: RenderContext,
+    parent: Fiber,
     parentDom: Node,
     ns: TagNamespace,
   ) {
-    super(intent, ctx, parent, rctx, parentDom, ns);
+    super(intent, ctx, parent, parent.scheduler, parentDom, ns);
     const { context, props } = intent;
     this.context = {
       name: context.name,

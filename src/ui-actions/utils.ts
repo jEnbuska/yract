@@ -10,9 +10,8 @@ import {
 import { removeSlotNodes } from "./utils/remove-slot-nodes";
 import { moveSlotNodes } from "./utils/move-slot-nodes";
 import { insertNode } from "./utils/insert-node";
-import type { DelegationRoot } from "../render/delegation";
 
-export function applyDomAction(action: UIAction, root: DelegationRoot) {
+export function applyDomAction(action: UIAction) {
   switch (action.type) {
     case MOVE_UI_ACTION: {
       moveSlotNodes(action.slot, action.parentDom, action.before);
@@ -31,7 +30,7 @@ export function applyDomAction(action: UIAction, root: DelegationRoot) {
     }
     case UPDATE_UI_ACTION: {
       const { slot, patch } = action;
-      updateElementProps(slot.headNode, patch, root);
+      updateElementProps(slot.headNode, patch);
       break;
     }
   }

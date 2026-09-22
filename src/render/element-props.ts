@@ -10,7 +10,7 @@
  *      It produces an `ElementPatch | null` describing exactly the DOM
  *      operations needed — or `null` when nothing relevant changed.
  *      No DOM access.
- *   2. `updateElementProps(el, patch, delegationRoot)` runs at commit.
+ *   2. `updateElementProps(el, patch)` runs at commit.
  *      It just consumes the patch: no diffing, no `Object.is`, no prev
  *      props needed.
  *
@@ -23,16 +23,10 @@
  * from the initial-mount writer) so programming mistakes surface loudly.
  */
 import type { SyntheticEvent } from "../events";
-import {
-  type DelegationRoot,
-  NON_DELEGATED_EVENTS,
-  registerHandler,
-  resolveEventProp,
-  unregisterHandler,
-} from "./delegation";
-import { addNonDelegatedListener, removeNonDelegatedListener } from "./events";
+import { resolveEventProp } from "./delegation";
 import { clearSvgElementAttr, isSvg, writeSvgAttr } from "./elements/svg";
 import type { AnyElement } from "./elements/namespaces";
+import { getOrInsert, getOrInsertComputed } from "../general";
 
 // ── Key classification ─────────────────────────────────────────────────────
 
@@ -113,28 +107,40 @@ function assertPropValue(key: string, value: unknown): void {
 
 // ── Event registration helpers ─────────────────────────────────────────────
 
+type ListenerWrapper = {
+  current: undefined | ((...agrs: any[]) => any);
+  initialized: boolean;
+};
+const elementEventMaps = new WeakMap<AnyElement, Map<string, ListenerWrapper>>();
 function registerElementEvent(
   el: AnyElement,
   propKey: string,
   handler: (e: SyntheticEvent) => void,
-  delegationRoot: DelegationRoot,
 ): void {
-  const { domEvent, isCapture } = resolveEventProp(propKey);
-  if (NON_DELEGATED_EVENTS.has(domEvent)) {
-    addNonDelegatedListener(el, domEvent, handler);
-  } else {
-    registerHandler(el, domEvent, handler, isCapture);
-    delegationRoot.ensureListening(domEvent);
+  const map = getOrInsertComputed(elementEventMaps, el, () => new Map<string, ListenerWrapper>());
+  const wrapper = getOrInsert(map, propKey, { current: undefined, initialized: false });
+  const { domEvent, isCapture: _ } = resolveEventProp(propKey);
+  if (!wrapper.initialized) {
+    ensureListener(el, domEvent, wrapper);
   }
+  wrapper.current = handler;
+}
+
+function ensureListener(el: AnyElement, domEvent: string, wrapper: ListenerWrapper) {
+  wrapper.initialized = true;
+  el.addEventListener(domEvent, function (e: Event) {
+    wrapper.current?.(e);
+  });
 }
 
 function unRegisterElementEvent(el: AnyElement, propKey: string): void {
-  const { domEvent, isCapture } = resolveEventProp(propKey);
-  if (NON_DELEGATED_EVENTS.has(domEvent)) {
-    removeNonDelegatedListener(el, domEvent);
-  } else {
-    unregisterHandler(el, domEvent, isCapture);
+  const map = getOrInsertComputed(elementEventMaps, el, () => new Map<string, ListenerWrapper>());
+  const wrapper = getOrInsert(map, propKey, { current: undefined, initialized: false });
+  const { domEvent, isCapture: _ } = resolveEventProp(propKey);
+  if (!wrapper.initialized) {
+    ensureListener(el, domEvent, wrapper);
   }
+  wrapper.current = undefined;
 }
 
 /** Local shape for the `ref` prop — the universal `VNodeProps` type doesn't
@@ -147,12 +153,7 @@ export type WeakRefLike<T extends WeakKey = WeakKey> = Readonly<Record<symbol, b
 
 // ── Attribute writes ───────────────────────────────────────────────────────
 
-function writeElementAttr(
-  el: AnyElement,
-  key: string,
-  value: unknown,
-  delegationRoot: DelegationRoot,
-): void {
+function writeElementAttr(el: AnyElement, key: string, value: unknown): void {
   switch (key) {
     case "className": {
       if (!value) return el.removeAttribute("class");
@@ -166,7 +167,7 @@ function writeElementAttr(
     default: {
       if (isEventKey(key)) {
         if (typeof value === "function") {
-          registerElementEvent(el, key, value as (e: SyntheticEvent) => void, delegationRoot);
+          registerElementEvent(el, key, value as (e: SyntheticEvent) => void);
         } else {
           unRegisterElementEvent(el, key);
         }
@@ -209,18 +210,14 @@ function clearElementAttr(el: AnyElement, key: string): void {
 
 // ── Initial mount ───────────────────────────────────────────────────────────
 
-export function applyElementProps(
-  element: AnyElement,
-  props: Record<string, unknown>,
-  delegationRoot: DelegationRoot,
-): void {
+export function applyElementProps(element: AnyElement, props: Record<string, unknown>): void {
   for (const key in props) {
     if (!Object.hasOwn(props, key)) continue;
     if (isReservedProp(key)) continue;
     const value = props[key];
     if (value === undefined) continue;
     assertPropValue(key, value);
-    writeElementAttr(element, key, value, delegationRoot);
+    writeElementAttr(element, key, value);
   }
   if (element instanceof HTMLButtonElement) {
     if (props["type"]) return;
@@ -381,11 +378,7 @@ export function diffElementProps(
  * no access to the previous props — the caller has already decided what
  * needs to happen.
  */
-export function updateElementProps(
-  el: AnyElement,
-  patch: ElementPatch,
-  delegationRoot: DelegationRoot,
-) {
+export function updateElementProps(el: AnyElement, patch: ElementPatch) {
   if (patch.removeAttrs) {
     for (const key of patch.removeAttrs) clearElementAttr(el, key);
   }
@@ -399,12 +392,12 @@ export function updateElementProps(
   }
   if (patch.setAttrs) {
     for (const key in patch.setAttrs) {
-      writeElementAttr(el, key, patch.setAttrs[key], delegationRoot);
+      writeElementAttr(el, key, patch.setAttrs[key]);
     }
   }
   if (patch.setEvents) {
     for (const key in patch.setEvents) {
-      registerElementEvent(el, key, patch.setEvents[key]!, delegationRoot);
+      registerElementEvent(el, key, patch.setEvents[key]!);
     }
   }
   if (patch.refSwap) {

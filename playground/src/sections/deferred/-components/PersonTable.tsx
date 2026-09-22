@@ -3,7 +3,6 @@ import {
   type Component,
   type PropsWithChildren,
   useContext,
-  useDefer,
   useMemo,
   useRef,
   useStable,

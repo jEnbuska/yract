@@ -108,38 +108,3 @@ export function resolveEventProp(propKey: string): { domEvent: string; isCapture
 
   return { domEvent: baseProp.slice(2).toLowerCase(), isCapture };
 }
-
-// ---------------------------------------------------------------------------
-// DelegationRoot
-// ---------------------------------------------------------------------------
-
-export class DelegationRoot {
-  private readonly _root: Element;
-  private readonly _registeredTypes = new Set<string>();
-  private readonly _listeners = new Map<string, EventListener>();
-  private readonly _dispatch: (nativeEvent: Event, domEvent: string) => void;
-
-  constructor(root: Element, dispatch: (nativeEvent: Event, domEvent: string) => void) {
-    this._root = root;
-    this._dispatch = dispatch;
-  }
-
-  ensureListening(domEvent: string): void {
-    if (this._registeredTypes.has(domEvent)) return;
-    this._registeredTypes.add(domEvent);
-
-    const listener: EventListener = (nativeEvent: Event) => {
-      this._dispatch(nativeEvent, domEvent);
-    };
-    this._listeners.set(domEvent, listener);
-    this._root.addEventListener(domEvent, listener);
-  }
-
-  dispose(): void {
-    for (const [domEvent, listener] of this._listeners) {
-      this._root.removeEventListener(domEvent, listener);
-    }
-    this._listeners.clear();
-    this._registeredTypes.clear();
-  }
-}

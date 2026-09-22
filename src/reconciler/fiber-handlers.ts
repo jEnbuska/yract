@@ -11,7 +11,6 @@ import type {
 import { extendIntentNodes, extendIntentWithInstance, type Slot } from "../slots/slot";
 import type { AnyElement, TagNamespace } from "../render/elements/namespaces";
 import type { ContextMap } from "../render/types";
-import { UNMOUNT } from "../reasons";
 
 import { prepareSlotNodes } from "../slots/utils";
 import type { WeakRefLike } from "../render/element-props";
@@ -39,43 +38,31 @@ export function handleMountSlot(
     extendIntentWithInstance(intent, instance);
     fiber.prevInstances?.delete(path);
     if (instance.unmounted) {
-      console.log('was unmonted');
+      console.log("was unmonted");
       instance.unmounted = false;
     }
     instance.setProps(intent);
   } else {
-    instance = createFiber(extendIntentNodes(intent), ctx, fiber, fiber.rctx, parentDom, ns);
+    instance = createFiber(extendIntentNodes(intent), ctx, fiber, parentDom, ns);
     intent.instance = instance;
-    instance.rctx.scheduler.scheduleRender(instance);
+    instance.scheduler.scheduleRender(instance);
   }
   (fiber.instances ??= new Map<string, Fiber>()).set(path, instance);
   return intent as Slot<ComponentSlotType>;
 }
 
 export type CreateSlotResponse<T extends SlotType> = Pick<Slot<T>, "headNode" | "tailNode">;
+export function handleCreateNode(action: CreateElementAction): CreateSlotResponse<ElementSlotType>;
+export function handleCreateNode(action: CreateShallowAction): CreateSlotResponse<ShallowSlotType>;
 export function handleCreateNode(
-  fiber: Fiber,
-  action: CreateElementAction,
-): CreateSlotResponse<ElementSlotType>;
-export function handleCreateNode(
-  fiber: Fiber,
-  action: CreateShallowAction,
-): CreateSlotResponse<ShallowSlotType>;
-export function handleCreateNode(
-  fiber: Fiber,
   action: CreateFragmentAction,
 ): CreateSlotResponse<FragmentSlotType>;
+export function handleCreateNode(action: CreateTextAction): CreateSlotResponse<TextSlotType>;
 export function handleCreateNode(
-  fiber: Fiber,
-  action: CreateTextAction,
-): CreateSlotResponse<TextSlotType>;
-export function handleCreateNode(
-  fiber: Fiber,
   action: CreateElementAction | CreateFragmentAction | CreateTextAction | CreateShallowAction,
 ): CreateSlotResponse<any> {
-  const { rctx } = fiber;
   const { slot, ns } = action;
-  return prepareSlotNodes(slot, rctx.delegationRoot, ns);
+  return prepareSlotNodes(slot, ns);
 }
 
 export function handleUpdateSlotProps(

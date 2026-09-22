@@ -7,7 +7,6 @@ import type {
 } from "./slot";
 import { shallowSlotType } from "./slot";
 import { elementSlotType, fragmentSlotType, textSlotType } from "./slot";
-import type { DelegationRoot } from "../render/delegation";
 import type { TagNamespace } from "../render/elements/namespaces";
 import { createElement } from "../render/elements/create";
 import { applyElementProps } from "../render/element-props";
@@ -16,12 +15,11 @@ import type { DraftBy } from "../general-types";
 
 export function prepareSlotNodes(
   intent: Intent<ElementSlotType | TextSlotType | FragmentSlotType | ShallowSlotType>,
-  delegationRoot: DelegationRoot,
   ns: TagNamespace | undefined,
 ): Slot<ElementSlotType | TextSlotType | FragmentSlotType | ShallowSlotType> {
   switch (intent.type) {
     case elementSlotType:
-      return toElementSlot(intent, delegationRoot, ns!);
+      return toElementSlot(intent, ns!);
     case textSlotType:
       return toTextSlot(intent);
     case fragmentSlotType:
@@ -42,14 +40,10 @@ function toTextSlot(intent: Intent<TextSlotType>): Slot<TextSlotType> {
   > as Slot<TextSlotType>;
 }
 
-function toElementSlot(
-  intent: Intent<ElementSlotType>,
-  delegationRoot: DelegationRoot,
-  ns: TagNamespace,
-): Slot<ElementSlotType> {
+function toElementSlot(intent: Intent<ElementSlotType>, ns: TagNamespace): Slot<ElementSlotType> {
   const { element, props } = intent;
   const node = createElement(ns, element);
-  applyElementProps(node, props, delegationRoot);
+  applyElementProps(node, props);
   intent.headNode = node;
   return intent as Slot<ElementSlotType>;
 }

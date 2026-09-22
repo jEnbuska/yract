@@ -1,7 +1,4 @@
 import { Scheduler } from "../scheduler/Scheduler";
-import { DelegationRoot } from "./delegation";
-import type { RenderContext } from "./types";
-import { dispatchDelegatedEvent } from "./dispatch";
 import { createFiber } from "../instances/create-fiber";
 import type { Child } from "../jsx";
 import { ComponentFiber } from "../instances/component-fiber";
@@ -19,22 +16,12 @@ registerCreateInstance(createFiber);
 export class Root {
   readonly container: Element;
   private readonly scheduler: Scheduler;
-  private readonly delegationRoot: DelegationRoot;
-  private readonly rctx: RenderContext;
   private readonly rootInstance: RootInstance;
 
   constructor(container: Element) {
     this.container = container;
     this.scheduler = new Scheduler();
-    this.delegationRoot = new DelegationRoot(container, (native, name) =>
-      dispatchDelegatedEvent(native, container, name),
-    );
-    this.rctx = {
-      container,
-      scheduler: this.scheduler,
-      delegationRoot: this.delegationRoot,
-    };
-    this.rootInstance = new RootInstance(this.rctx);
+    this.rootInstance = new RootInstance(this.scheduler, container);
   }
 
   render(child: Child) {
@@ -44,16 +31,15 @@ export class Root {
   /** Tear down the root and clean up event listeners. */
   unmount(): void {
     this.container.textContent = "";
-    this.delegationRoot.dispose();
   }
 }
 
 class RootInstance extends ComponentFiber {
   child: Child = null;
-  constructor(rctx: RenderContext) {
+  constructor(scheduler: Scheduler, container: Element) {
     const headNode = document.createComment("<Root>");
     const tailNode = document.createComment("</Root>");
-    const ns = nodeNameSpace(rctx.container);
+    const ns = nodeNameSpace(container);
     const intent: DraftBy<Slot<ComponentSlotType>, "instance" | "prevProps"> = {
       _key: undefined,
       children: undefined,
@@ -76,7 +62,7 @@ class RootInstance extends ComponentFiber {
       text: undefined,
       type: componentSlotType,
     };
-    super(intent, new Map(), null, rctx, rctx.container, ns);
+    super(intent, new Map(), null, scheduler, container, ns);
     const getChild = () => this.child;
   }
 

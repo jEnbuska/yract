@@ -8,7 +8,7 @@ import { createContext, resolveContext } from "../context";
 import { ComponentFiber } from "../instances/component-fiber";
 import { createResolvable } from "../create-resolvable";
 import type { ComponentSlotType, Slot } from "../slots/slot";
-import type { ContextMap, RenderContext } from "../render/types";
+import type { ContextMap } from "../render/types";
 import type { TagNamespace } from "../render/elements/namespaces";
 import { MOUNT_REASON } from "../reasons";
 import { useEffect } from "./effect";
@@ -71,8 +71,7 @@ class DeferFiber extends ComponentFiber<DeferProps> {
   constructor(
     intent: DraftBy<Slot<ComponentSlotType>, "instance" | "prevProps">,
     parentCtx: ContextMap,
-    parent: Fiber | null,
-    rctx: RenderContext,
+    parent: Fiber,
     parentDom: Node,
     ns: TagNamespace,
   ) {
@@ -92,7 +91,7 @@ class DeferFiber extends ComponentFiber<DeferProps> {
     const extended = new Map(parentCtx);
 
     extended.set(staticId, context as any);
-    super(intent, extended, parent, rctx, parentDom, ns);
+    super(intent, extended, parent, parent.scheduler, parentDom, ns);
     this.context = context;
   }
 

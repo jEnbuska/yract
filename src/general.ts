@@ -10,13 +10,23 @@ import type { ComponentSlotType, ContextSlotType, SlotProps } from "./slots/slot
  * `undefined` is cached instead of recomputed on every call, matching the
  * built-in's semantics.
  */
+export function getOrInsertComputed<K, V>(map: Map<K, V>, key: K, compute: (key: K) => V): V;
 export function getOrInsertComputed<K extends object, V>(
   map: WeakMap<K, V>,
   key: K,
   compute: (key: K) => V,
-): V {
+): V;
+export function getOrInsertComputed(map: any, key: any, compute: (key: any) => any): any {
   if (map.has(key)) return map.get(key)!;
   const value = compute(key);
+  map.set(key, value);
+  return value;
+}
+
+export function getOrInsert<K extends object | symbol, V>(map: WeakMap<K, V>, key: K, value: V): V;
+export function getOrInsert<K, V>(map: Map<K, V>, key: K, value: V): V;
+export function getOrInsert(map: any, key: any, value: any): any {
+  if (map.has(key)) return map.get(key)!;
   map.set(key, value);
   return value;
 }

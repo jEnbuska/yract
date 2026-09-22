@@ -1,5 +1,5 @@
 import { ComponentFiber } from "./component-fiber";
-import type { ContextMap, RenderContext } from "../render/types";
+import type { ContextMap } from "../render/types";
 import type { TagNamespace } from "../render/elements/namespaces";
 import type { ComponentSlotType, ContextSlotType, Slot } from "../slots/slot";
 import { contextSlotType } from "../slots/slot";
@@ -11,8 +11,7 @@ import type { Fiber } from "./types";
 export function createFiber(
   intent: DraftBy<Slot<ComponentSlotType | ContextSlotType>, "instance" | "prevProps">,
   parentCtx: ContextMap,
-  parent: Fiber | null,
-  rctx: RenderContext,
+  parent: Fiber,
   parentDom: Node,
   ns: TagNamespace,
 ): ComponentFiber {
@@ -22,7 +21,6 @@ export function createFiber(
       intent as DraftBy<Slot<ComponentSlotType>, "instance" | "prevProps">,
       parentCtx,
       parent,
-      rctx,
       parentDom,
       ns,
     );
@@ -33,7 +31,6 @@ export function createFiber(
       intent as DraftBy<Slot<ContextSlotType>, "instance" | "prevProps">,
       parentCtx,
       parent,
-      rctx,
       parentDom,
       ns,
     );
@@ -43,7 +40,7 @@ export function createFiber(
     intent as DraftBy<Slot<ComponentSlotType>, "instance" | "prevProps">,
     parentCtx,
     parent,
-    rctx,
+    parent.scheduler,
     parentDom,
     ns,
   );

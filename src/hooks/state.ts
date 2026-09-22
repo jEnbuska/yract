@@ -5,7 +5,6 @@ import { type StateHookDescriptor } from "./types";
 import { createStateReason } from "../reasons";
 import { depsChanged } from "../general";
 import type { DependencyList, PartialBy } from "../general-types";
-import { HookRuleError } from "./HookRuleError";
 import { $STATE } from "./constants";
 
 /**

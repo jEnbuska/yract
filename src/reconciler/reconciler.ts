@@ -146,12 +146,12 @@ function mountIntent(
       return;
     }
     case textSlotType: {
-      const { headNode } = handleCreateNode(fiber, prepareCreate(intent));
+      const { headNode } = handleCreateNode(prepareCreate(intent));
       stagingDom.appendChild(headNode);
       return;
     }
     case elementSlotType: {
-      const { headNode } = handleCreateNode(fiber, prepareCreate(intent, ns));
+      const { headNode } = handleCreateNode(prepareCreate(intent, ns));
       const { children, path, props } = intent;
       stagingDom.appendChild(headNode);
       ns = nodeNameSpace(headNode as any);
@@ -160,7 +160,7 @@ function mountIntent(
       return;
     }
     case fragmentSlotType: {
-      const { headNode, tailNode } = handleCreateNode(fiber, prepareCreate(intent, ns));
+      const { headNode, tailNode } = handleCreateNode(prepareCreate(intent, ns));
       const { path, children } = intent;
       stagingDom.appendChild(headNode);
       intent.slots = mount(children, fiber, parentDom, stagingDom, path, ns, ctx);
@@ -168,7 +168,7 @@ function mountIntent(
       return;
     }
     case shallowSlotType: {
-      const { headNode, tailNode } = handleCreateNode(fiber, prepareCreate(intent, ns));
+      const { headNode, tailNode } = handleCreateNode(prepareCreate(intent, ns));
       const { path, props, component } = intent;
       stagingDom.appendChild(headNode);
       intent.slots = mount([component(props)], fiber, parentDom, stagingDom, path, ns, ctx);
@@ -200,12 +200,12 @@ function buildIntentToSlot(
       return;
     }
     case textSlotType: {
-      const { headNode } = handleCreateNode(fiber, prepareCreate(intent));
+      const { headNode } = handleCreateNode(prepareCreate(intent));
       uiActions.push(prepareInsert(parentDom, headNode, beforeNode));
       return;
     }
     case elementSlotType: {
-      const { headNode } = handleCreateNode(fiber, prepareCreate(intent, ns));
+      const { headNode } = handleCreateNode(prepareCreate(intent, ns));
       const { children, path } = intent;
       ns = nodeNameSpace(headNode as AnyElement);
       intent.slots = mount(children, fiber, headNode, headNode, path, ns, ctx);
@@ -215,7 +215,7 @@ function buildIntentToSlot(
       return;
     }
     case fragmentSlotType: {
-      const { headNode, tailNode } = handleCreateNode(fiber, prepareCreate(intent, ns));
+      const { headNode, tailNode } = handleCreateNode(prepareCreate(intent, ns));
       const { children, path } = intent;
       const stagingDom = document.createDocumentFragment();
       stagingDom.appendChild(headNode);
@@ -225,7 +225,7 @@ function buildIntentToSlot(
       return;
     }
     case shallowSlotType: {
-      const { headNode, tailNode } = handleCreateNode(fiber, prepareCreate(intent, ns));
+      const { headNode, tailNode } = handleCreateNode(prepareCreate(intent, ns));
       const { path, component, props } = intent;
       const stagingDom = document.createDocumentFragment();
       stagingDom.appendChild(headNode);

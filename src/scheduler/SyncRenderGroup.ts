@@ -1,13 +1,9 @@
-
 import { applyUIActions, handlePostCommit, renderFiber } from "./utils";
-import { unmountHookCleanup } from "../hooks/process-hook";
-import { effectResolver } from "../hooks/effect";
-import { RenderClock } from "./RenderClock";
-import { Fiber } from "../instances/types";
+import type { RenderClock } from "./RenderClock";
+import type { Fiber } from "../instances/types";
 import { SyncFiberQueuedCollection } from "./SyncFiberQueuedCollection";
-import { UNMOUNT } from "../reasons";
 
-export class SyncRenderGroup  {
+export class SyncRenderGroup {
   readonly name = "SyncGroup";
 
   readonly rendersGroup = new SyncFiberQueuedCollection();
@@ -21,37 +17,37 @@ export class SyncRenderGroup  {
   }
 
   hasRenderQueue = () => {
-    return !this.rendersGroup.isEmpty()
-  }
+    return !this.rendersGroup.isEmpty();
+  };
 
   /** --- Scheduling ---**/
 
   scheduleRender(fiber: Fiber) {
-    this.rendersGroup.add(fiber)
+    this.rendersGroup.add(fiber);
   }
   schedulePrepareCommit(fiber: Fiber) {
-    this.prepareCommitGroup.add(fiber)
+    this.prepareCommitGroup.add(fiber);
   }
   scheduleCommit(fiber: Fiber) {
-    this.commitsGroup.add(fiber)
+    this.commitsGroup.add(fiber);
   }
   schedulePostCommit(fiber: Fiber) {
-    this.postCommitGroup.add(fiber)
+    this.postCommitGroup.add(fiber);
   }
 
   /** --- Scheduling cancellations ---**/
 
   cancelRender(fiber: Fiber) {
-    this.rendersGroup.cancel(fiber)
+    this.rendersGroup.cancel(fiber);
   }
   cancelPrepareCommit(fiber: Fiber) {
-    this.prepareCommitGroup.cancel(fiber)
+    this.prepareCommitGroup.cancel(fiber);
   }
   cancelCommit(fiber: Fiber) {
-    this.commitsGroup.cancel(fiber)
+    this.commitsGroup.cancel(fiber);
   }
   cancelPostCommit(fiber: Fiber) {
-    this.postCommitGroup.cancel(fiber)
+    this.postCommitGroup.cancel(fiber);
   }
 
   /** Called on component render and it detects it's child component unmounted  **/
@@ -63,12 +59,12 @@ export class SyncRenderGroup  {
   }
 
   render() {
-    const {rendersGroup, renderClock} = this
+    const { rendersGroup, renderClock } = this;
     const { queues } = rendersGroup;
-    const {renderIteration} = renderClock
+    const { renderIteration } = renderClock;
     for (let i = 0; i < queues.length; i++) {
       const fibers = queues[i]!;
-      for(let j = fibers.length - 1; j >= 0; j--) {
+      for (let j = fibers.length - 1; j >= 0; j--) {
         let fiber = fibers[j]!;
         if (!rendersGroup.has(fiber)) continue;
         if ((fiber.unmounted ||= fiber?.isUnmounted(renderIteration))) continue;
@@ -79,14 +75,14 @@ export class SyncRenderGroup  {
   }
 
   private prepareCommit() {
-    const {prepareCommitGroup} = this
+    const { prepareCommitGroup } = this;
     const { queues } = prepareCommitGroup;
     for (let i = queues.length - 1; i >= 0; i--) {
       const fibers = queues[i]!;
-      for(let j = fibers.length - 1; j >= 0; j--) {
+      for (let j = fibers.length - 1; j >= 0; j--) {
         let fiber = fibers[j]!;
         if (!prepareCommitGroup.has(fiber)) continue;
-        fiber.prepareCommit()
+        fiber.prepareCommit();
       }
     }
     prepareCommitGroup.clear();
@@ -94,7 +90,7 @@ export class SyncRenderGroup  {
 
   commit() {
     this.prepareCommit();
-    const {commitsGroup} = this
+    const { commitsGroup } = this;
     const { queues } = commitsGroup;
     for (let i = 0; i < queues.length; i++) {
       const queue = queues[i]!;
@@ -109,8 +105,7 @@ export class SyncRenderGroup  {
   }
 
   postCommit() {
-    const {postCommitGroup} = this;
-    handlePostCommit(postCommitGroup, this.renderClock.renderIteration)
+    const { postCommitGroup } = this;
+    handlePostCommit(postCommitGroup, this.renderClock.renderIteration);
   }
-
 }
