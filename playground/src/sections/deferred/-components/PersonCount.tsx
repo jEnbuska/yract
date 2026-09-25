@@ -17,7 +17,8 @@ export function* PersonCount({ count, updateCount, loading }: OwnProps) {
       <FieldLabel>Number of persons</FieldLabel>
       <Range
         data-testid="count-range"
-        value={state}
+        name="count"
+        value={count}
         min={10}
         max={90_000}
         onInput={(event) => setState(Number(event.currentTarget.value))}

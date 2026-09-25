@@ -1,0 +1,79 @@
+<meta charset="utf-8" />
+<title>multiple select events</title>
+<style>
+  body {
+    font:
+      14px/1.5 ui-monospace,
+      Menlo,
+      Consolas,
+      monospace;
+    margin: 20px;
+  }
+  select {
+    font: inherit;
+    min-width: 200px;
+  }
+  #log {
+    margin-top: 16px;
+    white-space: pre;
+  }
+  #log div {
+    padding: 2px 0;
+    border-bottom: 1px solid #ddd;
+  }
+</style>
+
+<select id="s" multiple size="6">
+  <option value="a">a</option>
+  <option value="b">b</option>
+  <option value="c">c</option>
+  <option value="d">d</option>
+  <option value="e">e</option>
+  <option value="f">f</option>
+</select>
+
+<button id="clear" type="button">clear</button>
+
+<div id="log"></div>
+
+<script>
+  const s = document.getElementById("s");
+  const log = document.getElementById("log");
+  let n = 0;
+
+  const EVENTS = [
+    "beforeinput",
+    "input",
+    "change",
+    "click",
+    "mousedown",
+    "mouseup",
+    "keydown",
+    "keyup",
+    "focus",
+    "blur",
+    "select",
+  ];
+
+  for (const type of EVENTS) {
+    s.addEventListener(type, (e) => {
+      const selected = [...s.selectedOptions].map((o) => o.value);
+      const line = document.createElement("div");
+      line.textContent = [
+        String(++n).padStart(3),
+        type.padEnd(12),
+        "value=" + JSON.stringify(s.value),
+        "selectedIndex=" + s.selectedIndex,
+        "selectedOptions=" + JSON.stringify(selected),
+        "e.target=" + e.target.tagName.toLowerCase(),
+        "cancelable=" + e.cancelable,
+      ].join("  ");
+      log.insertBefore(line, log.firstChild);
+    });
+  }
+
+  document.getElementById("clear").addEventListener("click", () => {
+    log.textContent = "";
+    n = 0;
+  });
+</script>

@@ -23,6 +23,7 @@
     "typescript/no-base-to-string": "off",
     "typescript/restrict-template-expressions": "off",
     "typescript/no-redundant-type-constituents": "off",
-    "unicorn/no-new-array": "off"
+    "unicorn/no-new-array": "off",
+    "eslint/curly": ["error", "multi-line"]
   }
 }

@@ -170,7 +170,7 @@ All hooks are generator functions and must be called with `yield*` inside a comp
 const [value, setValue] = yield * useState(initialValue);
 ```
 
-Persistent state that survives re-renders. Calling `setValue` triggers a re-render and returns a `Promise<void>` that resolves after the new state is committed to the DOM.
+Persistent state that survives re-renders. Calling `setControlled` triggers a re-render and returns a `Promise<void>` that resolves after the new state is committed to the DOM.
 
 | Parameter      | Type             | Description                            |
 | -------------- | ---------------- | -------------------------------------- |

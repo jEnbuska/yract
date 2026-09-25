@@ -20,7 +20,10 @@ export function* PersonFiltering({ value, setValue, matches }: OwnProps) {
         <FieldLabel>Search persons</FieldLabel>
         <TextInput
           value={value}
-          onInput={(e) => setValue(e.currentTarget.value)}
+          name="filter"
+          onInput={(e) => {
+            setValue(e.currentTarget.value);
+          }}
           placeholder={"Name, city, department, id..."}
         />
         <FieldDescription>{matches ? `${matches} matches` : ""}</FieldDescription>

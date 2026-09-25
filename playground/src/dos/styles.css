@@ -633,7 +633,9 @@
 .dos-error::before {
   content: "! " / "";
 }
-
+.dos-select {
+  appearance: base-select;
+}
 .dos-input,
 .dos-select,
 .dos-textarea {
@@ -703,6 +705,51 @@
 .dos-textarea {
   resize: vertical;
   min-height: 6em;
+}
+
+.dos-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5714em;
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--dos-font-ui);
+  font-size: 0.9333em;
+  line-height: 1.4;
+}
+
+.dos-checkbox-box {
+  appearance: none;
+  box-sizing: border-box;
+  width: 0.9333em;
+  height: 0.9333em;
+  margin: 0;
+  flex: none;
+  background: var(--dos-black);
+  border-top: var(--dos-bevel) solid var(--dos-bevel-dark);
+  border-left: var(--dos-bevel) solid var(--dos-bevel-dark);
+  border-right: var(--dos-bevel) solid var(--dos-bevel-light);
+  border-bottom: var(--dos-bevel) solid var(--dos-bevel-light);
+  cursor: pointer;
+}
+
+.dos-checkbox-box:checked {
+  background: var(--dos-white);
+  box-shadow: inset 0 0 0 0.2143em var(--dos-black);
+}
+
+.dos-checkbox-box:focus-visible {
+  outline: var(--dos-focus) solid var(--dos-yellow);
+  outline-offset: 0;
+}
+
+.dos-checkbox:has(.dos-checkbox-box:disabled) {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.dos-checkbox-box:disabled {
+  cursor: not-allowed;
 }
 
 .dos-fieldset {

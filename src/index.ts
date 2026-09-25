@@ -24,7 +24,7 @@ export {
 } from "./jsx";
 
 export { createRoot, render } from "./render";
-export { Root } from "./render/root";
+export { Root } from "./instances/root";
 
 export type { ComponentGenerator } from "./general-types";
 export type { DependencyList } from "./general-types";

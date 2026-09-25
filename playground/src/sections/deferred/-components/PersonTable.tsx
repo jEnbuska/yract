@@ -150,7 +150,7 @@ function* PersonTableRow(props: { row: PersonRow }) {
   return (
     <TableRow
       data-highlighted={highlighted ? "true" : undefined}
-      style={highlighted ? { filter: "invert(1)" } : undefined}
+      style={highlighted ? { textDecoration: "underline" } : undefined}
     >
       <TableCell id={`${row.id}-name`}>
         {row.name} - {row.id}
@@ -158,8 +158,9 @@ function* PersonTableRow(props: { row: PersonRow }) {
       <TableCell>
         <Select
           value={row.department}
+          name="personDepartment"
           aria-labelledby={`${row.id}-name person-department`}
-          onChange={(e) => {
+          onInput={(e) => {
             updatePerson({ ...row, department: e.currentTarget.value });
           }}
         >

@@ -40,7 +40,7 @@ export function processHook(
   hookIndex: number,
   instance: ComponentFiber,
 ): unknown {
-  const hookStates = instance.hookStates!;
+  const hookStates = (instance.hookStates ??= []);
   switch (descriptor.type) {
     case $REF: {
       const prev = getTypedPrev(hookStates, hookIndex, $REF, instance);
@@ -102,7 +102,7 @@ export function processHook(
 const CLEANUP_SYMBOL = Symbol("CLEANUP");
 export function setupSkippedHookCleanups(instance: ComponentFiber, hookIndex: number) {
   const { hookStates } = instance;
-  if (hookIndex >= hookStates.length) return;
+  if (!hookStates || hookIndex >= hookStates.length) return;
   for (let i = hookIndex; i < hookStates.length; i++) {
     const hook = hookStates[i]!;
     switch (hook.type) {

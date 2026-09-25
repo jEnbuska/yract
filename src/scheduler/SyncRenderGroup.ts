@@ -1,6 +1,6 @@
 import { applyUIActions, handlePostCommit, renderFiber } from "./utils";
 import type { RenderClock } from "./RenderClock";
-import type { Fiber } from "../instances/types";
+import type { Fiber, FieldSelectionMap, FieldValueMap } from "../instances/types";
 import { SyncFiberQueuedCollection } from "./SyncFiberQueuedCollection";
 
 export class SyncRenderGroup {
@@ -88,7 +88,7 @@ export class SyncRenderGroup {
     prepareCommitGroup.clear();
   }
 
-  commit() {
+  commit(valueMap: FieldValueMap, selectionMap: FieldSelectionMap) {
     this.prepareCommit();
     const { commitsGroup } = this;
     const { queues } = commitsGroup;
@@ -97,7 +97,7 @@ export class SyncRenderGroup {
       for (let j = 0; j < queue.length; j++) {
         const fiber = queue[j]!;
         if (!commitsGroup.has(fiber)) continue;
-        applyUIActions(fiber);
+        applyUIActions(fiber, valueMap, selectionMap);
       }
       queue.length = 0;
     }

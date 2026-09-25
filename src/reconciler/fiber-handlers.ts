@@ -37,10 +37,6 @@ export function handleMountSlot(
     instance.parentDom = parentDom;
     extendIntentWithInstance(intent, instance);
     fiber.prevInstances?.delete(path);
-    if (instance.unmounted) {
-      console.log("was unmonted");
-      instance.unmounted = false;
-    }
     instance.setProps(intent);
   } else {
     instance = createFiber(extendIntentNodes(intent), ctx, fiber, parentDom, ns);
@@ -71,8 +67,6 @@ export function handleUpdateSlotProps(
 ) {
   const { instance, path } = slot;
   fiber.prevInstances?.delete(path);
-  instance.unmounted = false;
-
   instance.setProps(slot);
   (fiber.instances ??= new Map<string, Fiber>()).set(path, instance);
 }

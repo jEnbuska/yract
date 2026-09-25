@@ -1,4 +1,4 @@
-import type { Child, Children } from "../jsx";
+import type { Child, Children, ComponentProps } from "../jsx";
 import type { Slot, SlotType } from "../slots/slot";
 import { shallowSlotType } from "../slots/slot";
 import {
@@ -20,7 +20,7 @@ import {
   inheritSlot,
   type Intent,
 } from "../slots/intent";
-import { diffElementProps, isWeakRefProp } from "../render/element-props";
+import { diffAnyElementProps, isWeakRefProp } from "../render/element-props";
 import {
   handleCreateNode,
   handleMountSlot,
@@ -36,6 +36,7 @@ import { prepareMove } from "../ui-actions/prepare/prepare-move";
 import { prepareCreate } from "../ui-actions/prepare/prepare-create";
 import type { RequiredBy } from "../general-types";
 import type { Fiber } from "../instances/types";
+import type { Scheduler } from "../scheduler/Scheduler";
 
 function prepareFiber(fiber: Fiber) {
   const { instances } = fiber;
@@ -156,6 +157,9 @@ function mountIntent(
       stagingDom.appendChild(headNode);
       ns = nodeNameSpace(headNode as any);
       intent.slots = mount(children, fiber, headNode, headNode, path, ns, ctx);
+      if (isSelectElement(headNode)) {
+        storeSelectElementsInitialValue(headNode, props, fiber.scheduler);
+      }
       if (isWeakRefProp(props)) handleUpdateRef(fiber, intent);
       return;
     }
@@ -210,6 +214,9 @@ function buildIntentToSlot(
       ns = nodeNameSpace(headNode as AnyElement);
       intent.slots = mount(children, fiber, headNode, headNode, path, ns, ctx);
       const { props } = intent;
+      if (isSelectElement(headNode)) {
+        storeSelectElementsInitialValue(headNode, props, fiber.scheduler);
+      }
       if (isWeakRefProp(props)) handleUpdateRef(fiber, intent);
       uiActions.push(prepareInsert(parentDom, headNode, beforeNode));
       return;
@@ -258,10 +265,10 @@ function updateSlot<T extends SlotType>(
       return;
     }
     case elementSlotType: {
-      const { headNode, children, path, slots, prevProps, props } = slot;
+      const { headNode, element, children, path, slots, prevProps, props } = slot;
       const ns = nodeNameSpace(headNode);
       slot.slots = reconcile(uiActions, fiber, children, headNode, path, slots, ns, null, ctx);
-      const patch = diffElementProps(prevProps, props);
+      const patch = diffAnyElementProps(element, prevProps, props);
       if (isWeakRefProp(slot.props)) handleUpdateRef(fiber, slot);
       if (patch) uiActions.push(prepareUpdate(slot, patch));
       return;
@@ -301,4 +308,17 @@ function updateSlot<T extends SlotType>(
     default:
       throw new Error(`Unhandled update slot ${JSON.stringify(slot satisfies never)}`);
   }
+}
+
+function isSelectElement(element: AnyElement): element is HTMLSelectElement {
+  return element.localName === "select";
+}
+function storeSelectElementsInitialValue(
+  element: HTMLSelectElement,
+  props: Record<string, unknown>,
+  scheduler: Scheduler,
+) {
+  const p = props as ComponentProps<"textarea">;
+  const value = `${p.value ?? ""}`;
+  scheduler.registerPropsValue(element, value);
 }

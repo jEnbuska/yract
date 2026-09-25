@@ -6,6 +6,7 @@ import type { PersonRow } from "../../types";
 import { PersonFiltering } from "./-components/PersonFiltering";
 import { PersonCount } from "./-components/PersonCount";
 import { PersonHighlight } from "./-components/PersonHighlight";
+import { PersonCityOnly } from "./-components/PersonCityOnly";
 import {
   NO_HIGHLIGHT,
   PersonTableContext,
@@ -14,7 +15,8 @@ import {
 } from "./-components/PersonTable.shared";
 import LagSpinner from "./-components/LagSpinner";
 
-function filterRows(query: string, rows?: PersonRow[]) {
+function filterRows(query: string, rows?: PersonRow[], city?: string) {
+  if (city) rows = rows?.filter((row) => row.city === city);
   query = query.trim();
   if (!query) return rows;
   const lower = query
@@ -39,7 +41,7 @@ function toSettings(updatePerson: UpdatePerson, highlight: string): PersonTableS
 export function* DeferredDemo() {
   const [search, setSearch] = yield* useState("");
   const resolvable = yield* useRef<PromiseWithResolvers<void> | undefined>(undefined);
-  const [count, setCount] = yield* useState(5000);
+  const [count, setCount] = yield* useState(10);
   const controllerRef = yield* useRef(new AbortController());
   const updateCount = yield* useStable(async (n: number) => {
     if (n === count) return;
@@ -51,15 +53,25 @@ export function* DeferredDemo() {
     return setRows(rows).then(resolve);
   });
 
-  const [highlight, setHighlight] = yield* useState<string>(NO_HIGHLIGHT);
+  const [highlight, setHighlight] = yield* useState<string>(
+    () => localStorage.getItem("highlight") ?? "",
+  );
+  yield* useEffect(() => {
+    localStorage.setItem("highlight", highlight);
+  }, [highlight]);
 
+  const [cityOnly, setCityOnly] = yield* useState(true);
   const [rows, setRows] = yield* useState<PersonRow[] | undefined>();
   yield* useEffect((signal) => {
     signal.onabort = () => controllerRef.current.abort();
     void getPersonRows(count, controllerRef.current.signal).then(setRows);
   }, []);
 
-  const filtered = yield* useMemo(filterRows, [search, rows]);
+  const filtered = yield* useMemo(filterRows, [
+    search,
+    rows,
+    cityOnly && highlight !== NO_HIGHLIGHT ? highlight : undefined,
+  ]);
   const highlighted = yield* useMemo(
     (city: string, visible?: PersonRow[]) =>
       city === NO_HIGHLIGHT ? 0 : (visible?.filter((row) => row.city === city).length ?? 0),
@@ -81,6 +93,7 @@ export function* DeferredDemo() {
         <WindowBar title="Defer Table" aside="/deferred" />
         <WindowBody>
           <h2>Deferred Table ({count} rows)</h2>
+          <PersonCount count={count} updateCount={updateCount} loading={deferring || !rows} />
           <PersonFiltering
             value={search}
             setValue={setSearch}
@@ -90,11 +103,16 @@ export function* DeferredDemo() {
                 : `${search ? "?" : count}/${count}`
             }
           />
-          <PersonCount count={count} updateCount={updateCount} loading={deferring || !rows} />
           <PersonHighlight
             highlight={highlight}
             setHighlight={setHighlight}
             matches={highlighted}
+          />
+          <PersonCityOnly
+            cityOnly={cityOnly}
+            setCityOnly={setCityOnly}
+            highlight={highlight}
+            matches={filtered?.length ?? 0}
           />
           <PersonTableContext value={settings}>
             <PersonTable rows={filtered} deferring={deferring} Defer={Defer} />

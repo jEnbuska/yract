@@ -4,7 +4,7 @@ import type { PersonRow } from "../../../types";
 export type UpdatePerson = (person: PersonRow) => void;
 
 /** Nothing highlighted. Kept as a constant so the `<Select>` can round-trip it. */
-export const NO_HIGHLIGHT = "none";
+export const NO_HIGHLIGHT = "";
 
 export type PersonTableSettings = {
   /** Stable for the lifetime of the demo — rows call it from their `<Select>`. */

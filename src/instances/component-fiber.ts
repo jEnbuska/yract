@@ -2,7 +2,7 @@ import { resolveContext } from "../context";
 import type { Component } from "../jsx";
 import type { ContextMap, HookState } from "../render/types";
 import { mountFiber, reconcilerFiber } from "../reconciler/reconciler";
-import { PROPS_REASON, UNMOUNT } from "../reasons";
+import { PROPS_REASON } from "../reasons";
 import type { ComponentSlotType, ContextSlotType, Slot } from "../slots/slot";
 import type { WeakRefLike } from "../render/element-props";
 import type { AnyElement, TagNamespace } from "../render/elements/namespaces";
@@ -10,26 +10,10 @@ import type { DependencyList, DraftBy } from "../general-types";
 import { depsChanged, shallowEqual, stripFrameworkProps } from "../general";
 import { DeferContext } from "../hooks/defer";
 import { resolveComponentGenerator } from "../render/resolve-component-generator";
-import type { UIAction } from "../ui-actions/types";
-import { INSERT_UI_ACTION } from "../ui-actions/constants";
+import type { InsertAction, UIAction } from "../ui-actions/types";
 import type { Fiber } from "./types";
 import type { Scheduler } from "../scheduler/Scheduler";
-
-/**
- * The document fragments a fiber is about to insert. A node inside one of these
- * is still being staged and may be rearranged freely; a node anywhere else is
- * either live or belongs to a commit that is not ours to fold into.
- */
-function stagingFragments(uiActions: ReadonlyArray<UIAction>): Set<Node> | undefined {
-  let fragments: Set<Node> | undefined;
-  for (const action of uiActions) {
-    if (action.type !== INSERT_UI_ACTION) continue;
-    const { node } = action;
-    if (node.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) continue;
-    (fragments ??= new Set<Node>()).add(node);
-  }
-  return fragments;
-}
+import { chunkInserts, stagingFragments } from "./utils";
 
 export class ComponentFiber<TProps extends Record<string, unknown> = Record<string, any>> {
   public rendered: boolean = false;
@@ -46,8 +30,8 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
   readonly scheduler: Scheduler;
   instances?: Map<string, Fiber> = undefined;
   prevInstances?: Map<string, Fiber> = undefined;
-  hookStates: HookState[] = [];
-  renderReasons = new Set<symbol>();
+  hookStates?: HookState[] = undefined;
+  renderReasons?: Set<symbol> = undefined;
   resolveReasons?: Set<symbol> = undefined;
   postCommitReasons?: Set<symbol> = undefined;
   refsToAssign?: Map<WeakRefLike, AnyElement> = undefined;
@@ -88,13 +72,13 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
   }
 
   scheduleRender(reason: symbol): void {
-    this.renderReasons.add(reason);
+    (this.renderReasons ??= new Set<symbol>()).add(reason);
     this.scheduler.scheduleRender(this);
   }
 
   cancelRender(reason: symbol): void {
     const { renderReasons } = this;
-    if (!renderReasons.delete(reason)) return;
+    if (!renderReasons?.delete(reason)) return;
     if (!renderReasons.size) {
       this.scheduler.cancelRender(this);
     }
@@ -127,7 +111,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
   }
 
   render() {
-    const scheduler = this.scheduler;
+    const { scheduler } = this;
     if (!this.propsPrepared) {
       this.props = stripFrameworkProps<any>(this.props);
       this.propsPrepared = true;
@@ -135,10 +119,10 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     const generator = this.component(this.props);
     const child = resolveComponentGenerator(generator, this);
     if (!this.slot) {
-      if (!this.initialMounted && this.parent) {
+      if (!this.initialMounted && this.parent?.initialMounted) {
         scheduler.schedulePrepareCommit(this.parent);
-        this.rendered = true;
       }
+      this.rendered = true;
       this.pendingSlot = mountFiber(this, child);
     } else {
       this.pendingSlot = reconcilerFiber(this, child);
@@ -147,45 +131,17 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
 
     if (prevInstances?.size) {
       for (const child of prevInstances.values()) {
+        child.unmounted = true;
+        if (!child.rendered) {
+          scheduler.cancelRender(child);
+          continue;
+        }
         scheduler.ensureUnmount(child);
-        if (child.rendered) child.schedulePostCommit(UNMOUNT);
       }
     }
     this.prevInstances = undefined;
     scheduler.scheduleCommit(this);
-    this.renderReasons.clear();
-  }
-
-  /**
-   * `reconcile` walks children in reverse and hands each new slot the NEXT
-   * sibling's head marker as its boundary, so a run of consecutive new slots
-   * produces consecutive inserts whose boundaries are internal to the run: the
-   * one for slot 7 points at a marker sitting in the fragment of the one for
-   * slot 8. Whenever that holds the later fragment absorbs the earlier one and
-   * the action disappears — new slots at 3..8 collapse to a single insert.
-   */
-  private chunkInserts(): void {
-    const actions = this.uiActions;
-    if (!actions || actions.length < 2) return;
-    const merged: UIAction[] = [];
-    let chunk: Node | undefined;
-    for (const action of actions) {
-      if (action.type !== INSERT_UI_ACTION) {
-        // An intervening action has to keep its position relative to the
-        // inserts around it, so it ends a run.
-        chunk = undefined;
-        merged.push(action);
-        continue;
-      }
-      const { before, node } = action;
-      if (chunk && before && before.parentNode === chunk) {
-        chunk.insertBefore(node, before);
-        continue;
-      }
-      chunk = node.nodeType === Node.DOCUMENT_FRAGMENT_NODE ? node : undefined;
-      merged.push(action);
-    }
-    if (merged.length !== actions.length) this.uiActions = merged;
+    this.renderReasons?.clear();
   }
 
   /**
@@ -218,7 +174,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
    * a commit that happens later, or never.
    */
   prepareCommit(): void {
-    this.chunkInserts();
+    this.uiActions = chunkInserts(this.uiActions);
     const { instances, pendingSlot, uiActions } = this;
     // Nothing of ours is waiting to commit, so there is no fragment to fold
     // anything into. `uiActions` can still hold the actions of an earlier
@@ -226,16 +182,14 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     if (!instances || !pendingSlot || !uiActions?.length) return;
     const staging = stagingFragments(uiActions);
     if (!staging) return;
-    const deferred = this.isDeferred();
     for (const child of instances.values()) {
+      child.prepareCommit();
       if (child.initialMounted) continue;
+
       // A child in the other render group commits in a different batch, so its
       // content must not be made to depend on our insert.
-      if (child.isDeferred() !== deferred) continue;
       const { uiActions: childActions, tailNode } = child;
-      if (childActions?.length !== 1) continue;
-      const action = childActions[0]!;
-      if (action.type !== INSERT_UI_ACTION || action.before !== tailNode) continue;
+      const action = childActions![0]! as InsertAction;
       // Only ever splice into a fragment of ours that has not committed. Every
       // other root — the document, or a detached subtree built by an earlier
       // commit — belongs to someone else, and the child does its own insert.
@@ -245,7 +199,8 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
       // `slot` catches up with `pendingSlot` and the prepared-node cache clears.
       // Emptying is also what makes the fold idempotent — a repeat pass sees
       // zero actions and skips.
-      childActions.length = 0;
+      childActions!.length = 0;
+      child.prepareCommit();
     }
   }
 

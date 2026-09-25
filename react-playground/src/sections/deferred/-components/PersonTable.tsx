@@ -166,7 +166,7 @@ const PersonTableRow = memo(function PersonTableRow({ row }: { row: PersonRow })
   return (
     <TableRow
       data-highlighted={highlighted ? "true" : undefined}
-      style={highlighted ? { filter: "invert(1)" } : undefined}
+      style={highlighted ? { textDecoration: "underline" } : undefined}
     >
       <TableCell id={`${row.id}-name`}>
         {row.name} - {row.id}

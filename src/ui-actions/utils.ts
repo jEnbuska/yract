@@ -1,4 +1,4 @@
-import { updateElementProps } from "../render/element-props";
+import { updateElementControlledProps, updateElementProps } from "../render/element-props";
 import type { UIAction } from "./types";
 import {
   INSERT_UI_ACTION,
@@ -10,8 +10,13 @@ import {
 import { removeSlotNodes } from "./utils/remove-slot-nodes";
 import { moveSlotNodes } from "./utils/move-slot-nodes";
 import { insertNode } from "./utils/insert-node";
+import type { FieldSelectionMap, FieldValueMap } from "../instances/types";
 
-export function applyDomAction(action: UIAction) {
+export function applyDomAction(
+  action: UIAction,
+  valueMap: FieldValueMap,
+  selectionMap: FieldSelectionMap,
+) {
   switch (action.type) {
     case MOVE_UI_ACTION: {
       moveSlotNodes(action.slot, action.parentDom, action.before);
@@ -31,6 +36,9 @@ export function applyDomAction(action: UIAction) {
     case UPDATE_UI_ACTION: {
       const { slot, patch } = action;
       updateElementProps(slot.headNode, patch);
+      const { setControlled } = patch;
+      if (setControlled === undefined) break;
+      updateElementControlledProps(slot.headNode, setControlled, valueMap, selectionMap);
       break;
     }
   }

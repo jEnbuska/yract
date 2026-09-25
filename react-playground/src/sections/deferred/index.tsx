@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Window, WindowBar, WindowBody } from "../../dos";
 import { PersonTable, filterRows } from "./-components/PersonTable";
 import { PersonFiltering } from "./-components/PersonFiltering";
@@ -24,8 +24,12 @@ function toSettings(updatePerson: UpdatePerson, highlight: string): PersonTableS
 
 export function DeferredDemo() {
   const [search, setSearch] = useState("");
-  const [highlight, setHighlight] = useState<string>(NO_HIGHLIGHT);
+  const [highlight, setHighlight] = useState<string>(() => localStorage.getItem("highlight") ?? "");
   const [count, setCount] = useState(INITIAL_COUNT);
+
+  useEffect(() => {
+    localStorage.setItem("highlight", highlight);
+  }, [highlight]);
 
   const { promise, rows, loading } = useSyncExternalStore(
     rowsStore.subscribe,
@@ -66,12 +70,12 @@ export function DeferredDemo() {
             The same demo as the yract playground, built with React 19, the React Compiler, Suspense
             and <code>useDeferredValue</code>. The table fades while deferred.
           </p>
+          <PersonCount count={count} setCount={updateCount} loading={loading} disabled={!rows} />
           <PersonFiltering
             value={search}
             setValue={setSearch}
             matches={`${filtered?.length ?? 0}/${rows?.length ?? 0}`}
           />
-          <PersonCount count={count} setCount={updateCount} loading={loading} disabled={!rows} />
           <PersonHighlight
             highlight={highlight}
             setHighlight={setHighlight}

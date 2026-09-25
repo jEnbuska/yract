@@ -8,7 +8,7 @@
  */
 
 import type { Child } from "../jsx";
-import { Root } from "./root";
+import { Root } from "../instances/root";
 
 export function createRoot(container: Element): Root {
   return new Root(container);

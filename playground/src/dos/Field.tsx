@@ -57,6 +57,34 @@ function describedBy(invalid: boolean, descriptionId: string, errorId: string): 
   return invalid ? errorId : descriptionId;
 }
 
+export interface CheckboxProps extends ComponentProps<"input"> {
+  checked: boolean;
+  label: string;
+}
+
+/**
+ * A labelled checkbox. Unlike the other controls the label sits beside the box
+ * rather than above it, so it carries its own text instead of pairing with a
+ * `FieldLabel`.
+ */
+export function* Checkbox({ checked, label, ...rest }: CheckboxProps) {
+  const { controlId, descriptionId, errorId, invalid } = yield* useContext(FieldContext);
+  return (
+    <label className="dos-checkbox" htmlFor={controlId}>
+      <input
+        {...rest}
+        className="dos-checkbox-box"
+        id={controlId}
+        type="checkbox"
+        checked={checked}
+        aria-invalid={invalid ? "true" : undefined}
+        aria-describedby={describedBy(invalid, descriptionId, errorId)}
+      />
+      <span>{label}</span>
+    </label>
+  );
+}
+
 export interface TextInputProps extends ComponentProps<"input"> {
   value: string;
   type?: "text" | "email" | "password" | "search" | "tel" | "url";

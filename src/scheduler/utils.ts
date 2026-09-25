@@ -1,4 +1,4 @@
-import type { Fiber } from "../instances/types";
+import type { Fiber, FieldSelectionMap, FieldValueMap } from "../instances/types";
 import { stack } from "../instances/utils";
 import { createResolvable } from "../create-resolvable";
 import { applyDomAction } from "../ui-actions/utils";
@@ -18,10 +18,14 @@ export function renderFiber(fiber: Fiber, renderIteration: number) {
   }
 }
 
-export function applyUIActions(fiber: Fiber) {
+export function applyUIActions(
+  fiber: Fiber,
+  valueMap: FieldValueMap,
+  selectionMap: FieldSelectionMap,
+) {
   const { uiActions } = fiber;
   for (let i = 0; i < uiActions!.length; i++) {
-    applyDomAction(uiActions![i]!);
+    applyDomAction(uiActions![i]!, valueMap, selectionMap);
   }
   fiber.slot = fiber.pendingSlot;
   fiber.pendingSlot = undefined;
@@ -50,11 +54,11 @@ export function handlePostCommit(
       if (!commitGroup.has(fiber)) continue;
       fiber.unmounted ||= fiber.isUnmounted(renderIteration);
       if (!fiber.unmounted) {
-        fiber.hookStates.forEach(effectResolver);
+        fiber.hookStates?.forEach(effectResolver);
         fiber.postCommitReasons?.clear();
         continue;
       }
-      fiber.hookStates.forEach(unmountHookCleanup);
+      fiber.hookStates?.forEach(unmountHookCleanup);
       if (!fiber.instances) continue;
       for (const child of fiber.instances.values()) {
         child.unmounted = true;

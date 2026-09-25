@@ -7,7 +7,7 @@ import type {
   FragmentSlotType,
   ShallowSlotType,
 } from "./slot";
-import type { Component } from "yract";
+import type { Component, ComponentProps } from "../jsx";
 
 const componentIdMap = new WeakMap<Component<any>, string>();
 
@@ -22,7 +22,20 @@ export function getComponentSlotKey(
 
 export function getElementSlotKey(draft: Draft<ElementSlotType>, index: number) {
   const elementKey = draft._key ?? index;
-  return `"${draft.element}${typeof elementKey}${elementKey}"`;
+  return `"${draft.element}${getElementSubKey(draft)}${typeof elementKey}${elementKey}"`;
+}
+
+export function getElementSubKey(draft: Draft<ElementSlotType>) {
+  if (draft.element !== "input") return "";
+  const p = draft.props as ComponentProps<"input">;
+  const type = p.type ?? "text";
+  switch (p.type ?? "text") {
+    case "checkbox":
+    case "radio": {
+      return `${type}"${p.value ?? ""}"`;
+    }
+  }
+  return "";
 }
 
 const fragmentTypeKey = randomId();

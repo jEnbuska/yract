@@ -1,0 +1,1170 @@
+<meta charset="utf-8" />
+<title>Propagation Inspector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+/>
+<style>
+  :root {
+    --bg: #f3f5f8;
+    --surface: #ffffff;
+    --surface-2: #e9edf2;
+    --ink: #161a20;
+    --ink-2: #59636f;
+    --line: #d5dce4;
+    --cap: #0c7a8c;
+    --cap-soft: #dcf0f3;
+    --bub: #ad5019;
+    --bub-soft: #fae9dc;
+    --stop: #a3162c;
+    --stop-soft: #fae2e6;
+    --on-accent: #ffffff;
+    --chip: #2b323b;
+    --chip-ink: #ccd5e0;
+    --sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11141a;
+      --surface: #191d24;
+      --surface-2: #222831;
+      --ink: #e6eaf1;
+      --ink-2: #98a3b2;
+      --line: #333b47;
+      --cap: #55c6d7;
+      --cap-soft: #0e2f36;
+      --bub: #f09a57;
+      --bub-soft: #35220f;
+      --stop: #ff8092;
+      --stop-soft: #391520;
+      --on-accent: #11141a;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #11141a;
+    --surface: #191d24;
+    --surface-2: #222831;
+    --ink: #e6eaf1;
+    --ink-2: #98a3b2;
+    --line: #333b47;
+    --cap: #55c6d7;
+    --cap-soft: #0e2f36;
+    --bub: #f09a57;
+    --bub-soft: #35220f;
+    --stop: #ff8092;
+    --stop-soft: #391520;
+    --on-accent: #11141a;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding-inline: 16px;
+    padding-block: 32px 48px;
+  }
+
+  header h1 {
+    font-size: clamp(1.5rem, 1.2rem + 1.4vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 6px;
+    text-wrap: balance;
+  }
+
+  header p {
+    margin: 0;
+    color: var(--ink-2);
+    max-width: 62ch;
+  }
+
+  .presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-block: 24px 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+
+  .presets span {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-2);
+    align-self: center;
+    margin-right: 4px;
+    font-weight: 600;
+  }
+
+  .preset {
+    font: 500 13px/1 var(--sans);
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .preset:hover {
+    border-color: var(--ink-2);
+  }
+
+  /* Presets aren't phase-specific, so they take a strong neutral rather than
+     spending one of the three accents. Cleared as soon as a switch is flipped,
+     since the preset no longer describes the state. */
+  .preset.is-on {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--bg);
+    font-weight: 600;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+
+  @media (max-width: 760px) {
+    .grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .panel > h2 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-2);
+    margin: 0 0 14px;
+    font-weight: 600;
+  }
+
+  /* ── nested stage ─────────────────────────────── */
+
+  .frame {
+    border: 1px dashed var(--line);
+    border-radius: 8px;
+    padding: 12px;
+  }
+
+  .node {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+    background: var(--surface-2);
+  }
+
+  .frame > .node {
+    margin-top: 10px;
+  }
+  .node .node,
+  .node .target-node {
+    margin-top: 10px;
+  }
+
+  .node-head,
+  .frame-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .node-head code,
+  .frame > .frame-head code {
+    font: 600 12.5px/1 var(--mono);
+    padding: 5px 6px;
+    border-radius: 4px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+
+  /* One row per phase, so capture and bubble read as two separate things you
+     register rather than four chips in a heap. */
+  .rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* The group is the chip: the phase switch plus its own stopPropagation,
+     since "stop during capture" and "stop during bubble" are different things. */
+  .tg-group {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 4px 5px 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    align-self: flex-start;
+  }
+
+  .tg-group.cap {
+    --dot: var(--cap);
+  }
+  .tg-group.bub {
+    --dot: var(--bub);
+  }
+
+  .tg-group:hover {
+    border-color: var(--dot);
+  }
+
+  /* The accent names which phase this is; it must not also be the on/off
+     signal, or neither reads. Off is neutral, on fills the whole group. */
+  .tg-group:has(.phase input:checked) {
+    background: var(--dot);
+    border-color: var(--dot);
+  }
+
+  .tg {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font: 500 12px/1 var(--sans);
+    color: var(--ink-2);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .tg input {
+    appearance: none;
+    width: 11px;
+    height: 11px;
+    margin: 0;
+    border-radius: 50%;
+    border: 2px solid var(--dot);
+    background: transparent;
+    cursor: pointer;
+    flex: none;
+  }
+
+  .tg:focus-within {
+    outline: 2px solid var(--dot);
+    outline-offset: 3px;
+  }
+
+  .tg b {
+    font-weight: 700;
+  }
+  .tg i {
+    font-style: italic;
+  }
+
+  .phase {
+    padding: 3px 0;
+  }
+
+  .tg-group:has(.phase input:checked) .phase {
+    color: var(--on-accent);
+    font-weight: 600;
+  }
+
+  .tg-group:has(.phase input:checked) .phase input {
+    border-color: var(--on-accent);
+    background: var(--on-accent);
+  }
+
+  /* Deliberately the same dark pill in both themes: unchecked it has to read
+     against a white panel AND against the bright accent the group fills with,
+     so it can't take its ground from the theme. */
+  .tg.stop {
+    --dot: var(--chip-ink);
+    background: var(--chip);
+    color: var(--chip-ink);
+    padding: 4px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    letter-spacing: 0.01em;
+  }
+
+  .tg.stop:has(input:checked) {
+    --dot: var(--on-accent);
+    background: var(--stop);
+    color: var(--on-accent);
+    font-weight: 600;
+  }
+
+  .tg.stop:has(input:checked) input {
+    background: var(--on-accent);
+  }
+
+  .tg:has(input:disabled) {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .tg:has(input:disabled) input {
+    cursor: not-allowed;
+  }
+
+  .hit-btn {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    font: 600 14px/1 var(--sans);
+    padding: 14px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .hit-btn:hover {
+    border-color: var(--ink-2);
+  }
+
+  .hint {
+    margin: 10px 0 0;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+
+  /* ── trace ────────────────────────────────────── */
+
+  .legend {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--ink-2);
+    margin-bottom: 12px;
+  }
+
+  .legend b {
+    font-weight: 600;
+  }
+  .legend .c-cap {
+    color: var(--cap);
+  }
+  .legend .c-bub {
+    color: var(--bub);
+  }
+
+  ol.trace {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  ol.trace li {
+    display: grid;
+    grid-template-columns: 22px 78px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    border-radius: 5px;
+    border: 1px solid transparent;
+    background: var(--surface-2);
+  }
+
+  ol.trace li.blocked {
+    background: transparent;
+    border-color: var(--line);
+    border-style: dashed;
+    opacity: 0.6;
+  }
+
+  .idx {
+    font: 500 11px/1 var(--mono);
+    color: var(--ink-2);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .badge {
+    font: 600 10.5px/1 var(--sans);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 6px;
+    border-radius: 4px;
+    text-align: center;
+  }
+
+  .badge.capture {
+    background: var(--cap-soft);
+    color: var(--cap);
+  }
+  .badge.target {
+    background: var(--surface);
+    color: var(--ink-2);
+    border: 1px solid var(--line);
+  }
+  .badge.bubble {
+    background: var(--bub-soft);
+    color: var(--bub);
+  }
+
+  ol.trace code {
+    font: 500 12.5px/1.3 var(--mono);
+    overflow-wrap: anywhere;
+  }
+
+  .meta {
+    font: 400 11px/1 var(--mono);
+    color: var(--ink-2);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .blocked .meta {
+    color: var(--stop);
+    font-weight: 500;
+  }
+
+  .empty {
+    font-size: 13px;
+    color: var(--ink-2);
+    margin: 0;
+    padding: 12px 0;
+  }
+
+  .summary {
+    margin: 0 0 12px;
+    font: 500 12.5px/1.4 var(--mono);
+    padding: 8px 10px;
+    border-radius: 5px;
+    background: var(--surface-2);
+    overflow-wrap: anywhere;
+  }
+
+  /* ── generated code ───────────────────────────── */
+
+  .code-panel {
+    margin-top: 20px;
+  }
+
+  .code-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .code-head h2 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-2);
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .copy {
+    font: 500 12px/1 var(--sans);
+    padding: 6px 10px;
+    border-radius: 5px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--ink);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .copy:hover {
+    border-color: var(--ink-2);
+  }
+
+  pre.code {
+    margin: 0;
+    overflow-x: auto;
+    font: 400 12.5px/1.7 var(--mono);
+    background: var(--surface-2);
+    border-radius: 6px;
+    padding: 14px;
+    user-select: text;
+  }
+
+  pre.code .cl {
+    white-space: pre;
+  }
+  pre.code .cm {
+    color: var(--ink-2);
+  }
+  pre.code .tok-cap {
+    color: var(--cap);
+    font-weight: 600;
+  }
+  pre.code .tok-stop {
+    color: var(--stop);
+    font-weight: 600;
+  }
+
+  footer {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: var(--ink-2);
+    font-size: 13.5px;
+    max-width: 68ch;
+  }
+
+  footer p {
+    margin: 0 0 10px;
+  }
+  footer p:last-child {
+    margin-bottom: 0;
+  }
+  footer code {
+    font: 500 12.5px var(--mono);
+    color: var(--ink);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    ol.trace li {
+      animation: in 240ms ease-out both;
+    }
+    @keyframes in {
+      from {
+        opacity: 0;
+        transform: translateY(-2px);
+      }
+    }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Propagation Inspector</h1>
+    <p>
+      Real listeners on real nested elements. Toggle which phase each one registers in, decide who
+      calls <code>stopPropagation()</code>, then click something and read the order the browser
+      actually produced.
+    </p>
+  </header>
+
+  <div class="presets">
+    <span>Presets</span>
+    <button class="preset" data-preset="all">Every handler</button>
+    <button class="preset" data-preset="capture">Capture on #outer</button>
+    <button class="preset" data-preset="bubblestop">Bubble + stop on #outer</button>
+    <button class="preset" data-preset="capturestop">Capture + stop on #outer</button>
+  </div>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>The tree</h2>
+
+      <div class="frame">
+        <div class="frame-head">
+          <code>document</code>
+          <div class="rows">
+            <div class="tg-group cap">
+              <label class="tg phase"
+                ><input type="checkbox" id="c-document" data-node="document" data-reg="capture" />
+                click (<b>capture</b>)</label
+              >
+              <label class="tg stop"
+                ><input
+                  type="checkbox"
+                  id="cs-document"
+                  data-node="document"
+                  data-reg="captureStop"
+                />
+                stopPropagation</label
+              >
+            </div>
+            <div class="tg-group bub">
+              <label class="tg phase"
+                ><input type="checkbox" id="b-document" data-node="document" data-reg="bubble" />
+                click (<i>bubble</i>)</label
+              >
+              <label class="tg stop"
+                ><input
+                  type="checkbox"
+                  id="bs-document"
+                  data-node="document"
+                  data-reg="bubbleStop"
+                />
+                stopPropagation</label
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="node" id="n-outer" data-node="outer">
+          <div class="node-head">
+            <code>#outer</code>
+            <div class="rows">
+              <div class="tg-group cap">
+                <label class="tg phase"
+                  ><input type="checkbox" id="c-outer" data-node="outer" data-reg="capture" /> click
+                  (<b>capture</b>)</label
+                >
+                <label class="tg stop"
+                  ><input type="checkbox" id="cs-outer" data-node="outer" data-reg="captureStop" />
+                  stopPropagation</label
+                >
+              </div>
+              <div class="tg-group bub">
+                <label class="tg phase"
+                  ><input type="checkbox" id="b-outer" data-node="outer" data-reg="bubble" /> click
+                  (<i>bubble</i>)</label
+                >
+                <label class="tg stop"
+                  ><input type="checkbox" id="bs-outer" data-node="outer" data-reg="bubbleStop" />
+                  stopPropagation</label
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="node" id="n-middle" data-node="middle">
+            <div class="node-head">
+              <code>#middle</code>
+              <div class="rows">
+                <div class="tg-group cap">
+                  <label class="tg phase"
+                    ><input type="checkbox" id="c-middle" data-node="middle" data-reg="capture" />
+                    click (<b>capture</b>)</label
+                  >
+                  <label class="tg stop"
+                    ><input
+                      type="checkbox"
+                      id="cs-middle"
+                      data-node="middle"
+                      data-reg="captureStop"
+                    />
+                    stopPropagation</label
+                  >
+                </div>
+                <div class="tg-group bub">
+                  <label class="tg phase"
+                    ><input type="checkbox" id="b-middle" data-node="middle" data-reg="bubble" />
+                    click (<i>bubble</i>)</label
+                  >
+                  <label class="tg stop"
+                    ><input
+                      type="checkbox"
+                      id="bs-middle"
+                      data-node="middle"
+                      data-reg="bubbleStop"
+                    />
+                    stopPropagation</label
+                  >
+                </div>
+              </div>
+            </div>
+
+            <div class="target-node">
+              <div class="node-head">
+                <code>button#target</code>
+                <div class="rows">
+                  <div class="tg-group cap">
+                    <label class="tg phase"
+                      ><input type="checkbox" id="c-target" data-node="target" data-reg="capture" />
+                      click (<b>capture</b>)</label
+                    >
+                    <label class="tg stop"
+                      ><input
+                        type="checkbox"
+                        id="cs-target"
+                        data-node="target"
+                        data-reg="captureStop"
+                      />
+                      stopPropagation</label
+                    >
+                  </div>
+                  <div class="tg-group bub">
+                    <label class="tg phase"
+                      ><input type="checkbox" id="b-target" data-node="target" data-reg="bubble" />
+                      click (<i>bubble</i>)</label
+                    >
+                    <label class="tg stop"
+                      ><input
+                        type="checkbox"
+                        id="bs-target"
+                        data-node="target"
+                        data-reg="bubbleStop"
+                      />
+                      stopPropagation</label
+                    >
+                  </div>
+                </div>
+              </div>
+              <button class="hit-btn" id="n-target" data-node="target" type="button">
+                click me
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="hint">
+        Click the button, or the padding of <code>#middle</code> / <code>#outer</code> to move the
+        target outward.
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>Firing order</h2>
+      <div class="legend">
+        <span><b class="c-cap">capture</b> &darr; root to target</span>
+        <span><b class="c-bub">bubble</b> &uarr; target to root</span>
+      </div>
+      <p class="summary" id="summary">&nbsp;</p>
+      <ol class="trace" id="trace"></ol>
+      <p class="empty" id="empty" hidden>No handlers registered. Switch some on.</p>
+    </section>
+  </div>
+
+  <section class="panel code-panel">
+    <div class="code-head">
+      <h2>What those switches register</h2>
+      <button class="copy" id="copy" type="button">Copy</button>
+    </div>
+    <pre class="code" id="code"></pre>
+  </section>
+
+  <footer>
+    <p>
+      <b>The target is visited twice.</b> Its <code>capture: true</code> listeners run during the
+      descent and its bubble ones during the ascent &mdash; so the capture one still goes first,
+      even if you registered it second. <code>eventPhase</code> reports <code>AT_TARGET</code> for
+      both, which is why rows 4 and 5 look like one step but behave like two.
+    </p>
+    <p>
+      <b><code>stopPropagation()</code> cancels the rest of the walk from wherever it is called.</b>
+      During capture the rest of the walk is the whole descent, the target, and the entire ascent
+      &mdash; so everything dies. During bubble it is only the ancestors still above you, and
+      everything nearer the target has already run.
+    </p>
+    <p>
+      <b>Ordering is tree position first, registration order only as a tie-break.</b> Phase and
+      depth decide everything between elements; registration order settles listeners sharing one
+      element <em>and</em> one phase. It never reorders across elements or across phases.
+    </p>
+    <p>
+      <b>Same element, same phase: siblings survive.</b> <code>stopPropagation()</code> stops the
+      event reaching the next <em>element</em>, so another listener on that node in the same phase
+      still runs &mdash; <code>stopImmediatePropagation()</code> is what kills those. A stop from
+      the target's capture listener <em>does</em> kill its bubble listener, though, because those
+      are two separate visits.
+    </p>
+  </footer>
+</div>
+
+<script>
+  var CHAIN = ["target", "middle", "outer", "document"];
+  var LABEL = {
+    document: "document",
+    outer: "#outer",
+    middle: "#middle",
+    target: "button#target",
+  };
+
+  var state = {};
+  CHAIN.forEach(function (id) {
+    state[id] = { capture: false, captureStop: false, bubble: false, bubbleStop: false };
+  });
+
+  function hostOf(id) {
+    return id === "document" ? document : document.getElementById("n-" + id);
+  }
+
+  var attached = [];
+  var run = null;
+
+  function reattach() {
+    attached.forEach(function (a) {
+      a.host.removeEventListener("click", a.fn, a.capture);
+    });
+    attached = [];
+
+    // Registration order is fixed: outermost node first, and within a node the
+    // capture handler before the bubble one. That ordering is what decides the
+    // sequence at AT_TARGET, where both fire regardless of how they registered.
+    CHAIN.slice()
+      .reverse()
+      .forEach(function (id) {
+        [
+          ["capture", "captureStop", true],
+          ["bubble", "bubbleStop", false],
+        ].forEach(function (spec) {
+          var reg = spec[0],
+            stopKey = spec[1],
+            useCapture = spec[2];
+          if (!state[id][reg]) return;
+          var fn = function (e) {
+            // Only record the exact event that opened this run. Without this, a
+            // click on a switch or preset button — still propagating while
+            // reattach() swaps listeners under it — leaks its own handlers into
+            // the trace of a different click.
+            if (!run || run.event !== e) return;
+            run.fired.push({ id: id, reg: reg, phase: e.eventPhase });
+            if (state[id][stopKey]) {
+              e.stopPropagation();
+              if (!run.stoppedBy) run.stoppedBy = { id: id, reg: reg };
+            }
+          };
+          hostOf(id).addEventListener("click", fn, useCapture);
+          attached.push({ host: hostOf(id), fn: fn, capture: useCapture });
+        });
+      });
+
+    renderCode();
+  }
+
+  // The equivalent hand-written code for the current switches, in the same
+  // registration order reattach() uses above.
+  var VAR = { document: "document", outer: "outer", middle: "middle", target: "target" };
+
+  function codeLines() {
+    var lines = ["// Equivalent to the switches above."];
+    var used = CHAIN.filter(function (id) {
+      return id !== "document" && (state[id].capture || state[id].bubble);
+    });
+    if (used.length) {
+      used
+        .slice()
+        .reverse()
+        .forEach(function (id) {
+          lines.push("const " + VAR[id] + ' = document.getElementById("' + id + '");');
+        });
+    }
+    lines.push("");
+
+    var any = false;
+    CHAIN.slice()
+      .reverse()
+      .forEach(function (id) {
+        [
+          ["capture", "captureStop", true],
+          ["bubble", "bubbleStop", false],
+        ].forEach(function (spec) {
+          if (!state[id][spec[0]]) return;
+          any = true;
+          lines.push(VAR[id] + '.addEventListener("click", (e) => {');
+          lines.push('  log("' + LABEL[id] + " " + spec[0] + '");');
+          if (state[id][spec[1]]) lines.push("  e.stopPropagation();");
+          lines.push("}" + (spec[2] ? ", true);" : ");"));
+          lines.push("");
+        });
+      });
+
+    if (!any) lines.push("// Nothing registered — switch a handler on.");
+    while (lines.length && lines[lines.length - 1] === "") lines.pop();
+    return lines;
+  }
+
+  function renderCode() {
+    var pre = document.getElementById("code");
+    if (!pre) return;
+    pre.innerHTML = "";
+    codeLines().forEach(function (text) {
+      var div = document.createElement("div");
+      div.className = "cl";
+      if (text.trim().indexOf("//") === 0) {
+        div.className = "cl cm";
+        div.textContent = text;
+      } else if (text === "") {
+        div.textContent = " ";
+      } else {
+        text.split(/(\btrue\b|e\.stopPropagation\(\))/g).forEach(function (part) {
+          if (!part) return;
+          var span = document.createElement("span");
+          if (part === "true") span.className = "tok-cap";
+          else if (part === "e.stopPropagation()") span.className = "tok-stop";
+          span.textContent = part;
+          div.appendChild(span);
+        });
+      }
+      pre.appendChild(div);
+    });
+  }
+
+  // Clipboard access can be blocked in a sandboxed frame, so fall back rather
+  // than leaving a button that silently does nothing.
+  function copyFallback(text, done) {
+    try {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "-1000px";
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      done(ok);
+    } catch (err) {
+      done(false);
+    }
+  }
+
+  document.getElementById("copy").addEventListener("click", function () {
+    var btn = this;
+    var text = codeLines().join("\n");
+    var done = function (ok) {
+      btn.textContent = ok ? "Copied" : "Select it and copy";
+      setTimeout(function () {
+        btn.textContent = "Copy";
+      }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        function () {
+          done(true);
+        },
+        function () {
+          copyFallback(text, done);
+        },
+      );
+    } else {
+      copyFallback(text, done);
+    }
+  });
+
+  // The full sequence the browser would walk if nothing stopped it. Propagation
+  // can only remove entries from this list, never reorder them, so rendering it
+  // in order and marking each entry fired-or-blocked is faithful.
+  function expected(targetId) {
+    var i = CHAIN.indexOf(targetId);
+    var self = CHAIN[i];
+    var ancestors = CHAIN.slice(i + 1);
+    var out = [];
+    ancestors
+      .slice()
+      .reverse()
+      .forEach(function (a) {
+        if (state[a].capture) out.push({ id: a, reg: "capture", phase: "capture" });
+      });
+    if (state[self].capture) out.push({ id: self, reg: "capture", phase: "target" });
+    if (state[self].bubble) out.push({ id: self, reg: "bubble", phase: "target" });
+    ancestors.forEach(function (a) {
+      if (state[a].bubble) out.push({ id: a, reg: "bubble", phase: "bubble" });
+    });
+    return out;
+  }
+
+  var PHASE_NAME = { 1: "capturing", 2: "at target", 3: "bubbling" };
+
+  function render() {
+    var list = document.getElementById("trace");
+    var empty = document.getElementById("empty");
+    var summary = document.getElementById("summary");
+    list.innerHTML = "";
+
+    if (!run || !run.target) {
+      summary.textContent = "Click an element in the tree.";
+      empty.hidden = true;
+      return;
+    }
+
+    var rows = expected(run.target);
+    empty.hidden = rows.length > 0;
+
+    // Handlers are registered but not one of them fired, and nothing stopped
+    // the event: the trace is stale relative to the switches rather than
+    // describing anything real. Re-run once instead of showing a wrong answer.
+    if (rows.length && !run.fired.length && !run.stoppedBy && healAttempts < 1) {
+      healAttempts++;
+      replay();
+      return;
+    }
+    healAttempts = 0;
+
+    if (!rows.length) {
+      summary.textContent = "target: " + LABEL[run.target];
+      return;
+    }
+
+    var order = run.fired.map(function (f) {
+      return LABEL[f.id];
+    });
+    summary.textContent =
+      "target: " +
+      LABEL[run.target] +
+      "  →  " +
+      (order.length ? JSON.stringify(order) : "[] — nothing ran");
+
+    var n = 0;
+    rows.forEach(function (row) {
+      var hit = null;
+      for (var i = 0; i < run.fired.length; i++) {
+        if (run.fired[i].id === row.id && run.fired[i].reg === row.reg) {
+          hit = run.fired[i];
+          break;
+        }
+      }
+
+      var li = document.createElement("li");
+      if (!hit) li.className = "blocked";
+
+      var idx = document.createElement("span");
+      idx.className = "idx";
+      idx.textContent = hit ? String(++n) : "–";
+
+      var badge = document.createElement("span");
+      badge.className = "badge " + row.phase;
+      badge.textContent = row.phase === "target" ? "at target" : row.phase;
+
+      var name = document.createElement("code");
+      name.textContent = LABEL[row.id];
+
+      var meta = document.createElement("span");
+      meta.className = "meta";
+      if (hit) {
+        meta.textContent = "eventPhase " + hit.phase + " · " + PHASE_NAME[hit.phase];
+      } else {
+        meta.textContent = run.stoppedBy
+          ? "blocked by " + LABEL[run.stoppedBy.id]
+          : "no handler fired";
+      }
+
+      li.appendChild(idx);
+      li.appendChild(badge);
+      li.appendChild(name);
+      li.appendChild(meta);
+      list.appendChild(li);
+    });
+  }
+
+  function nodeIdFrom(el) {
+    if (!el || !el.closest) return null;
+    var n = el.closest("[data-node]");
+    return n ? n.getAttribute("data-node") : null;
+  }
+
+  // Registered on window in the capture phase, so it runs before every handler
+  // in the tree. Rendering is deferred to a microtask, which drains once the
+  // whole synchronous dispatch is over — that still happens when a handler
+  // calls stopPropagation, where a bubble-phase listener here would never fire.
+  var lastTarget = "target";
+  var healAttempts = 0;
+
+  window.addEventListener(
+    "click",
+    function (e) {
+      // The switches, presets and copy button are chrome, not part of the tree
+      // under test — a click on them must not open a run.
+      if (e.target.closest && e.target.closest(".node-head, .frame-head, .presets, .code-panel"))
+        return;
+      var id = nodeIdFrom(e.target);
+      if (!id) return;
+      lastTarget = id;
+      run = { event: e, target: id, fired: [], stoppedBy: null };
+      queueMicrotask(render);
+    },
+    true,
+  );
+
+  // Re-run the last click so the trace always matches the switches. Deferred to
+  // a fresh task so the switch's own click has finished propagating first.
+  function replay() {
+    setTimeout(function () {
+      hostOf(lastTarget).click();
+    }, 0);
+  }
+
+  document.querySelectorAll('.tg input[type="checkbox"]').forEach(function (box) {
+    box.addEventListener("change", function () {
+      state[box.getAttribute("data-node")][box.getAttribute("data-reg")] = box.checked;
+      syncDisabled();
+      reattach();
+      replay();
+      markPreset(null);
+    });
+  });
+
+  function markPreset(name) {
+    document.querySelectorAll(".preset").forEach(function (btn) {
+      var on = btn.getAttribute("data-preset") === name;
+      btn.classList.toggle("is-on", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
+
+  // A "stop" switch is meaningless unless its handler is registered.
+  function syncDisabled() {
+    CHAIN.forEach(function (id) {
+      document.getElementById("cs-" + id).disabled = !state[id].capture;
+      document.getElementById("bs-" + id).disabled = !state[id].bubble;
+    });
+  }
+
+  var PRESETS = {
+    all: {
+      document: ["capture", "bubble"],
+      outer: ["capture", "bubble"],
+      middle: ["capture", "bubble"],
+      target: ["capture", "bubble"],
+    },
+    capture: { document: ["bubble"], outer: ["capture"], middle: ["bubble"], target: ["bubble"] },
+    bubblestop: {
+      document: ["bubble"],
+      outer: ["bubble", "bubbleStop"],
+      middle: ["bubble"],
+      target: ["bubble"],
+    },
+    capturestop: {
+      document: ["bubble"],
+      outer: ["capture", "captureStop"],
+      middle: ["bubble"],
+      target: ["bubble"],
+    },
+  };
+
+  function applyPreset(name) {
+    var p = PRESETS[name];
+    CHAIN.forEach(function (id) {
+      state[id] = { capture: false, captureStop: false, bubble: false, bubbleStop: false };
+      (p[id] || []).forEach(function (k) {
+        state[id][k] = true;
+      });
+    });
+    document.querySelectorAll('.tg input[type="checkbox"]').forEach(function (box) {
+      box.checked = state[box.getAttribute("data-node")][box.getAttribute("data-reg")];
+    });
+    syncDisabled();
+    reattach();
+    lastTarget = "target";
+    replay();
+    markPreset(name);
+  }
+
+  document.querySelectorAll(".preset").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      applyPreset(btn.getAttribute("data-preset"));
+    });
+  });
+
+  applyPreset("all");
+</script>

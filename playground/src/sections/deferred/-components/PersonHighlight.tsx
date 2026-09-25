@@ -1,6 +1,6 @@
 import { Field, FieldDescription, FieldLabel, Select } from "../../../dos";
-import { CITIES } from "./utils/row-store";
 import { NO_HIGHLIGHT } from "./PersonTable.shared";
+import CityOptions from "./CityOptions";
 
 type OwnProps = {
   highlight: string;
@@ -16,12 +16,12 @@ export function* PersonHighlight({ highlight, setHighlight, matches }: OwnProps)
         value={highlight}
         aria-labelledby="person-highlight-label"
         data-testid="highlight-select"
-        onChange={(e) => setHighlight(e.currentTarget.value)}
+        name="highligh"
+        onInput={(e) => {
+          setHighlight(e.currentTarget.value);
+        }}
       >
-        <option value={NO_HIGHLIGHT}>— none —</option>
-        {CITIES.map((city) => (
-          <option value={city}>{city}</option>
-        ))}
+        <CityOptions />
       </Select>
       <FieldDescription>
         {highlight === NO_HIGHLIGHT ? (

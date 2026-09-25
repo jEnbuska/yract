@@ -29,6 +29,7 @@ import {
 } from "./elements/events";
 import { clearSvgElementAttr, isSvg, writeSvgAttr } from "./elements/svg";
 import type { AnyElement } from "./elements/namespaces";
+import type { FieldSelectionMap, FieldValueMap } from "../instances/types";
 
 // ── Key classification ─────────────────────────────────────────────────────
 
@@ -54,6 +55,20 @@ function isReservedProp(key: string): boolean {
     case "deps":
     case "ref":
     case "children":
+    case "value":
+      return true;
+    default:
+      return false;
+  }
+}
+
+export function isReservedCheckableProp(key: string): boolean {
+  switch (key) {
+    case "key":
+    case "deps":
+    case "ref":
+    case "children":
+    case "checked":
       return true;
     default:
       return false;
@@ -117,7 +132,7 @@ export type WeakRefLike<T extends WeakKey = WeakKey> = Readonly<Record<symbol, b
 
 // ── Attribute writes ───────────────────────────────────────────────────────
 
-function writeElementAttr(el: AnyElement, key: string, value: unknown): void {
+export function writeElementAttr(el: AnyElement, key: string, value: unknown): void {
   switch (key) {
     case "className": {
       if (!value) return el.removeAttribute("class");
@@ -146,18 +161,7 @@ function writeElementAttr(el: AnyElement, key: string, value: unknown): void {
     else {
       el.setAttribute("for", String(value));
     }
-  } else if (
-    key === "value" &&
-    (el instanceof HTMLInputElement ||
-      el instanceof HTMLTextAreaElement ||
-      el instanceof HTMLSelectElement)
-  ) {
-    el.value = value == null ? "" : String(value);
-    return;
-  } else if (key === "checked" && el instanceof HTMLInputElement) {
-    el.checked = Boolean(value);
-    return;
-  } else if (value === false || value == null) {
+  } else if (value == null) {
     el.removeAttribute(key);
     return;
   } else {
@@ -177,11 +181,15 @@ function clearElementAttr(el: AnyElement, key: string): void {
 export function applyElementProps(element: AnyElement, props: Record<string, unknown>): void {
   for (const key in props) {
     if (!Object.hasOwn(props, key)) continue;
+    if (key === "value") continue;
     if (isReservedProp(key)) continue;
     const value = props[key];
     if (value === undefined) continue;
     assertPropValue(key, value);
     writeElementAttr(element, key, value);
+  }
+  if ("value" in props) {
+    (element as HTMLInputElement).value = props["value"] as any;
   }
   if (element instanceof HTMLButtonElement) {
     if (props["type"]) return;
@@ -198,6 +206,15 @@ export function applyElementProps(element: AnyElement, props: Record<string, unk
     );
   }
 }
+
+/**
+ * The second half of the initial mount, run once the element's children exist.
+ *
+ * `value` is deferred this far for two independent reasons. It is clamped
+ * against `min`/`max`/`step`, which `applyElementProps` has to write first; and
+ * a `<select>` discards a value matching no `<option>`, so its children have to
+ * be mounted before the assignment means anything.
+ */
 
 // ── Update: diff (at reconcile) + commit (at DOM write) ────────────────────
 
@@ -219,6 +236,7 @@ export function applyElementProps(element: AnyElement, props: Record<string, unk
 export interface ElementPatch {
   removeAttrs?: string[];
   setAttrs?: Record<string, unknown>;
+  setControlled?: string | boolean;
   removeEvents?: string[];
   setEvents?: Record<string, ElementEventHandler>;
   style?: Record<string, unknown> | null;
@@ -265,8 +283,11 @@ function diffStyle(
 export function diffElementProps(
   prevProps: Record<string, unknown>,
   nextProps: Record<string, unknown>,
-): ElementPatch | null {
-  if (prevProps === nextProps) return null;
+  isReservedPropPredicate = isReservedProp,
+): ElementPatch | undefined {
+  if (prevProps === nextProps) {
+    return undefined;
+  }
 
   let patch: ElementPatch | undefined;
   const ensure = (): ElementPatch => (patch ??= {});
@@ -274,14 +295,12 @@ export function diffElementProps(
   // Loop 1 — keys effectively set in prev but unset in next.
   for (const key in prevProps) {
     if (!Object.hasOwn(prevProps, key)) continue;
-    if (isReservedProp(key)) continue;
+    if (isReservedPropPredicate(key)) continue;
     const prev = prevProps[key];
     if (prev === undefined) continue;
     const next = nextProps[key];
     if (next !== undefined) continue;
-
     assertPropValue(key, prev);
-
     if (key === "style") {
       ensure().style = null;
       continue;
@@ -296,7 +315,7 @@ export function diffElementProps(
   // Loop 2 — keys effectively set in next with a different value than prev.
   for (const key in nextProps) {
     if (!Object.hasOwn(nextProps, key)) continue;
-    if (isReservedProp(key)) continue;
+    if (isReservedPropPredicate(key)) continue;
     const next = nextProps[key];
     if (next === undefined) continue;
     const prev = prevProps[key];
@@ -333,8 +352,55 @@ export function diffElementProps(
   if (!Object.is(prevRef, nextRef)) {
     ensure().refSwap = { prev: prevRef, next: nextRef };
   }
+  return patch;
+}
 
-  return patch ?? null;
+/** `checked` is carried by `setControlled`, so the normal diff skips it. */
+function diffCheckableProps(
+  prevProps: Record<string, unknown>,
+  nextProps: Record<string, unknown>,
+): ElementPatch | undefined {
+  let patch = diffElementProps(prevProps, nextProps, isReservedCheckableProp);
+  const next = Boolean(nextProps["checked"]);
+  const prev = Boolean(prevProps["checked"]);
+  if (next === prev) return patch;
+  patch ??= {};
+  patch.setControlled = next;
+  return patch;
+}
+
+/** `value` is carried by `setControlled`; `isReservedProp` already skips it. */
+function diffValueProps(
+  prevProps: Record<string, unknown>,
+  nextProps: Record<string, unknown>,
+): ElementPatch | undefined {
+  let patch = diffElementProps(prevProps, nextProps);
+  const next = String(nextProps["value"] ?? "");
+  const prev = String(prevProps["value"] ?? "");
+  if (next === prev) return patch;
+  patch ??= {};
+  patch.setControlled = next;
+  return patch;
+}
+
+export function diffAnyElementProps(
+  tagName: string,
+  prevProps: Record<string, unknown>,
+  nextProps: Record<string, unknown>,
+): ElementPatch | undefined {
+  switch (tagName) {
+    case "input": {
+      const type = nextProps["type"];
+      if (type === "checkbox" || type === "radio") return diffCheckableProps(prevProps, nextProps);
+      // Every other input type is value-controlled, same as select/textarea.
+      return diffValueProps(prevProps, nextProps);
+    }
+    case "select":
+    case "textarea":
+      return diffValueProps(prevProps, nextProps);
+    default:
+      return diffElementProps(prevProps, nextProps);
+  }
 }
 
 /**
@@ -355,8 +421,9 @@ export function updateElementProps(el: AnyElement, patch: ElementPatch) {
     assignStyle(el, patch.style);
   }
   if (patch.setAttrs) {
-    for (const key in patch.setAttrs) {
-      writeElementAttr(el, key, patch.setAttrs[key]);
+    const { setAttrs } = patch;
+    for (const key in setAttrs) {
+      writeElementAttr(el, key, setAttrs[key]);
     }
   }
   if (patch.setEvents) {
@@ -368,6 +435,25 @@ export function updateElementProps(el: AnyElement, patch: ElementPatch) {
     const { prev, next } = patch.refSwap;
     if (prev) prev.current = undefined;
     if (next) next.current = el;
+  }
+}
+
+export function updateElementControlledProps(
+  node: AnyElement,
+  change: boolean | string,
+  valueMap: FieldValueMap,
+  selectionMap: FieldSelectionMap,
+) {
+  valueMap.set(node, change);
+  const formElement = node as HTMLInputElement; // Might actually be textarea or select
+  if (typeof change === "boolean") {
+    formElement.checked = change as boolean;
+    return;
+  }
+  formElement.value = change as string;
+  const selectionStart = selectionMap.get(formElement);
+  if (selectionStart != null) {
+    formElement.setSelectionRange(selectionStart, selectionStart);
   }
 }
 

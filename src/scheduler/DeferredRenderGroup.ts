@@ -1,6 +1,6 @@
 import { applyUIActions, handlePostCommit, renderFiber } from "./utils";
 import type { RenderClock } from "./RenderClock";
-import type { Fiber } from "../instances/types";
+import type { Fiber, FieldSelectionMap, FieldValueMap } from "../instances/types";
 import { DeferredPopCollection } from "./DeferredPopCollection";
 
 export class DeferredRenderGroup {
@@ -53,15 +53,14 @@ export class DeferredRenderGroup {
   }
 
   ensureUnmount(fiber: Fiber) {
-    fiber.unmounted = true;
     this.rendersGroup.delete(fiber);
     this.prepareCommitGroup.delete(fiber);
     this.commitsGroup.delete(fiber);
-    this.postCommitGroup.delete(fiber);
+    this.postCommitGroup.add(fiber);
   }
 
   hasRenderQueue = () => {
-    return Boolean(this.rendersGroup.size || this.prepareCommitGroup.size);
+    return Boolean(this.rendersGroup.size);
   };
 
   async render(): Promise<void> {
@@ -80,39 +79,10 @@ export class DeferredRenderGroup {
     } finally {
       void rendersGroup.schedulePrune();
     }
-    await this.prepareCommit();
   }
 
-  private async prepareCommit(): Promise<void> {
-    const { prepareCommitGroup, rendersGroup } = this;
-    const { renderClock } = this;
-    const start = Date.now();
-    try {
-      while (prepareCommitGroup.size) {
-        const fiber = prepareCommitGroup.pop();
-        fiber.unmounted ||= fiber.isUnmounted(renderClock.renderIteration);
-        if (fiber.unmounted) continue;
-        fiber.prepareCommit();
-        /* <<<--- Main prepare commit logic
-        -- Handle throttle (and maybe exit) --->>> */
-        if (!renderClock.shouldThrottle()) continue;
-        await renderClock.throttle();
-        // Bail on sync work, or on deferred renders queued while we yielded —
-        // those have to render before their fibers can be prepared. Not on
-        // `hasRenderQueue()`, which counts this queue and so is always true
-        // while we are draining it.
-        if (this.shouldExit() || rendersGroup.size) return;
-      }
-      prepareCommitGroup.clear();
-    } finally {
-      void prepareCommitGroup.schedulePrune();
-    }
-    const dur = Date.now() - start;
-    if (dur > 2) console.log("PREPARE COMMIT TOOK", Date.now() - start);
-  }
-
-  commit() {
-    const start = Date.now();
+  commit(valueMap: FieldValueMap, selectionMap: FieldSelectionMap) {
+    this.prepareCommit();
     const { renderClock, commitsGroup } = this;
     const { renderIteration } = renderClock;
     const { queues } = commitsGroup;
@@ -122,12 +92,26 @@ export class DeferredRenderGroup {
         const fiber = queue[j]!;
         fiber.unmounted ||= fiber.isUnmounted(renderIteration);
         if (fiber.unmounted || !commitsGroup.has(fiber)) continue;
-        applyUIActions(fiber);
+        applyUIActions(fiber, valueMap, selectionMap);
       }
     }
     commitsGroup.clear();
-    const dur = Date.now() - start;
-    if (dur > 2) console.log("COMMIT TOOK", Date.now() - start);
+  }
+
+  private prepareCommit(): void {
+    const { prepareCommitGroup } = this;
+    const { renderClock } = this;
+    try {
+      while (prepareCommitGroup.size) {
+        const fiber = prepareCommitGroup.pop();
+        fiber.unmounted ||= fiber.isUnmounted(renderClock.renderIteration);
+        if (fiber.unmounted) continue;
+        fiber.prepareCommit();
+      }
+      prepareCommitGroup.clear();
+    } finally {
+      void prepareCommitGroup.schedulePrune();
+    }
   }
 
   postCommit() {
