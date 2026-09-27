@@ -63,15 +63,15 @@ export function chunkInserts(uiActions: UIAction[] | undefined): undefined | UIA
   return uiActions;
 }
 
-export function prepareMountChunk(fiber: Fiber): void {
+export function foldSubtreeIntoStaging(fiber: Fiber): void {
   const { instances } = fiber;
   if (!instances) return;
   for (const child of instances.values()) {
     if (child.isDeferred() !== fiber.isDeferred()) continue; // Commits in the other group.
-    prepareMountChunk(child);
+    foldSubtreeIntoStaging(child);
     foldIntoStaging(child);
   }
-  foldIntoStaging(fiber)
+  foldIntoStaging(fiber);
 }
 /**
  * A child mounting for the first time emits exactly one action: its staging
@@ -84,7 +84,6 @@ function foldIntoStaging(fiber: Fiber): void {
   const action = uiActions[0] as InsertAction;
   tailNode.parentNode!.insertBefore(action.node, tailNode);
   // Emptied, not dropped: the child still reaches commit so `slot` catches up.
-
   uiActions.length = 0;
   fiber.slot = fiber.pendingSlot;
   fiber.pendingSlot = undefined;

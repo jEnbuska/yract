@@ -12,7 +12,7 @@ import { resolveComponentGenerator } from "../render/resolve-component-generator
 import type { UIAction } from "../ui-actions/types";
 import type { Fiber } from "./types";
 import type { Scheduler } from "../scheduler/Scheduler";
-import { chunkInserts, foldIntoStaging, prepareMountChunk } from "./utils";
+import { chunkInserts, foldSubtreeIntoStaging } from "./utils";
 
 export class ComponentFiber<TProps extends Record<string, unknown> = Record<string, any>> {
   public readonly ns: TagNamespace;
@@ -149,7 +149,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     for (const child of instances.values()) {
       if (child.slot) continue; // Mounted: its content is live.
       if (child.isDeferred() !== this.isDeferred()) continue; // Commits in the other group.
-      prepareMountChunk(child);
+      foldSubtreeIntoStaging(child);
     }
   }
 
