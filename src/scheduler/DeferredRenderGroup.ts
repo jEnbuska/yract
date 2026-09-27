@@ -7,7 +7,7 @@ export class DeferredRenderGroup {
   readonly name = "DeferredGroup";
 
   readonly rendersGroup = new DeferredPopCollection(1);
-  readonly prepareCommitGroup = new DeferredPopCollection(-1);
+  readonly prepareChunkGroup = new DeferredPopCollection(-1);
   readonly commitsGroup = new DeferredPopCollection(1);
   readonly postCommitGroup = new DeferredPopCollection(-1);
   protected renderClock: RenderClock;
@@ -24,8 +24,8 @@ export class DeferredRenderGroup {
     this.renderClock.renderIteration++;
   }
 
-  schedulePrepareCommit(fiber: Fiber) {
-    this.prepareCommitGroup.add(fiber);
+  schedulePrepareChunk(fiber: Fiber) {
+    this.prepareChunkGroup.add(fiber);
   }
 
   scheduleCommit(fiber: Fiber) {
@@ -40,9 +40,13 @@ export class DeferredRenderGroup {
     this.rendersGroup.delete(fiber);
   }
 
+  cancelCommit(fiber: Fiber) {
+    this.commitsGroup.delete(fiber);
+  }
+
   ensureUnmount(fiber: Fiber) {
     this.rendersGroup.delete(fiber);
-    this.prepareCommitGroup.delete(fiber);
+    this.prepareChunkGroup.delete(fiber);
     this.commitsGroup.delete(fiber);
     this.postCommitGroup.add(fiber);
   }
@@ -70,7 +74,7 @@ export class DeferredRenderGroup {
   }
 
   commit(valueMap: FieldValueMap, selectionMap: FieldSelectionMap) {
-    this.prepareCommit();
+    this.prepareChunk();
     const { renderClock, commitsGroup } = this;
     const { renderIteration } = renderClock;
     const { queues } = commitsGroup;
@@ -86,19 +90,19 @@ export class DeferredRenderGroup {
     commitsGroup.clear();
   }
 
-  private prepareCommit(): void {
-    const { prepareCommitGroup } = this;
+  private prepareChunk(): void {
+    const { prepareChunkGroup } = this;
     const { renderClock } = this;
     try {
-      while (prepareCommitGroup.size) {
-        const fiber = prepareCommitGroup.pop();
+      while (prepareChunkGroup.size) {
+        const fiber = prepareChunkGroup.pop();
         fiber.unmounted ||= fiber.isUnmounted(renderClock.renderIteration);
         if (fiber.unmounted) continue;
-        fiber.prepareCommit();
+        fiber.prepareChunk();
       }
-      prepareCommitGroup.clear();
+      prepareChunkGroup.clear();
     } finally {
-      void prepareCommitGroup.schedulePrune();
+      void prepareChunkGroup.schedulePrune();
     }
   }
 

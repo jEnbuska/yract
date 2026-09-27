@@ -24,12 +24,13 @@ export function applyUIActions(
   selectionMap: FieldSelectionMap,
 ) {
   const { uiActions } = fiber;
-  for (let i = 0; i < uiActions!.length; i++) {
-    applyDomAction(uiActions![i]!, valueMap, selectionMap);
+  if (!uiActions) throw new Error("No ui actions to apply");
+  for (let i = 0; i < uiActions.length; i++) {
+    applyDomAction(uiActions[i]!, valueMap, selectionMap);
   }
   fiber.slot = fiber.pendingSlot;
   fiber.pendingSlot = undefined;
-  fiber.initialMounted = true;
+  uiActions.length = 0;
 }
 
 export async function waitForIdle() {

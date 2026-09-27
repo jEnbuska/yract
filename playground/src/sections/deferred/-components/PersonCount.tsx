@@ -18,7 +18,7 @@ export function* PersonCount({ count, updateCount, loading }: OwnProps) {
       <Range
         data-testid="count-range"
         name="count"
-        value={count}
+        value={state}
         min={10}
         max={90_000}
         onInput={(event) => setState(Number(event.currentTarget.value))}

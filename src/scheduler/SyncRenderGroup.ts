@@ -7,7 +7,7 @@ export class SyncRenderGroup {
   readonly name = "SyncGroup";
 
   readonly rendersGroup = new SyncFiberQueuedCollection();
-  readonly prepareCommitGroup = new SyncFiberQueuedCollection();
+  readonly prepareChunkGroup = new SyncFiberQueuedCollection();
   readonly commitsGroup = new SyncFiberQueuedCollection();
   readonly postCommitGroup = new SyncFiberQueuedCollection();
   protected renderClock: RenderClock;
@@ -25,8 +25,8 @@ export class SyncRenderGroup {
   scheduleRender(fiber: Fiber) {
     this.rendersGroup.add(fiber);
   }
-  schedulePrepareCommit(fiber: Fiber) {
-    this.prepareCommitGroup.add(fiber);
+  schedulePrepareChunk(fiber: Fiber) {
+    this.prepareChunkGroup.add(fiber);
   }
   scheduleCommit(fiber: Fiber) {
     this.commitsGroup.add(fiber);
@@ -65,22 +65,22 @@ export class SyncRenderGroup {
     rendersGroup.clear();
   }
 
-  private prepareCommit() {
-    const { prepareCommitGroup } = this;
-    const { queues } = prepareCommitGroup;
+  private prepareChunk() {
+    const { prepareChunkGroup } = this;
+    const { queues } = prepareChunkGroup;
     for (let i = queues.length - 1; i >= 0; i--) {
       const fibers = queues[i]!;
       for (let j = fibers.length - 1; j >= 0; j--) {
         let fiber = fibers[j]!;
-        if (!prepareCommitGroup.has(fiber)) continue;
-        fiber.prepareCommit();
+        if (!prepareChunkGroup.has(fiber)) continue;
+        fiber.prepareChunk();
       }
     }
-    prepareCommitGroup.clear();
+    prepareChunkGroup.clear();
   }
 
   commit(valueMap: FieldValueMap, selectionMap: FieldSelectionMap) {
-    this.prepareCommit();
+    this.prepareChunk();
     const { commitsGroup } = this;
     const { queues } = commitsGroup;
     for (let i = 0; i < queues.length; i++) {

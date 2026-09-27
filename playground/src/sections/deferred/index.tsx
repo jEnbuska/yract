@@ -41,7 +41,7 @@ function toSettings(updatePerson: UpdatePerson, highlight: string): PersonTableS
 export function* DeferredDemo() {
   const [search, setSearch] = yield* useState("");
   const resolvable = yield* useRef<PromiseWithResolvers<void> | undefined>(undefined);
-  const [count, setCount] = yield* useState(10);
+  const [count, setCount] = yield* useState(6000);
   const controllerRef = yield* useRef(new AbortController());
   const updateCount = yield* useStable(async (n: number) => {
     if (n === count) return;
@@ -60,7 +60,7 @@ export function* DeferredDemo() {
     localStorage.setItem("highlight", highlight);
   }, [highlight]);
 
-  const [cityOnly, setCityOnly] = yield* useState(true);
+  const [cityOnly, setCityOnly] = yield* useState(false);
   const [rows, setRows] = yield* useState<PersonRow[] | undefined>();
   yield* useEffect((signal) => {
     signal.onabort = () => controllerRef.current.abort();

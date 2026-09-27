@@ -9,16 +9,14 @@ import type { DependencyList, DraftBy } from "../general-types";
 import { depsChanged, shallowEqual, stripFrameworkProps } from "../general";
 import { DeferContext } from "../hooks/defer";
 import { resolveComponentGenerator } from "../render/resolve-component-generator";
-import type { InsertAction, UIAction } from "../ui-actions/types";
+import type { UIAction } from "../ui-actions/types";
 import type { Fiber } from "./types";
 import type { Scheduler } from "../scheduler/Scheduler";
-import { chunkInserts, stagingFragments } from "./utils";
+import { chunkInserts, foldIntoStaging, prepareMountChunk } from "./utils";
 
 export class ComponentFiber<TProps extends Record<string, unknown> = Record<string, any>> {
-  public rendered: boolean = false;
   public readonly ns: TagNamespace;
   public confidentIteration: number;
-  initialMounted = false;
   unmounted: boolean | undefined = undefined;
   readonly component: Component<any>;
   readonly depth: number;
@@ -111,20 +109,27 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     const generator = this.component(this.props);
     const child = resolveComponentGenerator(generator, this);
     if (!this.slot) {
-      if (!this.initialMounted && this.parent?.initialMounted) {
-        scheduler.schedulePrepareCommit(this.parent);
-      }
-      this.rendered = true;
+      // Not mounted yet
       this.pendingSlot = mountFiber(this, child);
+      if (this.parent?.slot) {
+        // Parent is mounted
+        scheduler.schedulePrepareChunk(this.parent);
+      }
     } else {
+      // Is mounted (re-render)
       this.pendingSlot = reconcilerFiber(this, child);
+      if (this.uiActions?.length) {
+        scheduler.scheduleCommit(this);
+      } else {
+        scheduler.cancelCommit(this);
+      }
     }
     const { prevInstances } = this;
 
     if (prevInstances?.size) {
       for (const child of prevInstances.values()) {
         child.unmounted = true;
-        if (!child.rendered) {
+        if (!this.slot && !this.pendingSlot) {
           scheduler.cancelRender(child);
           continue;
         }
@@ -132,76 +137,25 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
       }
     }
     this.prevInstances = undefined;
-    scheduler.scheduleCommit(this);
     this.renderReasons?.clear();
   }
 
-  /**
-   * Runs between render and commit and rewrites this fiber's `uiActions` so the
-   * commit that eventually applies them touches the live DOM as few times as
-   * possible. It is purely an optimisation — never a correctness step — and two
-   * invariants keep it that way:
-   *
-   * 1. **It never updates live DOM.** The only nodes it moves are ones sitting
-   *    inside a staging fragment this fiber produced during a render that has
-   *    not committed yet. Anything already in the document, and any detached
-   *    subtree an earlier commit built, is left alone, so a prepare pass is
-   *    never observable — no layout, no paint, no measurable difference.
-   *
-   * 2. **It is interruptible.** Deferred rendering gives no guarantee about who
-   *    runs this or when: a fiber may be skipped entirely, a child may be
-   *    prepared long after its parent, a parent long after its child, and a
-   *    pass may be abandoned part-way through the queue. So every step is
-   *    optional and idempotent — running it zero times, once, or repeatedly, in
-   *    any order, has to leave the same DOM behind. Skipping a fiber only costs
-   *    extra DOM operations at commit.
-   *
-   * The optimisation itself: a child mounting for the first time emits exactly
-   * one action — its own staging fragment inserted before its own tail marker.
-   * While that marker is still sitting in a fragment of ours, the content can
-   * be spliced in ahead of it instead, reaching the same final position but
-   * riding along on our insert. A child that already committed once, or that
-   * belongs to the other render group and so commits in a different batch, must
-   * keep its own insert: folding it into our fragment would tie its content to
-   * a commit that happens later, or never.
-   */
-  prepareCommit(): void {
+  /** Build the new child components subtree of screen, before commit phase.
+   * Entry point. Only ever called for a mounted parent with newly mounting children.*/
+  prepareChunk(): void {
     this.uiActions = chunkInserts(this.uiActions);
-    const { instances, pendingSlot, uiActions } = this;
-    // Nothing of ours is waiting to commit, so there is no fragment to fold
-    // anything into. `uiActions` can still hold the actions of an earlier
-    // render, and those fragments are committed and empty.
-    if (!instances || !pendingSlot || !uiActions?.length) return;
-    const staging = stagingFragments(uiActions);
-    if (!staging) return;
+    const { instances } = this;
+    if (!instances) return;
     for (const child of instances.values()) {
-      child.prepareCommit();
-      if (child.initialMounted) continue;
-
-      // A child in the other render group commits in a different batch, so its
-      // content must not be made to depend on our insert.
-      const { uiActions: childActions, tailNode } = child;
-      const action = childActions![0]! as InsertAction;
-      // Only ever splice into a fragment of ours that has not committed. Every
-      // other root — the document, or a detached subtree built by an earlier
-      // commit — belongs to someone else, and the child does its own insert.
-      if (!staging.has(tailNode.getRootNode())) continue;
-      tailNode.parentNode!.insertBefore(action.node, tailNode);
-      // Emptied rather than dropped: the child still has to reach the commit so
-      // `slot` catches up with `pendingSlot` and the prepared-node cache clears.
-      // Emptying is also what makes the fold idempotent — a repeat pass sees
-      // zero actions and skips.
-      childActions!.length = 0;
-      child.prepareCommit();
+      if (child.slot) continue; // Mounted: its content is live.
+      if (child.isDeferred() !== this.isDeferred()) continue; // Commits in the other group.
+      prepareMountChunk(child);
     }
   }
 
   isUnmounted(renderIteration: number): boolean {
     if (this.unmounted) return true;
     if (this.confidentIteration === renderIteration) return false;
-    // Walking up the parent chain has to start somewhere, and the cursor is
-    // reassigned on every step.
-    // oxlint-disable-next-line typescript/no-this-alias
     let parent = this.parent;
     while (parent) {
       if (parent.unmounted) return true;

@@ -4,7 +4,7 @@ import type { DependencyList } from "yract";
 import type { $EFFECT, $ID, $MEMO, $REF, $STABLE, $STATE, $ELEMENT_REF } from "../hooks/constants";
 import type { ElementRef } from "./element-props";
 import type { EffectCallback } from "../hooks/types";
-import {AnyElement} from "./elements/namespaces";
+import type { AnyElement } from "./elements/namespaces";
 
 export type ContextMap = Map<string, ContextProperties<unknown>>;
 

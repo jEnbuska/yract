@@ -118,7 +118,15 @@ export function applyElementInitialProps(
   for (const key in props) {
     if (isReservedProp(key)) continue;
     const value = props[key];
-    if (value === undefined) continue;
+    switch (value) {
+      case false:
+      case undefined:
+      case null:
+        continue;
+      case true:
+        element.setAttribute(key, "");
+    }
+
     if (isEventKey(key)) {
       if (typeof value === "function") {
         const { domEvent } = resolveEventProp(key);
@@ -126,32 +134,26 @@ export function applyElementInitialProps(
       }
       continue;
     }
-    switch (value) {
-      case true:
-        element.setAttribute(key, "");
+    switch (key) {
+      case "style": {
+        if (value) assignStyle(element, value as Record<string, unknown>);
         break;
-      case false:
-      case null:
-        element.removeAttribute(key);
+      }
+      case "className": {
+        if (value) element.setAttribute("class", `${value}`);
         break;
+      }
+      case "htmlFor": {
+        element.setAttribute("for", `${value}`);
+        break;
+      }
+      case "ref": {
+        element.setAttribute("data-yract-element-ref-id", `${(value as ElementRef)?.identifier}`);
+        break;
+      }
       default: {
-        switch (key) {
-          case "style": {
-            if (value) assignStyle(element, value as Record<string, unknown>);
-            break;
-          }
-          case "className": {
-            if (value) element.setAttribute("class", `${value}`);
-            break;
-          }
-          case "htmlFor": {
-            element.setAttribute("for", `${value}`);
-            break;
-          }
-          default: {
-            element.setAttribute(key, `${value}`);
-          }
-        }
+        element.setAttribute(key, `${value}`);
+        break;
       }
     }
   }
@@ -254,9 +256,15 @@ export function diffElementProps(
   for (let key in prevProps) {
     if (isReservedPropPredicate(key)) continue;
     const prev = prevProps[key];
-    if (prev === undefined) continue;
+    switch (prev) {
+      case false:
+      case undefined:
+      case null:
+        continue;
+    }
     const next = nextProps[key];
-    if (next !== undefined) continue;
+    if (next != null) continue;
+    // Next value is not set, so remove it
     if (isEventKey(key)) {
       (ensure().removeEvents ??= []).push(key);
       continue;
@@ -288,52 +296,53 @@ export function diffElementProps(
   for (const key in nextProps) {
     if (isReservedPropPredicate(key)) continue;
     const next = nextProps[key];
-    if (next === undefined) continue;
     const prev = prevProps[key];
     if (Object.is(next, prev)) continue;
     if (isEventKey(key)) {
-      if (typeof prev === "function") (ensure().removeEvents ??= []).push(key);
-      (ensure().setEvents ??= {})[key] = next as ElementEventHandler;
+      if (typeof next === "function") {
+        (ensure().setEvents ??= {})[key] = next as ElementEventHandler;
+      }
       continue;
     }
     switch (next) {
       case true:
         (ensure().setAttrs ??= {})[key] = "";
-        break;
+        continue;
+      case undefined:
+      case null:
       case false:
-        if (prev !== undefined) (ensure().removeAttrs ??= []).push(key);
-        break;
-      default: {
-        switch (key) {
-          case "style": {
-            if (prev === undefined) {
-              ensure().style = next as Record<string, unknown>;
-              break;
-            }
-            const styleDiff = diffStyle(
-              prev as Record<string, unknown>,
-              next as Record<string, unknown>,
-            );
-            if (styleDiff) ensure().style = styleDiff;
-            break;
-          }
-          case "className": {
-            if (next) (ensure().setAttrs ??= {})["class"] = `${next}`;
-            break;
-          }
-          case "htmlFor": {
-            (ensure().setAttrs ??= {})["for"] = `${next}`;
-            break;
-          }
-          case "ref": {
-            (ensure().setAttrs ??= {})["data-yract-element-ref-id"] = `${(next as {identifier?: string})?.identifier}`;
-            break;
-          }
-          default: {
-            (ensure().setAttrs ??= {})[key] = `${next}`;
-            break;
-          }
+        if (prev) (ensure().removeAttrs ??= []).push(key);
+        continue;
+    }
+    switch (key) {
+      case "style": {
+        if (prev == null) {
+          ensure().style = next as Record<string, unknown>;
+          break;
         }
+        const styleDiff = diffStyle(
+          prev as Record<string, unknown>,
+          next as Record<string, unknown>,
+        );
+        if (styleDiff) ensure().style = styleDiff;
+        break;
+      }
+      case "className": {
+        if (next) (ensure().setAttrs ??= {})["class"] = `${next}`;
+        break;
+      }
+      case "htmlFor": {
+        (ensure().setAttrs ??= {})["for"] = `${next}`;
+        break;
+      }
+      case "ref": {
+        (ensure().setAttrs ??= {})["data-yract-element-ref-id"] =
+          `${(next as ElementRef)?.identifier}`;
+        break;
+      }
+      default: {
+        (ensure().setAttrs ??= {})[key] = `${next}`;
+        break;
       }
     }
   }

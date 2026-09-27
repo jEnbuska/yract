@@ -68,8 +68,8 @@ export class Scheduler {
     this.resolveGroups.cancel(fiber);
   }
 
-  schedulePrepareCommit(fiber: Fiber): void {
-    this.getGroup(fiber.isDeferred()).schedulePrepareCommit(fiber);
+  schedulePrepareChunk(fiber: Fiber): void {
+    this.getGroup(fiber.isDeferred()).schedulePrepareChunk(fiber);
   }
 
   ensureUnmount(fiber: Fiber): void {
@@ -77,6 +77,10 @@ export class Scheduler {
   }
 
   scheduleCommit(fiber: Fiber): void {
+    this.getGroup(fiber.isDeferred()).scheduleCommit(fiber);
+  }
+
+  cancelCommit(fiber: Fiber): void {
     this.getGroup(fiber.isDeferred()).scheduleCommit(fiber);
   }
 

@@ -64,7 +64,6 @@ export class Root {
         if (!(e.target instanceof HTMLInputElement)) return;
         const target = e.target;
         if (e.target.type !== "range") return;
-        console.log("target.value", target.value);
         valueMap.set(target, target.value);
       },
       { capture: true },
@@ -160,6 +159,12 @@ class RootInstance extends ComponentFiber {
     this.child = child;
     this.parentDom.appendChild(this.headNode);
     this.parentDom.appendChild(this.tailNode);
-    this.scheduleRender(Symbol("MOUNT"));
+    this.scheduler.scheduleRender(this);
+    this.scheduler.schedulePrepareChunk(this);
+    this.scheduler.scheduleCommit(this);
+  }
+  render() {
+    super.render();
+    this.slot = this.pendingSlot;
   }
 }
