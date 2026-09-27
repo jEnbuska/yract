@@ -20,12 +20,11 @@ type ListenerWrapper = {
 const elementEventMaps = new WeakMap<AnyElement, Map<string, ListenerWrapper>>();
 export function registerElementEvent(
   el: AnyElement,
-  propKey: string,
-  handler: ElementEventHandler,
+  domEvent: string,
+  handler: (...args: any) => any,
 ): void {
   const map = getOrInsertComputed(elementEventMaps, el, () => new Map<string, ListenerWrapper>());
-  const wrapper = getOrInsert(map, propKey, { current: undefined, initialized: false });
-  const { domEvent } = resolveEventProp(propKey);
+  const wrapper = getOrInsert(map, domEvent, { current: undefined, initialized: false });
   wrapper.current = handler;
   ensureListener(el, domEvent, wrapper);
 }

@@ -115,7 +115,6 @@ export function writeSvgAttr(el: SVGElement, key: string, value: unknown): void 
 }
 
 export function clearSvgElementAttr(el: SVGElement, key: string): void {
-  if (key === "className") el.removeAttribute("class");
-  else if (SVG_XLINK_ATTRS.has(key)) el.removeAttributeNS(XLINK_NS, svgAttrName(key));
+  if (SVG_XLINK_ATTRS.has(key)) el.removeAttributeNS(XLINK_NS, svgAttrName(key));
   else el.removeAttribute(svgAttrName(key));
 }

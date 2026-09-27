@@ -30,6 +30,8 @@ import {
 import { clearSvgElementAttr, isSvg, writeSvgAttr } from "./elements/svg";
 import type { AnyElement } from "./elements/namespaces";
 import type { FieldSelectionMap, FieldValueMap } from "../instances/types";
+import { resolveEventProp } from "./delegation";
+import type { AnyFn } from "../general-types";
 
 // ── Key classification ─────────────────────────────────────────────────────
 
@@ -53,7 +55,6 @@ function isReservedProp(key: string): boolean {
   switch (key) {
     case "key":
     case "deps":
-    case "ref":
     case "children":
     case "value":
       return true;
@@ -66,7 +67,6 @@ export function isReservedCheckableProp(key: string): boolean {
   switch (key) {
     case "key":
     case "deps":
-    case "ref":
     case "children":
     case "checked":
       return true;
@@ -95,115 +95,68 @@ function assignStyle(el: AnyElement, style: Record<string, unknown>): void {
   }
 }
 
-function isPlainStyleObject(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null && !Array.isArray(v);
-}
-
-/**
- * Validate that `value` is legal for `key`. `undefined` is always legal
- * (means "not passed"). Event keys require `function`. `style` requires a
- * plain object (not array, not string, not number, not boolean).
- */
-function assertPropValue(key: string, value: unknown): void {
-  if (value === undefined) return;
-  if (isEventKey(key)) {
-    if (typeof value !== "function") {
-      throw new Error(
-        `yract: event prop "${key}" must be a function or undefined (got ${typeof value})`,
-      );
-    }
-    return;
-  }
-  if (key === "style") {
-    if (!isPlainStyleObject(value)) {
-      const got = Array.isArray(value) ? "array" : value === null ? "null" : typeof value;
-      throw new Error(`yract: "style" prop must be a plain object or undefined (got ${got})`);
-    }
-  }
-}
-
 /** Local shape for the `ref` prop — the universal `VNodeProps` type doesn't
  * declare `ref` (it lives on `HTMLAttributes`/`SVGAttributes` only), so the
  * runtime accesses it through this lightweight cast. */
-export type WeakRefLike<T extends WeakKey = WeakKey> = Readonly<Record<symbol, boolean>> & {
+export type ElementRef<T extends AnyElement = AnyElement> = {
   get current(): undefined | T;
-  set current(value: T | undefined);
+  identifier: string;
 };
-
-// ── Attribute writes ───────────────────────────────────────────────────────
-
-export function writeElementAttr(el: AnyElement, key: string, value: unknown): void {
-  switch (key) {
-    case "className": {
-      if (!value) return el.removeAttribute("class");
-      return el.setAttribute("class", String(value));
-    }
-    case "style": {
-      if (isPlainStyleObject(value)) assignStyle(el, value);
-      else el.removeAttribute("style");
-      return;
-    }
-    default: {
-      if (isEventKey(key)) {
-        if (typeof value === "function") {
-          registerElementEvent(el, key, value as ElementEventHandler);
-        } else {
-          unRegisterElementEvent(el, key);
-        }
-        return;
-      }
-    }
-  }
-  if (isSvg(el)) {
-    writeSvgAttr(el, key, value);
-  } else if (key === "htmlFor") {
-    if (value == null) el.removeAttribute("for");
-    else {
-      el.setAttribute("for", String(value));
-    }
-  } else if (value == null) {
-    el.removeAttribute(key);
-    return;
-  } else {
-    el.setAttribute(key.toLowerCase(), String(value));
-  }
-}
-
-function clearElementAttr(el: AnyElement, key: string): void {
-  if (key === "className") el.removeAttribute("class");
-  else if (isSvg(el)) return clearSvgElementAttr(el, key);
-  else if (key === "htmlFor") el.removeAttribute("for");
-  else el.removeAttribute(key);
-}
 
 // ── Initial mount ───────────────────────────────────────────────────────────
 
-export function applyElementProps(element: AnyElement, props: Record<string, unknown>): void {
+export function applyElementInitialProps(
+  element: AnyElement,
+  props: Record<string, unknown>,
+): void {
+  if (isSvg(element)) {
+    for (const key in props) {
+      writeSvgAttr(element, key, props[key]);
+    }
+    return;
+  }
   for (const key in props) {
-    if (!Object.hasOwn(props, key)) continue;
-    if (key === "value") continue;
     if (isReservedProp(key)) continue;
     const value = props[key];
     if (value === undefined) continue;
-    assertPropValue(key, value);
-    writeElementAttr(element, key, value);
+    if (isEventKey(key)) {
+      if (typeof value === "function") {
+        const { domEvent } = resolveEventProp(key);
+        registerElementEvent(element, domEvent, value as AnyFn);
+      }
+      continue;
+    }
+    switch (value) {
+      case true:
+        element.setAttribute(key, "");
+        break;
+      case false:
+      case null:
+        element.removeAttribute(key);
+        break;
+      default: {
+        switch (key) {
+          case "style": {
+            if (value) assignStyle(element, value as Record<string, unknown>);
+            break;
+          }
+          case "className": {
+            if (value) element.setAttribute("class", `${value}`);
+            break;
+          }
+          case "htmlFor": {
+            element.setAttribute("for", `${value}`);
+            break;
+          }
+          default: {
+            element.setAttribute(key, `${value}`);
+          }
+        }
+      }
+    }
   }
   if ("value" in props) {
     (element as HTMLInputElement).value = props["value"] as any;
-  }
-  if (element instanceof HTMLButtonElement) {
-    if (props["type"]) return;
-    // Derived-from-props defaults. No DOM reads.
-    element.type = "button";
-  } else if (
-    element instanceof HTMLAnchorElement &&
-    props["target"] === "_blank" &&
-    props["rel"] == null
-  ) {
-    console.warn(
-      'yract: <a target="_blank"> is missing rel="noopener". ' +
-        'Add rel="noopener noreferrer" to prevent tab-napping attacks.',
-    );
   }
 }
 
@@ -235,12 +188,11 @@ export function applyElementProps(element: AnyElement, props: Record<string, unk
  */
 export interface ElementPatch {
   removeAttrs?: string[];
-  setAttrs?: Record<string, unknown>;
+  setAttrs?: Record<string, string>;
   setControlled?: string | boolean;
   removeEvents?: string[];
   setEvents?: Record<string, ElementEventHandler>;
   style?: Record<string, unknown> | null;
-  refSwap?: { prev?: WeakRefLike; next?: WeakRefLike };
 }
 
 /**
@@ -288,69 +240,102 @@ export function diffElementProps(
   if (prevProps === nextProps) {
     return undefined;
   }
-
   let patch: ElementPatch | undefined;
-  const ensure = (): ElementPatch => (patch ??= {});
-
+  const ensure = (): ElementPatch =>
+    (patch ??= {
+      removeAttrs: undefined,
+      setAttrs: undefined,
+      setControlled: undefined,
+      removeEvents: undefined,
+      setEvents: undefined,
+      style: undefined,
+    });
   // Loop 1 — keys effectively set in prev but unset in next.
-  for (const key in prevProps) {
-    if (!Object.hasOwn(prevProps, key)) continue;
+  for (let key in prevProps) {
     if (isReservedPropPredicate(key)) continue;
     const prev = prevProps[key];
     if (prev === undefined) continue;
     const next = nextProps[key];
     if (next !== undefined) continue;
-    assertPropValue(key, prev);
-    if (key === "style") {
-      ensure().style = null;
-      continue;
-    }
     if (isEventKey(key)) {
       (ensure().removeEvents ??= []).push(key);
       continue;
     }
-    (ensure().removeAttrs ??= []).push(key);
+    switch (key) {
+      case "style": {
+        ensure().style = null;
+        break;
+      }
+      case "className": {
+        if (prev) (ensure().removeAttrs ??= []).push("class");
+        break;
+      }
+      case "htmlFor": {
+        (ensure().removeAttrs ??= []).push("for");
+        break;
+      }
+      case "ref": {
+        (ensure().removeAttrs ??= []).push("data-yract-element-ref-id");
+        break;
+      }
+      default: {
+        (ensure().removeAttrs ??= []).push(key);
+        break;
+      }
+    }
   }
-
   // Loop 2 — keys effectively set in next with a different value than prev.
   for (const key in nextProps) {
-    if (!Object.hasOwn(nextProps, key)) continue;
     if (isReservedPropPredicate(key)) continue;
     const next = nextProps[key];
     if (next === undefined) continue;
     const prev = prevProps[key];
     if (Object.is(next, prev)) continue;
-
-    assertPropValue(key, next);
-    if (prev !== undefined) assertPropValue(key, prev);
-
-    if (key === "style") {
-      if (prev === undefined) {
-        ensure().style = next as Record<string, unknown>;
-        continue;
-      }
-      const styleDiff = diffStyle(prev as Record<string, unknown>, next as Record<string, unknown>);
-      if (styleDiff) ensure().style = styleDiff;
-      continue;
-    }
-
     if (isEventKey(key)) {
       if (typeof prev === "function") (ensure().removeEvents ??= []).push(key);
       (ensure().setEvents ??= {})[key] = next as ElementEventHandler;
       continue;
     }
-
-    (ensure().setAttrs ??= {})[key] = next;
-  }
-
-  // Ref swap. `ref` is a reserved key skipped by the loops above; handled
-  // here so refSwap is the only code path that touches refs. `undefined`
-  // refs are treated as "unset" — `Object.is(undefined, undefined)` is true
-  // so a prev-unset/next-unset transition never produces a swap.
-  const prevRef = prevProps["ref"] as WeakRefLike | undefined;
-  const nextRef = nextProps["ref"] as WeakRefLike | undefined;
-  if (!Object.is(prevRef, nextRef)) {
-    ensure().refSwap = { prev: prevRef, next: nextRef };
+    switch (next) {
+      case true:
+        (ensure().setAttrs ??= {})[key] = "";
+        break;
+      case false:
+        if (prev !== undefined) (ensure().removeAttrs ??= []).push(key);
+        break;
+      default: {
+        switch (key) {
+          case "style": {
+            if (prev === undefined) {
+              ensure().style = next as Record<string, unknown>;
+              break;
+            }
+            const styleDiff = diffStyle(
+              prev as Record<string, unknown>,
+              next as Record<string, unknown>,
+            );
+            if (styleDiff) ensure().style = styleDiff;
+            break;
+          }
+          case "className": {
+            if (next) (ensure().setAttrs ??= {})["class"] = `${next}`;
+            break;
+          }
+          case "htmlFor": {
+            (ensure().setAttrs ??= {})["for"] = `${next}`;
+            break;
+          }
+          case "ref": {
+            (ensure().setAttrs ??= {})["data-yract-element-ref-id"] = `${(next as {identifier?: string})?.identifier}`;
+            break;
+          }
+          default: {
+            (ensure().setAttrs ??= {})[key] = `${next}`;
+            break;
+          }
+        }
+      }
+    }
   }
   return patch;
 }
@@ -409,8 +394,13 @@ export function diffAnyElementProps(
  * needs to happen.
  */
 export function updateElementProps(el: AnyElement, patch: ElementPatch) {
+  const isSvgElement = isSvg(el);
   if (patch.removeAttrs) {
-    for (const key of patch.removeAttrs) clearElementAttr(el, key);
+    if (isSvgElement) {
+      for (const key of patch.removeAttrs) clearSvgElementAttr(el, key);
+    } else {
+      for (const key of patch.removeAttrs) el.removeAttribute(key);
+    }
   }
   if (patch.removeEvents) {
     for (const key of patch.removeEvents) unRegisterElementEvent(el, key);
@@ -422,19 +412,20 @@ export function updateElementProps(el: AnyElement, patch: ElementPatch) {
   }
   if (patch.setAttrs) {
     const { setAttrs } = patch;
-    for (const key in setAttrs) {
-      writeElementAttr(el, key, setAttrs[key]);
+    if (isSvgElement) {
+      for (const key in setAttrs) {
+        writeSvgAttr(el, key, setAttrs[key]);
+      }
+    } else {
+      for (const key in setAttrs) {
+        el.setAttribute(key, setAttrs[key]!);
+      }
     }
   }
   if (patch.setEvents) {
     for (const key in patch.setEvents) {
       registerElementEvent(el, key, patch.setEvents[key]!);
     }
-  }
-  if (patch.refSwap) {
-    const { prev, next } = patch.refSwap;
-    if (prev) prev.current = undefined;
-    if (next) next.current = el;
   }
 }
 
@@ -455,11 +446,4 @@ export function updateElementControlledProps(
   if (selectionStart != null) {
     formElement.setSelectionRange(selectionStart, selectionStart);
   }
-}
-
-export function isWeakRefProp<T extends Record<string, unknown>>(
-  props: T,
-): props is T & { ref: WeakRefLike } {
-  if ("ref" in props) return props["ref"] !== undefined;
-  return false;
 }

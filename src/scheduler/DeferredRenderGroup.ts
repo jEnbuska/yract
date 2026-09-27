@@ -40,18 +40,6 @@ export class DeferredRenderGroup {
     this.rendersGroup.delete(fiber);
   }
 
-  cancelPrepareCommit(fiber: Fiber) {
-    this.prepareCommitGroup.delete(fiber);
-  }
-
-  cancelCommit(fiber: Fiber) {
-    this.commitsGroup.delete(fiber);
-  }
-
-  cancelPostCommit(fiber: Fiber) {
-    this.postCommitGroup.delete(fiber);
-  }
-
   ensureUnmount(fiber: Fiber) {
     this.rendersGroup.delete(fiber);
     this.prepareCommitGroup.delete(fiber);

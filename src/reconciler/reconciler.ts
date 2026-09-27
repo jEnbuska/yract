@@ -1,6 +1,6 @@
 import type { Child, Children, ComponentProps } from "../jsx";
-import type { Slot, SlotType } from "../slots/slot";
-import { shallowSlotType } from "../slots/slot";
+import type { ComponentSlotType, ContextSlotType, Slot, SlotType } from "../slots/slot";
+import { extendIntentNodes, extendIntentWithInstance } from "../slots/slot";
 import {
   componentSlotType,
   contextSlotType,
@@ -20,65 +20,57 @@ import {
   inheritSlot,
   type Intent,
 } from "../slots/intent";
-import { diffAnyElementProps, isWeakRefProp } from "../render/element-props";
-import {
-  handleCreateNode,
-  handleMountSlot,
-  handleUpdateRef,
-  handleUpdateSlotProps,
-} from "./fiber-handlers";
-import type { UIAction } from "../ui-actions/types";
+import { diffAnyElementProps } from "../render/element-props";
 import { prepareUpdate } from "../ui-actions/prepare/prepare-update";
 import { prepareRemove } from "../ui-actions/prepare/prepare-remove";
 import { prepareText } from "../ui-actions/prepare/prepare-text";
 import { prepareInsert } from "../ui-actions/prepare/prepare-insert";
 import { prepareMove } from "../ui-actions/prepare/prepare-move";
-import { prepareCreate } from "../ui-actions/prepare/prepare-create";
 import type { RequiredBy } from "../general-types";
 import type { Fiber } from "../instances/types";
 import type { Scheduler } from "../scheduler/Scheduler";
+import { toElementSlot, toFragmentSlot, toTextSlot } from "../slots/utils";
+import { createFiber } from "../instances/utils";
 
-function prepareFiber(fiber: Fiber) {
+type ReconcileFiber = RequiredBy<Fiber, "uiActions">;
+function prepareFiber(fiber: Fiber): asserts fiber is ReconcileFiber {
   const { instances } = fiber;
   // When even we hit an instance when walking the tree we remove the instance from the 'unmountedInstances' and it will be moved to nextInstances
   fiber.prevInstances = instances?.size ? new Map(instances) : undefined;
-  fiber.refsToAssign = undefined;
   fiber.instances = undefined;
   fiber.uiActions = [];
-  return fiber as RequiredBy<Fiber, "uiActions">;
 }
 
 export function mountFiber(fiber: Fiber, child: Child): Slot {
-  // if (fiber.depth > 16) console.log("mount", fiber.component.name);
-  const stagingDom = document.createDocumentFragment();
-  const { parentDom, ns, ctx, uiActions } = prepareFiber(fiber);
-
+  prepareFiber(fiber);
+  const { parentDom, ns, ctx, uiActions } = fiber;
   const intent = childToIntent(child, 0, "");
-
+  const stagingDom = document.createDocumentFragment();
   mountIntent(fiber, intent, ns, parentDom, stagingDom, ctx);
-  uiActions!.push(prepareInsert(fiber.parentDom, stagingDom, fiber.tailNode));
+  uiActions.push(prepareInsert(fiber.parentDom, stagingDom, fiber.tailNode));
   return intent as Slot;
 }
 
 export function reconcilerFiber(fiber: Fiber, child: Child): Slot {
-  const { parentDom, slot, ns, tailNode, ctx, uiActions } = prepareFiber(fiber);
+  prepareFiber(fiber);
+  const { parentDom, slot, ns, tailNode, ctx, uiActions } = fiber;
   const prevSlot = slot!;
   const intent = childToIntent(child, 0, "");
 
   if (intent.key !== prevSlot.key) {
-    uiActions!.push(prepareRemove(prevSlot));
-    buildIntentToSlot(uiActions!, fiber, intent, ns, parentDom, tailNode, ctx);
+    uiActions.push(prepareRemove(prevSlot));
+    buildIntentToSlot(fiber, intent, ns, parentDom, tailNode, ctx);
     return intent as Slot;
   } else {
     const slot = inheritSlot(intent, prevSlot);
-    updateSlot(uiActions!, fiber, slot, ns, ctx);
+    updateSlot(fiber, slot, ns, ctx);
     return slot;
   }
 }
 
 function mount(
   children: ReadonlyArray<Children>,
-  fiber: Fiber,
+  fiber: ReconcileFiber,
   parentDom: Node,
   stagingDom: Node,
   parentPath: string,
@@ -93,8 +85,7 @@ function mount(
 }
 
 function reconcile(
-  uiActions: UIAction[],
-  fiber: Fiber,
+  fiber: ReconcileFiber,
   children: ReadonlyArray<Children> = emptyChildren,
   parentDom: Node,
   path: string,
@@ -103,6 +94,7 @@ function reconcile(
   beforeNode: Node | null,
   ctx: ContextMap,
 ): ReadonlyMap<string, Slot> {
+  const { uiActions } = fiber;
   const drafts = childrenToIntents(children, path);
   const stableIndexes = deriveStableIndexes(drafts, oldSlots);
   for (const [key, draft] of drafts) {
@@ -119,10 +111,10 @@ function reconcile(
   for (const slot of getMapValuesReversed(slots)) {
     if (slot.headNode === undefined) {
       // ... Intent
-      buildIntentToSlot(uiActions, fiber, slot, ns, parentDom, beforeNode, ctx);
+      buildIntentToSlot(fiber, slot, ns, parentDom, beforeNode, ctx);
     } else {
       // ... Slot
-      updateSlot(uiActions, fiber, slot, ns, ctx);
+      updateSlot(fiber, slot, ns, ctx);
       if (!slot.stable) uiActions.push(prepareMove(parentDom, slot, beforeNode));
     }
     beforeNode = slot.headNode;
@@ -131,7 +123,7 @@ function reconcile(
 }
 
 function mountIntent(
-  fiber: Fiber,
+  fiber: ReconcileFiber,
   intent: Intent,
   ns: TagNamespace,
   parentDom: Node,
@@ -147,35 +139,25 @@ function mountIntent(
       return;
     }
     case textSlotType: {
-      const { headNode } = handleCreateNode(prepareCreate(intent));
-      stagingDom.appendChild(headNode);
+      stagingDom.appendChild(toTextSlot(intent).headNode);
       return;
     }
     case elementSlotType: {
-      const { headNode } = handleCreateNode(prepareCreate(intent, ns));
       const { children, path, props } = intent;
+      const { headNode } = toElementSlot(intent, ns);
       stagingDom.appendChild(headNode);
-      ns = nodeNameSpace(headNode as any);
+      ns = nodeNameSpace(headNode);
       intent.slots = mount(children, fiber, headNode, headNode, path, ns, ctx);
       if (isSelectElement(headNode)) {
         storeSelectElementsInitialValue(headNode, props, fiber.scheduler);
       }
-      if (isWeakRefProp(props)) handleUpdateRef(fiber, intent);
       return;
     }
     case fragmentSlotType: {
-      const { headNode, tailNode } = handleCreateNode(prepareCreate(intent, ns));
+      const { headNode, tailNode } = toFragmentSlot(intent);
       const { path, children } = intent;
       stagingDom.appendChild(headNode);
       intent.slots = mount(children, fiber, parentDom, stagingDom, path, ns, ctx);
-      stagingDom.appendChild(tailNode);
-      return;
-    }
-    case shallowSlotType: {
-      const { headNode, tailNode } = handleCreateNode(prepareCreate(intent, ns));
-      const { path, props, component } = intent;
-      stagingDom.appendChild(headNode);
-      intent.slots = mount([component(props)], fiber, parentDom, stagingDom, path, ns, ctx);
       stagingDom.appendChild(tailNode);
       return;
     }
@@ -185,8 +167,7 @@ function mountIntent(
 }
 
 function buildIntentToSlot(
-  uiActions: UIAction[],
-  fiber: Fiber,
+  fiber: ReconcileFiber,
   intent: Intent,
   ns: TagNamespace,
   parentDom: Node,
@@ -200,45 +181,33 @@ function buildIntentToSlot(
       const stagingDom = document.createDocumentFragment();
       stagingDom.appendChild(headNode);
       stagingDom.appendChild(tailNode);
-      uiActions.push(prepareInsert(parentDom, stagingDom, beforeNode));
+      fiber.uiActions.push(prepareInsert(parentDom, stagingDom, beforeNode));
       return;
     }
     case textSlotType: {
-      const { headNode } = handleCreateNode(prepareCreate(intent));
-      uiActions.push(prepareInsert(parentDom, headNode, beforeNode));
+      fiber.uiActions.push(prepareInsert(parentDom, toTextSlot(intent).headNode, beforeNode));
       return;
     }
     case elementSlotType: {
-      const { headNode } = handleCreateNode(prepareCreate(intent, ns));
+      const { headNode } = toElementSlot(intent, ns);
       const { children, path } = intent;
-      ns = nodeNameSpace(headNode as AnyElement);
+      ns = nodeNameSpace(headNode);
       intent.slots = mount(children, fiber, headNode, headNode, path, ns, ctx);
       const { props } = intent;
       if (isSelectElement(headNode)) {
         storeSelectElementsInitialValue(headNode, props, fiber.scheduler);
       }
-      if (isWeakRefProp(props)) handleUpdateRef(fiber, intent);
-      uiActions.push(prepareInsert(parentDom, headNode, beforeNode));
+      fiber.uiActions.push(prepareInsert(parentDom, headNode, beforeNode));
       return;
     }
     case fragmentSlotType: {
-      const { headNode, tailNode } = handleCreateNode(prepareCreate(intent, ns));
+      const { headNode, tailNode } = toFragmentSlot(intent);
       const { children, path } = intent;
       const stagingDom = document.createDocumentFragment();
       stagingDom.appendChild(headNode);
       intent.slots = mount(children, fiber, parentDom, stagingDom, path, ns, ctx);
       stagingDom.appendChild(tailNode);
-      uiActions.push(prepareInsert(parentDom, stagingDom, beforeNode));
-      return;
-    }
-    case shallowSlotType: {
-      const { headNode, tailNode } = handleCreateNode(prepareCreate(intent, ns));
-      const { path, component, props } = intent;
-      const stagingDom = document.createDocumentFragment();
-      stagingDom.appendChild(headNode);
-      intent.slots = mount([component(props)], fiber, parentDom, stagingDom, path, ns, ctx);
-      stagingDom.appendChild(tailNode);
-      uiActions.push(prepareInsert(parentDom, stagingDom, beforeNode));
+      fiber.uiActions.push(prepareInsert(parentDom, stagingDom, beforeNode));
       return;
     }
     default:
@@ -247,8 +216,7 @@ function buildIntentToSlot(
 }
 
 function updateSlot<T extends SlotType>(
-  uiActions: UIAction[],
-  fiber: Fiber,
+  fiber: ReconcileFiber,
   slot: Slot<T>,
   ns: TagNamespace,
   ctx: ContextMap,
@@ -256,53 +224,29 @@ function updateSlot<T extends SlotType>(
   switch (slot.type) {
     case contextSlotType:
     case componentSlotType:
-      handleUpdateSlotProps(fiber, slot);
+      const { instance, path } = slot;
+      fiber.prevInstances?.delete(path);
+      instance.setProps(slot);
+      (fiber.instances ??= new Map<string, Fiber>()).set(path, instance);
       return;
     case textSlotType: {
       const { text } = slot;
       if (text === slot.prevText) return;
-      uiActions.push(prepareText(slot));
+      fiber.uiActions.push(prepareText(slot));
       return;
     }
     case elementSlotType: {
       const { headNode, element, children, path, slots, prevProps, props } = slot;
       const ns = nodeNameSpace(headNode);
-      slot.slots = reconcile(uiActions, fiber, children, headNode, path, slots, ns, null, ctx);
+      slot.slots = reconcile(fiber, children, headNode, path, slots, ns, null, ctx);
       const patch = diffAnyElementProps(element, prevProps, props);
-      if (isWeakRefProp(slot.props)) handleUpdateRef(fiber, slot);
-      if (patch) uiActions.push(prepareUpdate(slot, patch));
+      if (patch) fiber.uiActions.push(prepareUpdate(slot, patch));
       return;
     }
     case fragmentSlotType: {
       const { tailNode, children, path, slots } = slot;
       const parentDom = tailNode.parentNode;
-      slot.slots = reconcile(
-        uiActions,
-        fiber,
-        children,
-        parentDom!,
-        path,
-        slots,
-        ns,
-        tailNode,
-        ctx,
-      );
-      return;
-    }
-    case shallowSlotType: {
-      const { tailNode, path, slots, component, props } = slot;
-      const parentDom = tailNode.parentNode;
-      slot.slots = reconcile(
-        uiActions,
-        fiber,
-        [component(props)],
-        parentDom!,
-        path,
-        slots,
-        ns,
-        tailNode,
-        ctx,
-      );
+      slot.slots = reconcile(fiber, children, parentDom!, path, slots, ns, tailNode, ctx);
       return;
     }
     default:
@@ -321,4 +265,28 @@ function storeSelectElementsInitialValue(
   const p = props as ComponentProps<"textarea">;
   const value = `${p.value ?? ""}`;
   scheduler.registerPropsValue(element, value);
+}
+
+function handleMountSlot(
+  fiber: Fiber,
+  intent: Intent<ComponentSlotType | ContextSlotType>,
+  parentDom: Node,
+  ns: TagNamespace,
+  ctx: ContextMap,
+) {
+  const { path } = intent;
+  let instance = fiber.prevInstances?.get(path);
+  if (instance) {
+    instance.ctx = ctx;
+    instance.parentDom = parentDom;
+    extendIntentWithInstance(intent, instance);
+    fiber.prevInstances?.delete(path);
+    instance.setProps(intent);
+  } else {
+    instance = createFiber(extendIntentNodes(intent), ctx, fiber, parentDom, ns);
+    intent.instance = instance;
+    instance.scheduler.scheduleRender(instance);
+  }
+  (fiber.instances ??= new Map<string, Fiber>()).set(path, instance);
+  return intent as Slot<ComponentSlotType>;
 }

@@ -1,9 +1,10 @@
 import type { ContextProperties } from "../context";
 import type { ContextHookState } from "../hooks/context";
 import type { DependencyList } from "yract";
-import type { $EFFECT, $ID, $MEMO, $REF, $STABLE, $STATE, $WEAK_REF } from "../hooks/constants";
-import type { WeakRefLike } from "./element-props";
+import type { $EFFECT, $ID, $MEMO, $REF, $STABLE, $STATE, $ELEMENT_REF } from "../hooks/constants";
+import type { ElementRef } from "./element-props";
 import type { EffectCallback } from "../hooks/types";
+import {AnyElement} from "./elements/namespaces";
 
 export type ContextMap = Map<string, ContextProperties<unknown>>;
 
@@ -23,9 +24,9 @@ export interface RefHookState<T = unknown> {
   ref: { current: T };
 }
 
-export interface WeakRefHookState<T extends WeakKey = WeakKey> {
-  type: typeof $WEAK_REF;
-  ref: WeakRefLike<T>;
+export interface ElementRefHookState<T extends AnyElement = AnyElement> {
+  type: typeof $ELEMENT_REF;
+  ref: ElementRef<T>;
 }
 
 export interface IdHookState {
@@ -62,4 +63,4 @@ export type HookState =
   | StableHookState
   | EffectHookState
   | ContextHookState
-  | WeakRefHookState;
+  | ElementRefHookState;

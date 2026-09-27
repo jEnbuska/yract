@@ -1,5 +1,4 @@
 import type { Slot } from "../../slots/slot";
-import { shallowSlotType } from "../../slots/slot";
 import {
   componentSlotType,
   contextSlotType,
@@ -38,7 +37,6 @@ export function moveSlotNodes(slot: Slot, parentDom: Node, beforeNode: Node | nu
     case elementSlotType:
       moveBefore(parentDom, slot.headNode, beforeNode);
       break;
-    case shallowSlotType:
     case fragmentSlotType: {
       const node = slot.tailNode;
       moveBefore(parentDom, node, beforeNode);

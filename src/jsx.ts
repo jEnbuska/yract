@@ -2,7 +2,6 @@ import type { Context } from "./context";
 import type { IntrinsicElements as IntrinsicElementsDef } from "./jsx-types";
 import type { ComponentGenerator, DependencyList } from "./general-types";
 import type { Draft } from "./slots/draft";
-import type { Shallow } from "./shallow";
 
 export const Fragment: unique symbol = Symbol("Fragment");
 
@@ -26,13 +25,11 @@ export type ComponentProps<T> = T extends keyof JSX.IntrinsicElements
   ? JSX.IntrinsicElements[T]
   : T extends Component<infer P>
     ? P
-    : T extends Shallow<infer P>
-      ? P
-      : never;
+    : never;
 
 declare global {
   namespace JSX {
-    type ElementType = string | typeof Fragment | Component<any> | Context | Shallow<any>;
+    type ElementType = string | typeof Fragment | Component<any> | Context;
     interface IntrinsicElements extends IntrinsicElementsDef {}
     interface IntrinsicAttributes extends FrameworkProps {}
     /** Use `children` as the JSX children attribute name. */

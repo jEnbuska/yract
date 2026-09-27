@@ -40,15 +40,6 @@ export class SyncRenderGroup {
   cancelRender(fiber: Fiber) {
     this.rendersGroup.cancel(fiber);
   }
-  cancelPrepareCommit(fiber: Fiber) {
-    this.prepareCommitGroup.cancel(fiber);
-  }
-  cancelCommit(fiber: Fiber) {
-    this.commitsGroup.cancel(fiber);
-  }
-  cancelPostCommit(fiber: Fiber) {
-    this.postCommitGroup.cancel(fiber);
-  }
 
   /** Called on component render and it detects it's child component unmounted  **/
 

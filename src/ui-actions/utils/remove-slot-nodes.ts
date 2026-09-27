@@ -1,5 +1,4 @@
-import type { ShallowSlotType, Slot } from "../../slots/slot";
-import { shallowSlotType } from "../../slots/slot";
+import type { Slot } from "../../slots/slot";
 import {
   type ComponentSlotType,
   type ContextSlotType,
@@ -16,7 +15,6 @@ export function removeSlotNodes(slot: Slot) {
     case elementSlotType:
       slot.headNode.remove();
       break;
-    case shallowSlotType:
     case fragmentSlotType:
       removeFragmentNodes(slot);
       break;
@@ -32,11 +30,7 @@ function removeInstanceNodes(slot: Slot<ContextSlotType | ComponentSlotType>) {
   tailNode.remove();
 }
 
-function removeFragmentNodes({
-  tailNode,
-  slots,
-  headNode,
-}: Slot<FragmentSlotType | ShallowSlotType>) {
+function removeFragmentNodes({ tailNode, slots, headNode }: Slot<FragmentSlotType>) {
   tailNode.remove();
   const reversed = getMapValuesReversed(slots);
   for (let i = 0; i < reversed.length; i++) {

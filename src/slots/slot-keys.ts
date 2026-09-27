@@ -1,20 +1,11 @@
 import { getOrInsertComputed, randomId } from "../general";
 import type { Draft } from "./draft";
-import type {
-  ComponentSlotType,
-  ContextSlotType,
-  ElementSlotType,
-  FragmentSlotType,
-  ShallowSlotType,
-} from "./slot";
+import type { ComponentSlotType, ContextSlotType, ElementSlotType, FragmentSlotType } from "./slot";
 import type { Component, ComponentProps } from "../jsx";
 
 const componentIdMap = new WeakMap<Component<any>, string>();
 
-export function getComponentSlotKey(
-  draft: Draft<ComponentSlotType | ShallowSlotType>,
-  index: number,
-): string {
+export function getComponentSlotKey(draft: Draft<ComponentSlotType>, index: number): string {
   const slotId = getOrInsertComputed(componentIdMap, draft.component, randomId);
   const componentKey = draft._key ?? index;
   return `"${slotId}""${typeof componentKey}"${componentKey}`;

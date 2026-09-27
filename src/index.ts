@@ -9,7 +9,7 @@ export {
   useStable,
   useState,
   useDefer,
-  useWeakRef,
+  useElementRef,
   type RefObject,
 } from "./hooks";
 export { withRerender, withReturn } from "./capabilities";
@@ -28,6 +28,3 @@ export { Root } from "./instances/root";
 
 export type { ComponentGenerator } from "./general-types";
 export type { DependencyList } from "./general-types";
-
-export { shallow } from "./shallow";
-export type { Shallow } from "./shallow";

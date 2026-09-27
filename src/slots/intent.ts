@@ -4,7 +4,6 @@ import type {
   ContextSlotType,
   ElementSlotType,
   FragmentSlotType,
-  ShallowSlotType,
   Slot,
   SlotChildren,
   SlotComponent,
@@ -18,7 +17,6 @@ import type {
   SlotText,
   SlotType,
 } from "./slot";
-import { shallowSlotType } from "./slot";
 import {
   componentSlotType,
   contextSlotType,
@@ -29,7 +27,6 @@ import {
   type TextSlotType,
 } from "./slot";
 import type { Draft } from "./draft";
-import { ensureFreshShallowDraft } from "./draft";
 import {
   ensureFreshComponentDraft,
   ensureFreshContextDraft,
@@ -158,12 +155,6 @@ export function draftToIntent(
   index: number,
   parentPath: string,
 ): Intent<FragmentSlotType>;
-export function draftToIntent(
-  draft: Draft<ShallowSlotType>,
-  key: string,
-  index: number,
-  parentPath: string,
-): Intent<ShallowSlotType>;
 export function draftToIntent(draft: Draft, key: string, index: number, parentPath: string) {
   const same = draft as any as Intent;
   same.key = key;
@@ -210,11 +201,6 @@ export function childToIntent(child: Child, index: number, parentPath: string): 
     case contextSlotType: {
       child = ensureFreshContextDraft(child);
       const key = getContextSlotKey(child, index);
-      return draftToIntent(child, key, index, parentPath);
-    }
-    case shallowSlotType: {
-      child = ensureFreshShallowDraft(child);
-      const key = getComponentSlotKey(child, index);
       return draftToIntent(child, key, index, parentPath);
     }
     default: {

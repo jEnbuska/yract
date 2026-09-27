@@ -1,6 +1,15 @@
 import type { Context } from "../context";
 import type { DependencyList } from "yract";
-import type { $CONTEXT, $EFFECT, $ID, $MEMO, $REF, $STABLE, $STATE, $WEAK_REF } from "./constants";
+import type {
+  $CONTEXT,
+  $EFFECT,
+  $ID,
+  $MEMO,
+  $REF,
+  $STABLE,
+  $STATE,
+  $ELEMENT_REF,
+} from "./constants";
 import type { AnyFn } from "../general-types";
 
 export interface StateHookDescriptor<T = unknown> {
@@ -14,9 +23,8 @@ export interface RefHookDescriptor<T = unknown> {
   initialValue: T;
 }
 
-export interface WeakRefHookDescriptor<T extends WeakKey = WeakKey> {
-  type: typeof $WEAK_REF;
-  initial?: T;
+export interface ElementRefHookDescription {
+  type: typeof $ELEMENT_REF;
 }
 
 export interface IdHookDescriptor {
@@ -51,7 +59,7 @@ export interface ContextHookDescriptor {
 export type HookDescriptor =
   | StateHookDescriptor
   | RefHookDescriptor
-  | WeakRefHookDescriptor
+  | ElementRefHookDescription
   | IdHookDescriptor
   | MemoHookDescriptor
   | StableHookDescriptor

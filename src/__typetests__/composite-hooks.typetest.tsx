@@ -11,7 +11,7 @@
  */
 import { useEffect } from "../hooks/effect";
 import { useRef } from "../hooks/ref";
-import { useWeakRef } from "../hooks/weakRef";
+import { useElementRef } from "../hooks/elementRef";
 import { useState } from "../hooks/state";
 import { useId } from "../hooks/id";
 import { useStable } from "../hooks/stable";
@@ -26,7 +26,7 @@ const Ctx = createContext({ label: "x" });
 
 /** No return annotation — every hook below must compose cleanly. */
 function* useComposite<T extends HTMLElement>() {
-  const elRef = yield* useWeakRef<T>();
+  const elRef = yield* useElementRef<T>();
   const box = yield* useRef<number>(0);
   const id = yield* useId();
   const { label } = yield* useContext(Ctx);

@@ -5,7 +5,7 @@ import { $ID } from "./constants";
 let idCounter = 0;
 
 function nextId(): string {
-  return `:r${idCounter++}:`;
+  return `:id${idCounter++}:`;
 }
 
 /**

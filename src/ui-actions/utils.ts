@@ -18,10 +18,9 @@ export function applyDomAction(
   selectionMap: FieldSelectionMap,
 ) {
   switch (action.type) {
-    case MOVE_UI_ACTION: {
+    case MOVE_UI_ACTION:
       moveSlotNodes(action.slot, action.parentDom, action.before);
       break;
-    }
     case REMOVE_UI_ACTION:
       removeSlotNodes(action.slot);
       break;
@@ -33,13 +32,12 @@ export function applyDomAction(
       slot.headNode.textContent = slot.text;
       break;
     }
-    case UPDATE_UI_ACTION: {
+    case UPDATE_UI_ACTION:
       const { slot, patch } = action;
       updateElementProps(slot.headNode, patch);
       const { setControlled } = patch;
       if (setControlled === undefined) break;
       updateElementControlledProps(slot.headNode, setControlled, valueMap, selectionMap);
       break;
-    }
   }
 }

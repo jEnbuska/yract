@@ -30,8 +30,6 @@ export function applyUIActions(
   fiber.slot = fiber.pendingSlot;
   fiber.pendingSlot = undefined;
   fiber.initialMounted = true;
-  const { refsToAssign } = fiber;
-  if (refsToAssign) for (const [ref, element] of refsToAssign) ref.current = element;
 }
 
 export async function waitForIdle() {

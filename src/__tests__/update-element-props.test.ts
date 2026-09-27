@@ -6,32 +6,12 @@
  * patch shape, this file covers "given this patch, the DOM looks like X."
  */
 import { beforeEach, describe, expect, it } from "vitest";
-import { type ElementPatch, updateElementProps, type WeakRefLike } from "../render/element-props";
+import { type ElementPatch, updateElementProps } from "../render/element-props";
 
 function makeRoot(): Element {
   const container = document.createElement("div");
   document.body.appendChild(container);
   return container;
-}
-
-/**oayground/src/sections/deferred/-components/PersonTabl
- * A `WeakRefLike` for tests, mirroring what `processWeakRef` builds: the getter
- * hands back a stable wrapper whose `deref()` reads the current WeakRef, and
- * the setter re-wraps. Reading `.current` therefore gives the wrapper, not the
- * element — assertions go through `.current`.
- */
-function makeWeakRef<T extends WeakKey>(initial?: T): WeakRefLike<T> {
-  let current: WeakRef<T> | undefined = initial === undefined ? undefined : new WeakRef(initial);
-  const wrapper = { deref: (): T | undefined => current?.deref() };
-  // The symbol index signature on WeakRefLike cannot be produced by a literal.
-  return {
-    get current(): { deref(): T | undefined } {
-      return wrapper;
-    },
-    set current(value: T | undefined) {
-      current = value === undefined ? undefined : new WeakRef(value);
-    },
-  } as WeakRefLike<T>;
 }
 
 beforeEach(() => {
@@ -221,44 +201,6 @@ describe("updateElementProps: events", () => {
   });
 });
 
-describe("updateElementProps: refSwap", () => {
-  it("clears prev.current and sets next.current to the element", () => {
-    const container = makeRoot();
-    const el = document.createElement("div");
-    container.appendChild(el);
-
-    const prev = makeWeakRef(el);
-    const next = makeWeakRef<HTMLDivElement>();
-
-    updateElementProps(el, { refSwap: { prev, next } });
-
-    expect(prev.current).toBeUndefined();
-    expect(next.current).toBe(el);
-  });
-
-  it("handles a swap where only next is provided", () => {
-    const container = makeRoot();
-    const el = document.createElement("div");
-    container.appendChild(el);
-
-    const next = makeWeakRef<HTMLDivElement>();
-    updateElementProps(el, { refSwap: { prev: undefined, next } });
-
-    expect(next.current).toBe(el);
-  });
-
-  it("handles a swap where only prev is provided (ref was removed)", () => {
-    const container = makeRoot();
-    const el = document.createElement("div");
-    container.appendChild(el);
-
-    const prev = makeWeakRef(el);
-    updateElementProps(el, { refSwap: { prev, next: undefined } });
-
-    expect(prev.current).toBeUndefined();
-  });
-});
-
 describe("updateElementProps: bucket ordering", () => {
   it("runs removeAttrs before setAttrs (same key re-added)", () => {
     const container = makeRoot();
@@ -285,14 +227,12 @@ describe("updateElementProps: bucket ordering", () => {
     const nextHandler = () => fired.push("next");
     updateElementProps(el, { setEvents: { onClick: prevHandler } });
 
-    const nextRef = makeWeakRef<HTMLDivElement>();
     updateElementProps(el, {
       removeAttrs: ["title"],
       setAttrs: { id: "new" },
       removeEvents: ["onClick"],
       setEvents: { onClick: nextHandler },
       style: { color: "blue" },
-      refSwap: { prev: undefined, next: nextRef },
     });
 
     expect(el.hasAttribute("title")).toBe(false);
@@ -300,6 +240,5 @@ describe("updateElementProps: bucket ordering", () => {
     el.click();
     expect(fired).toEqual(["next"]);
     expect(el.style.color).toBe("blue");
-    expect(nextRef.current).toBe(el);
   });
 });

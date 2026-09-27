@@ -60,10 +60,6 @@ export class Scheduler {
     this.getGroup(fiber.isDeferred()).schedulePostCommit(fiber);
   }
 
-  cancelPostCommit(fiber: Fiber): void {
-    this.getGroup(fiber.isDeferred()).cancelPostCommit(fiber);
-  }
-
   scheduleStateResolve(fiber: Fiber): void {
     this.resolveGroups.add(fiber);
   }
@@ -105,11 +101,11 @@ export class Scheduler {
       this.resolveGroups = new SyncFiberQueuedCollection();
       deferredGroup.postCommit();
       const { renderIteration } = this.renderClock;
-      resolveGroups.forEach((fiber) => {
+      for (const fiber of resolveGroups) {
         if (fiber.isUnmounted(renderIteration)) return;
         fiber.hookStates?.forEach(stateResolver);
         fiber.resolveReasons?.clear();
-      });
+      }
       if (syncGroup.hasRenderQueue() || deferredGroup.hasRenderQueue()) {
         continue;
       }

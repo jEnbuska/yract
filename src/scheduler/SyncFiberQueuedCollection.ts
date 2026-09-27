@@ -38,8 +38,7 @@ export class SyncFiberQueuedCollection {
     }
     queues[depth]!.push(fiber);
   }
-
-  forEach(callback: (fiber: Fiber) => any) {
+  *[Symbol.iterator]() {
     const { queues } = this;
     const members = this.#members;
     for (let i = 0; i < queues.length; i++) {
@@ -47,7 +46,7 @@ export class SyncFiberQueuedCollection {
       for (let j = 0; j < fibers.length; j++) {
         const fiber = fibers[j]!;
         if (!members.has(fiber)) continue;
-        callback(fiber);
+        yield fiber;
       }
     }
   }

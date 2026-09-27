@@ -2,10 +2,10 @@ import type { HookState } from "../render/types";
 import type { ComponentFiber } from "../instances/component-fiber";
 import { HookRuleError } from "./HookRuleError";
 import type { HookDescriptor } from "./types";
-import { $CONTEXT, $EFFECT, $ID, $MEMO, $REF, $STABLE, $STATE, $WEAK_REF } from "./constants";
+import { $CONTEXT, $EFFECT, $ID, $MEMO, $REF, $STABLE, $STATE, $ELEMENT_REF } from "./constants";
 import { processState } from "./state";
 import { processRef } from "./ref";
-import { processWeakRef } from "./weakRef";
+import { processElementRef } from "./elementRef";
 import { processId } from "./id";
 import { processMemo } from "./memo";
 import { processStable } from "./stable";
@@ -48,9 +48,9 @@ export function processHook(
       hookStates[hookIndex] = state;
       return state;
     }
-    case $WEAK_REF: {
-      const prev = getTypedPrev(hookStates, hookIndex, $WEAK_REF, instance);
-      const state = processWeakRef(prev);
+    case $ELEMENT_REF: {
+      const prev = getTypedPrev(hookStates, hookIndex, $ELEMENT_REF, instance);
+      const state = processElementRef(prev);
       hookStates[hookIndex] = state;
       return state;
     }

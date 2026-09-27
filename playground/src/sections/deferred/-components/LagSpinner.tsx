@@ -1,6 +1,6 @@
 import { Clock } from "../../../dos";
 import type { ClockTail } from "../../../dos";
-import { useEffect, useMemo, useRef, useState, useWeakRef } from "yract";
+import { useEffect, useMemo, useRef, useState, useElementRef } from "yract";
 
 const clamp = (value: number): number => Math.min(Math.max(value, 0), 1);
 
@@ -320,7 +320,7 @@ function* LagDial({ stamps, start }: { stamps: readonly number[]; start: number 
 function* LagChart({ stamps, now }: { stamps: readonly number[]; now: number }) {
   // Draw in real pixels. Scaling a fixed viewBox to fit would squash the text
   // along with the bars, so the chart measures itself instead.
-  const boxRef = yield* useWeakRef<HTMLDivElement>();
+  const boxRef = yield* useElementRef<HTMLDivElement>();
   const [size, setSize] = yield* useState({ width: CHART_WIDTH, height: CHART_HEIGHT });
 
   yield* useEffect(() => {

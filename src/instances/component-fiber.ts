@@ -4,8 +4,7 @@ import type { ContextMap, HookState } from "../render/types";
 import { mountFiber, reconcilerFiber } from "../reconciler/reconciler";
 import { PROPS_REASON } from "../reasons";
 import type { ComponentSlotType, ContextSlotType, Slot } from "../slots/slot";
-import type { WeakRefLike } from "../render/element-props";
-import type { AnyElement, TagNamespace } from "../render/elements/namespaces";
+import type { TagNamespace } from "../render/elements/namespaces";
 import type { DependencyList, DraftBy } from "../general-types";
 import { depsChanged, shallowEqual, stripFrameworkProps } from "../general";
 import { DeferContext } from "../hooks/defer";
@@ -34,7 +33,6 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
   renderReasons?: Set<symbol> = undefined;
   resolveReasons?: Set<symbol> = undefined;
   postCommitReasons?: Set<symbol> = undefined;
-  refsToAssign?: Map<WeakRefLike, AnyElement> = undefined;
   slot?: Slot = undefined;
   pendingSlot?: Slot = undefined;
   protected props: TProps;
@@ -102,12 +100,6 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     if (this.postCommitReasons?.has(reason)) return;
     (this.postCommitReasons ??= new Set()).add(reason);
     this.scheduler.schedulePostCommit(this);
-  }
-
-  cancelPostCommit(reason: symbol): void {
-    if (!this.postCommitReasons?.delete(reason)) return;
-    if (this.postCommitReasons.size) return;
-    this.scheduler.cancelPostCommit(this);
   }
 
   render() {
