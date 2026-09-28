@@ -18,7 +18,7 @@ export function PersonHighlight({ highlight, setHighlight, matches }: OwnProps) 
   );
   return (
     <Field>
-      <FieldLabel id="person-highlight-label">Highlight city</FieldLabel>
+      <FieldLabel id="person-highlight-label">Show only highlighted</FieldLabel>
       <Select
         value={highlight}
         aria-labelledby="person-highlight-label"

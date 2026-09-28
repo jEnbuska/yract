@@ -1,15 +1,15 @@
 import { applyUIActions, handlePostCommit, renderFiber } from "./utils";
 import type { RenderClock } from "./RenderClock";
 import type { Fiber, FieldSelectionMap, FieldValueMap } from "../instances/types";
-import { DeferredPopCollection } from "./DeferredPopCollection";
+import { DeferredFiberGroup } from "./DeferredFiberGroup";
 
-export class DeferredRenderGroup {
+export class DeferredLifecycleGroup {
   readonly name = "DeferredGroup";
 
-  readonly rendersGroup = new DeferredPopCollection(1);
-  readonly prepareChunkGroup = new DeferredPopCollection(-1);
-  readonly commitsGroup = new DeferredPopCollection(1);
-  readonly postCommitGroup = new DeferredPopCollection(-1);
+  readonly rendersGroup = new DeferredFiberGroup(1);
+  readonly prepareChunkGroup = new DeferredFiberGroup(-1);
+  readonly commitsGroup = new DeferredFiberGroup(1);
+  readonly postCommitGroup = new DeferredFiberGroup(-1);
   protected renderClock: RenderClock;
 
   private readonly shouldExit: () => boolean;

@@ -17,3 +17,13 @@ export const FieldContext = createContext<FieldContextValue>(
   { controlId: "", descriptionId: "", errorId: "", invalid: false },
   "DosField",
 );
+
+export interface RadioGroupContextValue {
+  name: string;
+  value: string;
+}
+
+export const RadioGroupContext = createContext<RadioGroupContextValue>(
+  { name: "", value: "" },
+  "DosRadioGroup",
+);

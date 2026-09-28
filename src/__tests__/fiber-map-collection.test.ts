@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { DeferredPopCollection } from "../scheduler/DeferredPopCollection";
+import { DeferredFiberGroup } from "../scheduler/DeferredFiberGroup";
 import type { Fiber } from "../instances/types";
 
 /**
- * Tests for `DeferredPopCollection`.
+ * Tests for `DeferredFiberQueue`.
  *
  * Contract recap:
  *   - `_members` holds the live bookings; `_cancelled` holds fibers whose
@@ -36,20 +36,20 @@ function name(fiber: Fiber): string {
 }
 
 /** Entries physically sitting in the queues, flattened shallow-to-deep. */
-function queued(collection: DeferredPopCollection): Fiber[] {
+function queued(collection: DeferredFiberGroup): Fiber[] {
   return collection.queues.flat();
 }
 
 /** Pop until no live booking remains, which is the contract `pop()` expects. */
-function drain(collection: DeferredPopCollection): string[] {
+function drain(collection: DeferredFiberGroup): string[] {
   const out: string[] = [];
   while (collection.size) out.push(name(collection.pop()));
   return out;
 }
 
-describe("DeferredPopCollection.add", () => {
+describe("DeferredFiberQueue.add", () => {
   it("books a fresh fiber and pushes it at its depth", () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
     const fiber = stubFiber(3);
 
     expect(collection.add(fiber)).toBe(true);
@@ -61,7 +61,7 @@ describe("DeferredPopCollection.add", () => {
   });
 
   it("grows `queues` so every depth up to the fiber's has a bucket", () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
 
     collection.add(stubFiber(4));
 
@@ -70,7 +70,7 @@ describe("DeferredPopCollection.add", () => {
   });
 
   it("keeps insertion order within one depth's bucket", () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
     const first = stubFiber(2, "first");
     const second = stubFiber(2, "second");
 
@@ -81,7 +81,7 @@ describe("DeferredPopCollection.add", () => {
   });
 
   it("buckets fibers by their own depth", () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
     const shallow = stubFiber(0, "shallow");
     const deep = stubFiber(5, "deep");
 
@@ -93,7 +93,7 @@ describe("DeferredPopCollection.add", () => {
   });
 
   it("returns false and pushes nothing while the fiber is already booked", () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
     const fiber = stubFiber(1);
     collection.add(fiber);
 
@@ -104,7 +104,7 @@ describe("DeferredPopCollection.add", () => {
   });
 
   it("treats depth 0 as a real depth rather than a falsy edge case", () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
     const root = stubFiber(0);
 
     expect(collection.add(root)).toBe(true);
@@ -112,9 +112,9 @@ describe("DeferredPopCollection.add", () => {
   });
 });
 
-describe("DeferredPopCollection.size", () => {
+describe("DeferredFiberQueue.size", () => {
   it("counts live bookings, not queue entries", () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
     const a = stubFiber(0, "a");
     const b = stubFiber(1, "b");
 
@@ -130,7 +130,7 @@ describe("DeferredPopCollection.size", () => {
   });
 
   it("is what callers gate `pop()` on", () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
     collection.add(stubFiber(1));
 
     let popped = 0;
@@ -144,9 +144,9 @@ describe("DeferredPopCollection.size", () => {
   });
 });
 
-describe("DeferredPopCollection head tracking", () => {
+describe("DeferredFiberQueue head tracking", () => {
   it("ascending: head follows the shallowest depth booked", () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
 
     collection.add(stubFiber(4));
     expect(collection.head).toBe(4);
@@ -160,7 +160,7 @@ describe("DeferredPopCollection head tracking", () => {
   });
 
   it("descending: head follows the deepest depth booked", () => {
-    const collection = new DeferredPopCollection(DESCENDING);
+    const collection = new DeferredFiberGroup(DESCENDING);
 
     collection.add(stubFiber(1));
     expect(collection.head).toBe(1);
@@ -173,9 +173,9 @@ describe("DeferredPopCollection head tracking", () => {
   });
 });
 
-describe("DeferredPopCollection.delete", () => {
+describe("DeferredFiberQueue.delete", () => {
   it("drops the booking but leaves the queue entry behind", () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
     const fiber = stubFiber(2);
     collection.add(fiber);
 
@@ -188,13 +188,13 @@ describe("DeferredPopCollection.delete", () => {
   });
 
   it("returns false for a fiber it never held", () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
 
     expect(collection.delete(stubFiber(1))).toBe(false);
   });
 
   it("makes the collection empty even though an entry remains queued", () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
     const fiber = stubFiber(1);
     collection.add(fiber);
     collection.delete(fiber);
@@ -204,7 +204,7 @@ describe("DeferredPopCollection.delete", () => {
   });
 
   it("revives a cancelled booking without pushing a second entry", () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
     const fiber = stubFiber(2);
     collection.add(fiber);
     collection.delete(fiber);
@@ -219,9 +219,9 @@ describe("DeferredPopCollection.delete", () => {
   });
 });
 
-describe("DeferredPopCollection.pop", () => {
+describe("DeferredFiberQueue.pop", () => {
   it("ascending: drains shallowest depth first", () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
     collection.add(stubFiber(2, "deep"));
     collection.add(stubFiber(0, "shallow"));
     collection.add(stubFiber(1, "mid"));
@@ -230,7 +230,7 @@ describe("DeferredPopCollection.pop", () => {
   });
 
   it("descending: drains deepest depth first", () => {
-    const collection = new DeferredPopCollection(DESCENDING);
+    const collection = new DeferredFiberGroup(DESCENDING);
     collection.add(stubFiber(2, "deep"));
     collection.add(stubFiber(0, "shallow"));
     collection.add(stubFiber(1, "mid"));
@@ -239,7 +239,7 @@ describe("DeferredPopCollection.pop", () => {
   });
 
   it("takes the most recently added first within one depth", () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
     collection.add(stubFiber(1, "first"));
     collection.add(stubFiber(1, "second"));
 
@@ -249,7 +249,7 @@ describe("DeferredPopCollection.pop", () => {
   });
 
   it("skips cancelled entries and hands back only live ones", () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
     const dead = stubFiber(1, "dead");
     collection.add(stubFiber(1, "live"));
     collection.add(dead);
@@ -260,7 +260,7 @@ describe("DeferredPopCollection.pop", () => {
   });
 
   it("empties the collection after exactly as many pops as live bookings", () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
     collection.add(stubFiber(0, "a"));
     collection.add(stubFiber(3, "b"));
 
@@ -270,9 +270,9 @@ describe("DeferredPopCollection.pop", () => {
   });
 });
 
-describe("DeferredPopCollection.clear", () => {
+describe("DeferredFiberQueue.clear", () => {
   it("drops bookings, cancellations and every queue entry", () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
     const cancelled = stubFiber(1, "cancelled");
     collection.add(stubFiber(0, "live"));
     collection.add(cancelled);
@@ -286,7 +286,7 @@ describe("DeferredPopCollection.clear", () => {
   });
 
   it("is a no-op on an untouched collection", () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
 
     collection.clear();
 
@@ -295,9 +295,9 @@ describe("DeferredPopCollection.clear", () => {
   });
 });
 
-describe("DeferredPopCollection.schedulePrune", () => {
+describe("DeferredFiberQueue.schedulePrune", () => {
   it("sweeps cancelled entries out of the queues and keeps the live ones", async () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
     const live = stubFiber(1, "live");
     const dead = stubFiber(1, "dead");
     collection.add(live);
@@ -312,7 +312,7 @@ describe("DeferredPopCollection.schedulePrune", () => {
   });
 
   it("does nothing when there is nothing cancelled", async () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
     const fiber = stubFiber(2);
     collection.add(fiber);
 
@@ -322,7 +322,7 @@ describe("DeferredPopCollection.schedulePrune", () => {
   });
 
   it("lets a pruned fiber be booked again as fresh work", async () => {
-    const collection = new DeferredPopCollection(ASCENDING);
+    const collection = new DeferredFiberGroup(ASCENDING);
     const fiber = stubFiber(1);
     collection.add(fiber);
     collection.delete(fiber);

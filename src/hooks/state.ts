@@ -1,11 +1,11 @@
 import { createResolvable } from "../create-resolvable";
-import type { ComponentFiber } from "../instances/component-fiber";
 import type { HookState, StateHookState } from "../render/types";
 import { type StateHookDescriptor } from "./types";
 import { createStateReason } from "../reasons";
 import { depsChanged } from "../general";
 import type { DependencyList, PartialBy } from "../general-types";
 import { $STATE } from "./constants";
+import type { Fiber } from "../instances/types";
 
 /**
  * Persistent state hook.
@@ -49,7 +49,7 @@ export function* useState(
 export function processState(
   descriptor: StateHookDescriptor,
   prev: StateHookState | undefined,
-  instance: ComponentFiber,
+  fiber: Fiber,
 ): StateHookState {
   if (!prev) {
     const value = resolveValue(descriptor.initialValue);
@@ -61,7 +61,7 @@ export function processState(
       deps: descriptor.deps,
       setState: undefined,
     } satisfies PartialBy<StateHookState, "setState"> as any as StateHookState;
-    state.setState = createStateSetter(instance, state);
+    state.setState = createStateSetter(fiber, state);
     return state;
   }
 
@@ -84,7 +84,7 @@ function resolveValue<T>(initialValue: T | (() => T)): T {
 const cache = new WeakMap<Omit<StateHookState, "setState">, (newValue: unknown) => Promise<void>>();
 /** @internal */
 export function createStateSetter(
-  instance: ComponentFiber,
+  fiber: Fiber,
   state: Omit<StateHookState, "setState">,
 ): (newValue: unknown) => Promise<void> {
   const cached = cache.get(state);
@@ -95,8 +95,8 @@ export function createStateSetter(
     if (nextValue === state.value) {
       state.pendingValue = state.value;
       state.pendingResolve = undefined;
-      instance.cancelRender(state.identifier);
-      instance.cancelStateResolve(state.identifier);
+      fiber.cancelRender(state.identifier);
+      fiber.cancelStateResolve(state.identifier);
       return Promise.resolve();
     }
 
@@ -114,8 +114,8 @@ export function createStateSetter(
     state.pendingValue = nextValue;
     const { promise, resolve } = createResolvable();
     state.pendingResolve = resolve;
-    instance.scheduleRender(state.identifier);
-    instance.scheduleStateResolve(state.identifier);
+    fiber.scheduleRender(state.identifier);
+    fiber.scheduleStateResolve(state.identifier);
     return promise;
   };
 }

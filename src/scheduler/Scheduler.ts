@@ -1,16 +1,16 @@
 import { createResolvable } from "../create-resolvable";
 import { stateResolver } from "../hooks/state";
-import { DeferredRenderGroup } from "./DeferredRenderGroup";
-import { SyncRenderGroup } from "./SyncRenderGroup";
+import { DeferredLifecycleGroup } from "./DeferredLifecycleGroup";
+import { SyncLifecycleGroup } from "./SyncLifecycleGroup";
 import type { Fiber, FieldSelectionMap, FieldValueMap } from "../instances/types";
 import { RenderClock } from "./RenderClock";
-import { SyncFiberQueuedCollection } from "./SyncFiberQueuedCollection";
+import { SyncFiberGroup } from "./SyncFiberGroup";
 import type { AnyElement } from "../render/elements/namespaces";
 
 export class Scheduler {
   renderIteration = 0;
-  private readonly syncGroup: SyncRenderGroup;
-  private readonly deferredGroup: DeferredRenderGroup;
+  private readonly syncGroup: SyncLifecycleGroup;
+  private readonly deferredGroup: DeferredLifecycleGroup;
   private renderClock = new RenderClock(20);
   private renderTrigger = createResolvable<boolean>();
   private blocked = false;
@@ -21,8 +21,11 @@ export class Scheduler {
   constructor(selectionMap: FieldSelectionMap, valueMap: FieldValueMap) {
     this.selectionMap = selectionMap;
     this.valueMap = valueMap;
-    this.syncGroup = new SyncRenderGroup(this.renderClock);
-    this.deferredGroup = new DeferredRenderGroup(this.renderClock, this.syncGroup.hasRenderQueue);
+    this.syncGroup = new SyncLifecycleGroup(this.renderClock);
+    this.deferredGroup = new DeferredLifecycleGroup(
+      this.renderClock,
+      this.syncGroup.hasRenderQueue,
+    );
     void this.renderTrigger.promise.then(this.run);
   }
 
@@ -31,7 +34,7 @@ export class Scheduler {
     return this.syncGroup;
   }
 
-  private resolveGroups = new SyncFiberQueuedCollection();
+  private resolveGroups = new SyncFiberGroup();
 
   block = () => {
     this.blocked = true;
@@ -41,6 +44,7 @@ export class Scheduler {
     this.blocked = false;
     if (this.resolved) {
       this.renderTrigger.resolve(true);
+      this.resolved = false;
     }
   };
 
@@ -102,7 +106,7 @@ export class Scheduler {
       }
       deferredGroup.commit(valueMap, selectionMap);
       const { resolveGroups } = this;
-      this.resolveGroups = new SyncFiberQueuedCollection();
+      this.resolveGroups = new SyncFiberGroup();
       deferredGroup.postCommit();
       const { renderIteration } = this.renderClock;
       for (const fiber of resolveGroups) {

@@ -148,9 +148,7 @@ function mountIntent(
       stagingDom.appendChild(headNode);
       ns = nodeNameSpace(headNode);
       intent.slots = mount(children, fiber, headNode, headNode, path, ns, ctx);
-      if (isSelectElement(headNode)) {
-        storeSelectElementsInitialValue(headNode, props, fiber.scheduler);
-      }
+      storeFormElementInitialValue(headNode, props, fiber.scheduler);
       return;
     }
     case fragmentSlotType: {
@@ -194,9 +192,8 @@ function buildIntentToSlot(
       ns = nodeNameSpace(headNode);
       intent.slots = mount(children, fiber, headNode, headNode, path, ns, ctx);
       const { props } = intent;
-      if (isSelectElement(headNode)) {
-        storeSelectElementsInitialValue(headNode, props, fiber.scheduler);
-      }
+      storeFormElementInitialValue(headNode, props, fiber.scheduler);
+
       fiber.uiActions.push(prepareInsert(parentDom, headNode, beforeNode));
       return;
     }
@@ -254,17 +251,35 @@ function updateSlot<T extends SlotType>(
   }
 }
 
-function isSelectElement(element: AnyElement): element is HTMLSelectElement {
-  return element.localName === "select";
-}
-function storeSelectElementsInitialValue(
-  element: HTMLSelectElement,
+function storeFormElementInitialValue(
+  element: AnyElement,
   props: Record<string, unknown>,
   scheduler: Scheduler,
 ) {
-  const p = props as ComponentProps<"textarea">;
-  const value = `${p.value ?? ""}`;
-  scheduler.registerPropsValue(element, value);
+  switch (element.localName) {
+    case 'textarea':
+    case 'select': {
+      const p = props as ComponentProps<"textarea" | 'select'>;
+      const value = `${p.value ?? ""}`;
+      scheduler.registerPropsValue(element, value);
+      break;
+    }
+    case 'input': {
+      const p = props as ComponentProps<'input'>;
+      const input = element as HTMLInputElement
+      switch (input.type) {
+        case 'radio':
+        case 'checkbox': {
+          scheduler.registerPropsValue(element, Boolean(p.checked));
+          break;
+        }
+        default: {
+          scheduler.registerPropsValue(element, `${p.value ?? ""}`);
+          break;
+        }
+      }
+    }
+  }
 }
 
 function handleMountSlot(

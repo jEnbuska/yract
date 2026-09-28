@@ -19,3 +19,15 @@ export const FieldContext = createContext<FieldContextValue>({
   errorId: "",
   invalid: false,
 });
+
+export interface RadioGroupContextValue {
+  name: string;
+  value: string;
+  onValueChange(value: string): unknown;
+}
+
+export const RadioGroupContext = createContext<RadioGroupContextValue>({
+  name: "",
+  value: "",
+  onValueChange: () => undefined,
+});

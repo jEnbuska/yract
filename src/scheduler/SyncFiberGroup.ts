@@ -1,6 +1,6 @@
 import type { Fiber } from "../instances/types";
 
-export class SyncFiberQueuedCollection {
+export class SyncFiberGroup {
   #members = new Set<Fiber>();
   #cancelled = new Set<Fiber>();
   readonly queues: Fiber[][] = [];

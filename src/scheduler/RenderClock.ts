@@ -8,6 +8,7 @@ export class RenderClock {
   constructor(chunkMs: number) {
     this.#chunkMs = chunkMs;
   }
+
   onRenderStart() {
     this.#workYieldDeadline = Date.now() + this.#chunkMs;
   }

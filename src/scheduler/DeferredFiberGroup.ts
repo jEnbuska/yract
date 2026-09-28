@@ -1,7 +1,7 @@
 import type { Fiber } from "../instances/types";
 import { waitForIdle } from "./utils";
 
-export class DeferredPopCollection {
+export class DeferredFiberGroup {
   head: number;
   _members = new Set<Fiber>();
   _cancelled = new Set<Fiber>();

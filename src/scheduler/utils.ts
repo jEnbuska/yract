@@ -4,7 +4,8 @@ import { createResolvable } from "../create-resolvable";
 import { applyDomAction } from "../ui-actions/utils";
 import { effectResolver } from "../hooks/effect";
 import { unmountHookCleanup } from "../hooks/process-hook";
-import { UNMOUNT } from "../reasons";
+import type { DeferredFiberGroup } from "./DeferredFiberGroup";
+import type { SyncFiberGroup } from "./SyncFiberGroup";
 
 export function renderFiber(fiber: Fiber, renderIteration: number) {
   try {
@@ -42,7 +43,7 @@ export async function waitForIdle() {
 }
 
 export function handlePostCommit(
-  commitGroup: { queues: Fiber[][]; has(fiber: Fiber): boolean; clear(): void },
+  commitGroup: DeferredFiberGroup | SyncFiberGroup,
   renderIteration: number,
 ) {
   const { queues } = commitGroup;
@@ -61,7 +62,7 @@ export function handlePostCommit(
       if (!fiber.instances) continue;
       for (const child of fiber.instances.values()) {
         child.unmounted = true;
-        child.schedulePostCommit(UNMOUNT);
+        commitGroup.add(child);
       }
     }
   }

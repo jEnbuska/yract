@@ -1,14 +1,15 @@
 import { Field, FieldDescription, FieldLabel, Select } from "../../../dos";
 import { NO_HIGHLIGHT } from "./PersonTable.shared";
 import CityOptions from "./CityOptions";
+import type { PersonRow } from "../../../types";
 
 type OwnProps = {
   highlight: string;
   setHighlight(next: string): unknown;
-  matches: number;
+  rows: PersonRow[] | undefined;
 };
 
-export function* PersonHighlight({ highlight, setHighlight, matches }: OwnProps) {
+export function* PersonHighlight({ highlight, setHighlight, rows }: OwnProps) {
   return (
     <Field>
       <FieldLabel id="person-highlight-label">Highlight city</FieldLabel>
@@ -21,18 +22,8 @@ export function* PersonHighlight({ highlight, setHighlight, matches }: OwnProps)
           setHighlight(e.currentTarget.value);
         }}
       >
-        <CityOptions />
+        <CityOptions rows={rows} />
       </Select>
-      <FieldDescription>
-        {highlight === NO_HIGHLIGHT ? (
-          "Rows subscribe with a selector — picking a city rerenders only the rows it applies to."
-        ) : (
-          <>
-            <b data-testid="highlight-matches">{matches}</b> rows rerendered, the rest kept their
-            render count.
-          </>
-        )}
-      </FieldDescription>
     </Field>
   );
 }

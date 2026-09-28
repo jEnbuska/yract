@@ -1,15 +1,15 @@
 import { applyUIActions, handlePostCommit, renderFiber } from "./utils";
 import type { RenderClock } from "./RenderClock";
 import type { Fiber, FieldSelectionMap, FieldValueMap } from "../instances/types";
-import { SyncFiberQueuedCollection } from "./SyncFiberQueuedCollection";
+import { SyncFiberGroup } from "./SyncFiberGroup";
 
-export class SyncRenderGroup {
+export class SyncLifecycleGroup {
   readonly name = "SyncGroup";
 
-  readonly rendersGroup = new SyncFiberQueuedCollection();
-  readonly prepareChunkGroup = new SyncFiberQueuedCollection();
-  readonly commitsGroup = new SyncFiberQueuedCollection();
-  readonly postCommitGroup = new SyncFiberQueuedCollection();
+  readonly rendersGroup = new SyncFiberGroup();
+  readonly prepareChunkGroup = new SyncFiberGroup();
+  readonly commitsGroup = new SyncFiberGroup();
+  readonly postCommitGroup = new SyncFiberGroup();
   protected renderClock: RenderClock;
 
   constructor(renderClock: RenderClock) {

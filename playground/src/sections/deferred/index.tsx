@@ -14,34 +14,20 @@ import {
   type UpdatePerson,
 } from "./-components/PersonTable.shared";
 import LagSpinner from "./-components/LagSpinner";
-
-function filterRows(query: string, rows?: PersonRow[], city?: string) {
-  if (city) rows = rows?.filter((row) => row.city === city);
-  query = query.trim();
-  if (!query) return rows;
-  const lower = query
-    .toLowerCase()
-    .split(" ")
-    .map((word) => word.trim())
-    .filter(Boolean);
-  return rows?.filter(({ name, id, department, city }) => {
-    const combined = `${name} ${id} ${department} ${city}`.toLowerCase();
-    return lower.every((word) => combined.includes(word));
-  });
-}
-/**
- * Memoised so the provider hands down the same object while nothing it carries
- * has changed. A fresh literal on every render would fire all 30 000 row
- * subscriptions — each one running its selector only to conclude nothing moved.
- */
-function toSettings(updatePerson: UpdatePerson, highlight: string): PersonTableSettings {
-  return { updatePerson, highlight };
-}
+import {
+  filterPersonTableRows,
+  filterRowsByCity,
+  filterRowsByDepartment,
+  filterRowsBySearch,
+  toPersonTableContext,
+} from "./-components/utils/misc";
+import { PersonDepartmentRadioGroup } from "./-components/PersonDepartmentRadioGroup";
 
 export function* DeferredDemo() {
   const [search, setSearch] = yield* useState("");
   const resolvable = yield* useRef<PromiseWithResolvers<void> | undefined>(undefined);
   const [count, setCount] = yield* useState(6000);
+  const [department, setDepartment] = yield* useState("");
   const controllerRef = yield* useRef(new AbortController());
   const updateCount = yield* useStable(async (n: number) => {
     if (n === count) return;
@@ -67,23 +53,18 @@ export function* DeferredDemo() {
     void getPersonRows(count, controllerRef.current.signal).then(setRows);
   }, []);
 
-  const filtered = yield* useMemo(filterRows, [
-    search,
-    rows,
-    cityOnly && highlight !== NO_HIGHLIGHT ? highlight : undefined,
-  ]);
-  const highlighted = yield* useMemo(
-    (city: string, visible?: PersonRow[]) =>
-      city === NO_HIGHLIGHT ? 0 : (visible?.filter((row) => row.city === city).length ?? 0),
-    [highlight, filtered],
-  );
+  const filteredBySearch = yield* useMemo(filterRowsBySearch, [rows, search]);
+
+  const filteredByCity = yield* useMemo(filterRowsByCity, [filteredBySearch, highlight, cityOnly]);
+
+  const filtered = yield* useMemo(filterRowsByDepartment, [filteredByCity, department]);
 
   const updatePerson = yield* useStable(async (person: PersonRow) => {
     const index = rows!.findIndex((row) => row.id === person.id);
     if (index === -1) return;
     void setRows([...rows!.slice(0, index), person, ...rows!.slice(index + 1)]);
   });
-  const settings = yield* useMemo(toSettings, [updatePerson, highlight]);
+  const settings = yield* useMemo(toPersonTableContext, [updatePerson, highlight]);
 
   const [Defer, deferring] = yield* useDefer();
 
@@ -103,16 +84,18 @@ export function* DeferredDemo() {
                 : `${search ? "?" : count}/${count}`
             }
           />
-          <PersonHighlight
-            highlight={highlight}
-            setHighlight={setHighlight}
-            matches={highlighted}
-          />
-          <PersonCityOnly
-            cityOnly={cityOnly}
-            setCityOnly={setCityOnly}
-            highlight={highlight}
-            matches={filtered?.length ?? 0}
+          <div>
+            <PersonHighlight
+              highlight={highlight}
+              setHighlight={setHighlight}
+              rows={filteredBySearch}
+            />
+            <PersonCityOnly cityOnly={cityOnly} setCityOnly={setCityOnly} highlight={highlight} />
+          </div>
+          <PersonDepartmentRadioGroup
+            department={department}
+            setDepartment={setDepartment}
+            rows={filteredByCity}
           />
           <PersonTableContext value={settings}>
             <PersonTable rows={filtered} deferring={deferring} Defer={Defer} />
