@@ -5,7 +5,7 @@
  */
 import type { AnyElement } from "../elements/namespaces";
 import { nodeNameSpace } from "../elements/namespaces";
-import { isReservedProp, propsRecord } from "./utils";
+import { propsRecord, reservedPropsFor } from "./utils";
 import { registerElementEvent, unRegisterElementEvent } from "../elements/events";
 import type { ElementPatch, ElementProps } from "./types";
 import type { FieldSelectionMap, FieldValueMap } from "../../instances/types";
@@ -20,10 +20,16 @@ import { diffSetProps } from "./diff-set-props";
  * @internal
  */
 export function applyElementInitialProps(element: AnyElement, props: ElementProps): void {
-  const patch = diffSetProps(nodeNameSpace(element), {}, props, isReservedProp, undefined);
+  const record = propsRecord(props);
+  const isReserved = reservedPropsFor(nodeNameSpace(element), element.localName, record["type"]);
+  const patch = diffSetProps(nodeNameSpace(element), {}, props, isReserved, undefined);
   if (patch) updateElementProps(element, patch);
-  if ("value" in props) {
-    (element as HTMLInputElement).value = `${propsRecord(props)["value"] ?? ""}`;
+  // Controlled values are DOM properties, written after the attributes they are clamped against.
+  if (isReserved("value") && "value" in record) {
+    (element as HTMLInputElement).value = `${record["value"] ?? ""}`;
+  }
+  if (isReserved("checked") && "checked" in record) {
+    (element as HTMLInputElement).checked = Boolean(record["checked"]);
   }
 }
 

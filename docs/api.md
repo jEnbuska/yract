@@ -229,7 +229,8 @@ Accepted by every component and element; never passed to the DOM.
   - **text and enumerated values** take `string`, e.g. `aria-expanded="false"`, `draggable="true"`, `download="report.pdf"` (`download=""` just downloads);
   - **numbers** take `string | number` and are written as strings. A percentage is always a string (`width="50%"`).
 - `null` and `undefined` remove any attribute.
-- `style` takes an object. CSS custom properties (`--x`) are supported.
+- `style` takes an object. CSS custom properties (`--x`) are supported. Numbers are only accepted where CSS takes a unitless number (`opacity`, `zIndex`, `lineHeight`, `flexGrow`, …); lengths need their unit as a string (`width: "10px"`), because yract never appends `px`.
+- `value` and `checked` are controlled only on HTML form fields (`input`, `select`, `textarea`). On every other element — `<progress>`, `<meter>`, `<option>`, `<li>`, SVG — they are ordinary attributes.
 - `on*` props receive the **native DOM event**, with `currentTarget` typed as the element. Handlers are attached to their own element, so `stopPropagation()` and non-bubbling events behave as in plain DOM.
 - `onFocus`/`onBlur` listen to `focusin`/`focusout`. `on*Capture` is not supported.
 

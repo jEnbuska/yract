@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { HTML_NS, SVG_NS } from "../../render/elements/namespaces";
 import { diffUnsetProps } from "../../render/element-props/diff-unset-props";
-import { isReservedProp } from "../../render/element-props/utils";
+import { isReservedValueProp } from "../../render/element-props/utils";
 import { untyped } from "../utils/props";
 
 const REF_ATTR = "data-yract-element-ref-id";
 const diff = (prev: Record<string, unknown>, next: Record<string, unknown>) =>
-  diffUnsetProps(HTML_NS, untyped(prev), untyped(next), isReservedProp);
+  diffUnsetProps(HTML_NS, untyped(prev), untyped(next), isReservedValueProp);
 
 describe("diffUnsetProps", () => {
   describe("attributes", () => {
@@ -130,7 +130,7 @@ describe("diffUnsetProps", () => {
         SVG_NS,
         untyped({ strokeWidth: 2, viewBox: "0 0 1 1", href: "#a" }),
         {},
-        isReservedProp,
+        isReservedValueProp,
       ),
     ).toEqual({ ns: SVG_NS, removeAttrs: ["stroke-width", "viewBox", "href"] });
   });

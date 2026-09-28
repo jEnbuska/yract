@@ -30,7 +30,7 @@ import type { Fiber } from "../instances/types";
 import type { Scheduler } from "../scheduler/Scheduler";
 import { toElementSlot, toFragmentSlot, toTextSlot } from "../slots/utils";
 import { createFiber } from "../instances/utils";
-import { diffAnyElementProps } from "../render/element-props/diff-element-props";
+import { diffElementProps } from "../render/element-props/diff-element-props";
 
 type ReconcileFiber = RequiredBy<Fiber, "uiActions">;
 function prepareFiber(fiber: Fiber): asserts fiber is ReconcileFiber {
@@ -237,7 +237,7 @@ function updateSlot<T extends SlotType>(
       const { headNode, element, children, path, slots, prevProps, props } = slot;
       const ns = nodeNameSpace(headNode);
       slot.slots = reconcile(fiber, children, headNode, path, slots, ns, null, ctx);
-      const patch = diffAnyElementProps(ns, element, prevProps, props);
+      const patch = diffElementProps(ns, element, prevProps, props);
       if (patch) fiber.uiActions.push(prepareUpdate(slot, patch));
       return;
     }

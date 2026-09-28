@@ -1,5 +1,5 @@
 import type { ElementPatch, ElementProps } from "./types";
-import type { TagNamespace } from "../elements/namespaces";
+import { HTML_NS, type TagNamespace } from "../elements/namespaces";
 
 /**
  * Key-by-key view of element props for the diff loops. Element prop types are
@@ -28,15 +28,14 @@ export function isEventKey(key: string): boolean {
 }
 
 /**
- * Props that never become attributes. `value` is written separately, as a controlled value.
+ * Props that are never attributes on any element.
  * @internal
  */
-export function isReservedProp(key: string): boolean {
+export function isFrameworkProp(key: string): boolean {
   switch (key) {
     case "key":
     case "deps":
     case "children":
-    case "value":
       return true;
     default:
       return false;
@@ -44,18 +43,41 @@ export function isReservedProp(key: string): boolean {
 }
 
 /**
- * `isReservedProp` for checkboxes and radios, where `checked` is the controlled value.
+ * Framework props plus `value`, for fields whose value is controlled.
  * @internal
  */
-export function isReservedCheckableProp(key: string): boolean {
-  switch (key) {
-    case "key":
-    case "deps":
-    case "children":
-    case "checked":
-      return true;
+export function isReservedValueProp(key: string): boolean {
+  return key === "value" || isFrameworkProp(key);
+}
+
+/**
+ * Framework props plus `checked`, for checkboxes and radios.
+ * @internal
+ */
+export function isReservedCheckedProp(key: string): boolean {
+  return key === "checked" || isFrameworkProp(key);
+}
+
+/**
+ * The props that `el` does not write as attributes. Only HTML form fields
+ * control a value (written as a DOM property instead); on every other element
+ * `value` and `checked` are ordinary attributes.
+ * @internal
+ */
+export function reservedPropsFor(
+  ns: TagNamespace,
+  tagName: string,
+  type: unknown,
+): (key: string) => boolean {
+  if (ns !== HTML_NS) return isFrameworkProp;
+  switch (tagName) {
+    case "input":
+      return type === "checkbox" || type === "radio" ? isReservedCheckedProp : isReservedValueProp;
+    case "select":
+    case "textarea":
+      return isReservedValueProp;
     default:
-      return false;
+      return isFrameworkProp;
   }
 }
 

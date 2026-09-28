@@ -59,3 +59,13 @@ export const svg = (
     <rect x={0} y="10%" width={10} height="50%" pathLength={100} tabIndex={0} />
   </svg>
 );
+
+// Style: unitless CSS properties take numbers; lengths need their unit as a string.
+export const unitless = <div style={{ opacity: 0.5, zIndex: 2, lineHeight: 1.4, flexGrow: 1 }} />;
+export const lengths = <div style={{ width: "10px", margin: "0", fontSize: "1rem" }} />;
+
+// @ts-expect-error width is a length; yract does not append "px".
+export const widthAsNumber = <div style={{ width: 10 }} />;
+
+// @ts-expect-error fontSize is a length.
+export const fontSizeAsNumber = <div style={{ fontSize: 12 }} />;

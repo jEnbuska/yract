@@ -64,6 +64,20 @@ describe("applyElementInitialProps", () => {
     expect(div.style.getPropertyValue("--gap")).toBe("4px");
   });
 
+  it("writes a checkbox's checked as the DOM property, and its value as an attribute", () => {
+    const box = attached("input");
+    applyElementInitialProps(box, untyped({ type: "checkbox", checked: true, value: "yes" }));
+    expect(box.checked).toBe(true);
+    expect(box.getAttribute("value")).toBe("yes");
+  });
+
+  it("writes value as an attribute on non-form elements", () => {
+    const progress = attached("progress");
+    applyElementInitialProps(progress, untyped({ max: 100, value: 30 }));
+    expect(progress.getAttribute("value")).toBe("30");
+    expect(progress.value).toBe(30);
+  });
+
   it("writes value after min and max, so it is not clamped to the defaults", () => {
     const range = attached("input");
     applyElementInitialProps(range, { type: "range", value: "2500", min: "0", max: "5000" });

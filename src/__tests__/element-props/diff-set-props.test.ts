@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { HTML_NS, MATHML_NS, SVG_NS } from "../../render/elements/namespaces";
 import { diffSetProps } from "../../render/element-props/diff-set-props";
-import { isReservedProp } from "../../render/element-props/utils";
+import { isReservedValueProp } from "../../render/element-props/utils";
 import { untyped } from "../utils/props";
 
 const REF_ATTR = "data-yract-element-ref-id";
 const diff = (prev: Record<string, unknown>, next: Record<string, unknown>) =>
-  diffSetProps(HTML_NS, untyped(prev), untyped(next), isReservedProp, undefined);
+  diffSetProps(HTML_NS, untyped(prev), untyped(next), isReservedValueProp, undefined);
 
 describe("diffSetProps", () => {
   describe("attributes", () => {
@@ -181,7 +181,7 @@ describe("diffSetProps", () => {
   });
 
   it("adds to the patch it is given", () => {
-    const patch = diffSetProps(HTML_NS, {}, { id: "a" }, isReservedProp, {
+    const patch = diffSetProps(HTML_NS, {}, { id: "a" }, isReservedValueProp, {
       ns: HTML_NS,
       removeAttrs: ["title"],
     });
@@ -209,7 +209,7 @@ describe("diffSetProps", () => {
           MATHML_NS,
           {},
           untyped({ className: "m", displaystyle: "true" }),
-          isReservedProp,
+          isReservedValueProp,
           undefined,
         ),
       ).toEqual({ ns: MATHML_NS, setAttrs: { class: "m", displaystyle: "true" } });
@@ -227,7 +227,7 @@ describe("diffSetProps", () => {
             className: "c",
             "aria-label": "x",
           }),
-          isReservedProp,
+          isReservedValueProp,
           undefined,
         ),
       ).toEqual({
