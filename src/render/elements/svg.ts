@@ -1,5 +1,5 @@
 /**
- * SVG attribute-name rules, used by `translate-prop.ts` to turn JSX prop
+ * SVG attribute-name rules, used by `prop-key.ts` to turn JSX prop
  * names into SVG attribute names.
  */
 

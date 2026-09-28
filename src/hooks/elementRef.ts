@@ -4,7 +4,7 @@ import { $ELEMENT_REF } from "./constants";
 import type { ElementRefHookDescription } from "./types";
 import type { AnyElement } from "../render/elements/namespaces";
 import type { ElementRef } from "../render/element-props/types";
-import {REF_ATTR} from "../render/element-props/translate-prop";
+import { REF_ATTR } from "../render/element-props/prop-key";
 
 export function* useElementRef<T extends AnyElement>(): Generator<
   ElementRefHookDescription,

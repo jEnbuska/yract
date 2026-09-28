@@ -1,7 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { HTML_NS, SVG_NS } from "../../render/elements/namespaces";
-import { diffElementProps } from "../../render/element-props/diff-element-props";
+import { HTML_NS, MATHML_NS, SVG_NS } from "../../render/elements/namespaces";
+import {
+  diffElementProps,
+  diffSetProps,
+  diffUnsetProps,
+} from "../../render/element-props/diff-element-props";
+import { isReservedValueProp } from "../../render/element-props/prop-key";
 import { untyped } from "../utils/props";
+
+const REF_ATTR = "data-yract-element-ref-id";
+
+/** The removal loop alone, with `value` reserved like a text input. */
+const diffUnset = (prev: Record<string, unknown>, next: Record<string, unknown>) =>
+  diffUnsetProps(HTML_NS, untyped(prev), untyped(next), isReservedValueProp);
+
+/** The write loop alone, with `value` reserved like a text input. */
+const diffSet = (prev: Record<string, unknown>, next: Record<string, unknown>) =>
+  diffSetProps(HTML_NS, untyped(prev), untyped(next), isReservedValueProp, undefined);
 
 describe("diffElementProps", () => {
   describe("no-op", () => {
@@ -242,6 +257,392 @@ describe("diffElementProps: controlled values by tag", () => {
       expect(
         diffElementProps(SVG_NS, "g", untyped({ value: "a" }), untyped({ value: "b" })),
       ).toEqual({ ns: SVG_NS, setAttrs: { value: "b" } });
+    });
+  });
+});
+
+describe("diffUnsetProps", () => {
+  describe("attributes", () => {
+    it("removes an attribute that next drops", () => {
+      expect(diffUnset({ id: "a", title: "hi" }, { id: "a" })).toEqual({
+        ns: HTML_NS,
+        removeAttrs: ["title"],
+      });
+    });
+
+    it("removes an attribute that next sets to undefined, null or false", () => {
+      for (const unset of [undefined, null, false]) {
+        expect(diffUnset({ title: "hi" }, { title: unset })).toEqual({
+          ns: HTML_NS,
+          removeAttrs: ["title"],
+        });
+      }
+    });
+
+    it("removes a boolean attribute that becomes false", () => {
+      expect(diffUnset({ disabled: true }, { disabled: false })).toEqual({
+        ns: HTML_NS,
+        removeAttrs: ["disabled"],
+      });
+    });
+
+    it("ignores attributes that stay set", () => {
+      expect(diffUnset({ title: "old" }, { title: "new" })).toBeUndefined();
+    });
+
+    it("ignores attributes that were not set in prev", () => {
+      expect(diffUnset({ title: undefined, hidden: false }, {})).toBeUndefined();
+    });
+
+    it("ignores reserved props", () => {
+      expect(diffUnset({ key: "k", deps: [1], value: "v" }, {})).toBeUndefined();
+    });
+  });
+
+  describe("name mapping", () => {
+    it("removes class for className and for for htmlFor", () => {
+      expect(diffUnset({ className: "a", htmlFor: "x" }, {})).toEqual({
+        ns: HTML_NS,
+        removeAttrs: ["class", "for"],
+      });
+    });
+
+    it("removes class and for when they become false", () => {
+      expect(diffUnset({ className: "a" }, { className: false })).toEqual({
+        ns: HTML_NS,
+        removeAttrs: ["class"],
+      });
+      expect(diffUnset({ htmlFor: "x" }, { htmlFor: false })).toEqual({
+        ns: HTML_NS,
+        removeAttrs: ["for"],
+      });
+    });
+
+    it("removes the ref attribute when the ref is dropped", () => {
+      expect(diffUnset({ ref: { identifier: "r" } }, {})).toEqual({
+        ns: HTML_NS,
+        removeAttrs: [REF_ATTR],
+      });
+    });
+  });
+
+  describe("style", () => {
+    it("clears all inline styles when style is dropped or undefined", () => {
+      expect(diffUnset({ style: { color: "red" } }, {})).toEqual({ ns: HTML_NS, style: null });
+      expect(diffUnset({ style: { color: "red" } }, { style: undefined })).toEqual({
+        ns: HTML_NS,
+        style: null,
+      });
+    });
+  });
+
+  // `removeEvents` is keyed by DOM event name.
+  describe("events", () => {
+    it("removes a handler that next drops, or sets to undefined or false", () => {
+      const onClick = () => {};
+      expect(diffUnset({ onClick }, {})).toEqual({ ns: HTML_NS, removeEvents: ["click"] });
+      expect(diffUnset({ onClick }, { onClick: undefined })).toEqual({
+        ns: HTML_NS,
+        removeEvents: ["click"],
+      });
+      expect(diffUnset({ onClick }, { onClick: false })).toEqual({
+        ns: HTML_NS,
+        removeEvents: ["click"],
+      });
+    });
+
+    it("does not remove a handler that is swapped for another function", () => {
+      expect(diffUnset({ onClick: () => {} }, { onClick: () => {} })).toBeUndefined();
+    });
+
+    it("maps special prop names to their DOM event", () => {
+      expect(diffUnset({ onFocus: () => {} }, {})).toEqual({
+        ns: HTML_NS,
+        removeEvents: ["focusin"],
+      });
+    });
+  });
+
+  it("collects every kind of removal when next is empty", () => {
+    const patch = diffUnset(
+      { id: "a", onClick: () => {}, style: { color: "red" }, ref: { identifier: "r" } },
+      {},
+    );
+    expect(patch).toEqual({
+      ns: HTML_NS,
+      removeAttrs: ["id", REF_ATTR],
+      removeEvents: ["click"],
+      style: null,
+    });
+  });
+
+  it("removes under the same names the write loop uses", () => {
+    expect(diffUnset({ httpEquiv: "refresh", acceptCharset: "utf-8" }, {})).toEqual({
+      ns: HTML_NS,
+      removeAttrs: ["http-equiv", "accept-charset"],
+    });
+    expect(
+      diffUnsetProps(
+        SVG_NS,
+        untyped({ strokeWidth: 2, viewBox: "0 0 1 1", href: "#a" }),
+        {},
+        isReservedValueProp,
+      ),
+    ).toEqual({ ns: SVG_NS, removeAttrs: ["stroke-width", "viewBox", "href"] });
+  });
+});
+
+describe("diffSetProps", () => {
+  describe("attributes", () => {
+    it('skips false, which means unset, instead of writing "false"', () => {
+      expect(diffSet({ disabled: true }, { disabled: false })).toBeUndefined();
+      expect(diffSet({}, { hidden: false })).toBeUndefined();
+      expect(diffSet({ className: "a" }, { className: false })).toBeUndefined();
+      expect(diffSet({ htmlFor: "x" }, { htmlFor: false })).toBeUndefined();
+    });
+
+    it("sets added and changed attributes", () => {
+      expect(diffSet({ id: "a" }, { id: "b", title: "hi" })).toEqual({
+        ns: HTML_NS,
+        setAttrs: { id: "b", title: "hi" },
+      });
+    });
+
+    it("leaves unchanged attributes out", () => {
+      expect(diffSet({ id: "same", title: "old" }, { id: "same", title: "new" })).toEqual({
+        ns: HTML_NS,
+        setAttrs: { title: "new" },
+      });
+    });
+
+    it("treats a prev undefined as unset, so a value is a plain add", () => {
+      expect(diffSet({ title: undefined }, { title: "hi" })).toEqual({
+        ns: HTML_NS,
+        setAttrs: { title: "hi" },
+      });
+    });
+
+    it("skips undefined and null as well as false", () => {
+      expect(diffSet({}, { title: undefined, lang: null })).toBeUndefined();
+    });
+
+    it("stringifies numbers, including 0 and negative values", () => {
+      expect(diffSet({}, { tabIndex: 0, value: 1 })).toEqual({
+        ns: HTML_NS,
+        setAttrs: { tabIndex: "0" },
+      });
+      expect(diffSet({}, { tabIndex: -1 })).toEqual({ ns: HTML_NS, setAttrs: { tabIndex: "-1" } });
+    });
+
+    it("keeps an empty string as a real value", () => {
+      expect(diffSet({}, { download: "" })).toEqual({ ns: HTML_NS, setAttrs: { download: "" } });
+    });
+
+    it("stringifies non-string values", () => {
+      expect(diffSet({}, { tabIndex: 3 })).toEqual({ ns: HTML_NS, setAttrs: { tabIndex: "3" } });
+    });
+
+    it("writes true as an empty boolean attribute", () => {
+      expect(diffSet({}, { disabled: true })).toEqual({
+        ns: HTML_NS,
+        setAttrs: { disabled: "true" },
+      });
+    });
+
+    it("writes true the same way the initial mount does", () => {
+      expect(diffSet({ "aria-expanded": false }, { "aria-expanded": true })).toEqual({
+        ns: HTML_NS,
+        setAttrs: { "aria-expanded": "true" },
+      });
+    });
+
+    it("compares with Object.is: NaN is unchanged, -0 differs from +0", () => {
+      expect(diffSet({ tabIndex: NaN }, { tabIndex: NaN })).toBeUndefined();
+      expect(diffSet({ tabIndex: +0 }, { tabIndex: -0 })).toEqual({
+        ns: HTML_NS,
+        setAttrs: { tabIndex: "0" },
+      });
+    });
+
+    it("ignores reserved props", () => {
+      expect(diffSet({}, { key: "k", deps: [1], value: "v" })).toBeUndefined();
+    });
+  });
+
+  describe("name mapping", () => {
+    it("writes class for className and for for htmlFor", () => {
+      expect(diffSet({}, { className: "a", htmlFor: "x" })).toEqual({
+        ns: HTML_NS,
+        setAttrs: { class: "a", for: "x" },
+      });
+    });
+
+    it("writes an empty class when className becomes an empty string", () => {
+      expect(diffSet({ className: "a" }, { className: "" })).toEqual({
+        ns: HTML_NS,
+        setAttrs: { class: "" },
+      });
+    });
+
+    it("writes the ref's identifier when the ref is added or changed", () => {
+      expect(diffSet({}, { ref: { identifier: "b" } })).toEqual({
+        ns: HTML_NS,
+        setAttrs: { [REF_ATTR]: "b" },
+      });
+      expect(diffSet({ ref: { identifier: "a" } }, { ref: { identifier: "b" } })).toEqual({
+        ns: HTML_NS,
+        setAttrs: { [REF_ATTR]: "b" },
+      });
+    });
+
+    it("ignores a ref that keeps its reference", () => {
+      const ref = { identifier: "a" };
+      expect(diffSet({ ref }, { ref })).toBeUndefined();
+    });
+  });
+
+  describe("style", () => {
+    it("assigns the whole object when prev style was null or undefined", () => {
+      expect(diffSet({ style: null }, { style: { color: "red" } })).toEqual({
+        ns: HTML_NS,
+        style: { color: "red" },
+      });
+      expect(diffSet({ style: undefined }, { style: { color: "red" } })).toEqual({
+        ns: HTML_NS,
+        style: { color: "red" },
+      });
+    });
+
+    it('clears a removed custom property with ""', () => {
+      expect(diffSet({ style: { "--gap": "4px" } }, { style: {} })).toEqual({
+        ns: HTML_NS,
+        style: { "--gap": "" },
+      });
+    });
+
+    it("clears every key when the style becomes an empty object", () => {
+      expect(diffSet({ style: { color: "red", padding: "4px" } }, { style: {} })).toEqual({
+        ns: HTML_NS,
+        style: { color: "", padding: "" },
+      });
+    });
+
+    it("leaves a style that goes away to diffUnsetProps", () => {
+      expect(diffSet({ style: { color: "red" } }, { style: undefined })).toBeUndefined();
+    });
+
+    it("assigns the whole object when prev had no style", () => {
+      expect(diffSet({}, { style: { color: "red" } })).toEqual({
+        ns: HTML_NS,
+        style: { color: "red" },
+      });
+    });
+
+    it("emits only the changed keys when both sides have a style object", () => {
+      expect(
+        diffSet(
+          { style: { color: "red", padding: "4px" } },
+          { style: { color: "blue", padding: "4px" } },
+        ),
+      ).toEqual({ ns: HTML_NS, style: { color: "blue" } });
+    });
+
+    it("ignores structurally equal style objects", () => {
+      expect(diffSet({ style: { color: "red" } }, { style: { color: "red" } })).toBeUndefined();
+    });
+  });
+
+  // `setEvents` is keyed by DOM event name.
+  describe("events", () => {
+    it("sets a new or swapped handler", () => {
+      const onClick = () => {};
+      expect(diffSet({}, { onClick })).toEqual({ ns: HTML_NS, setEvents: { click: onClick } });
+      expect(diffSet({ onClick: () => {} }, { onClick })).toEqual({
+        ns: HTML_NS,
+        setEvents: { click: onClick },
+      });
+    });
+
+    it("ignores a handler that keeps its reference", () => {
+      const onClick = () => {};
+      expect(diffSet({ onClick }, { onClick })).toBeUndefined();
+    });
+
+    it("ignores non-function values", () => {
+      expect(diffSet({}, { onClick: "alert(1)" })).toBeUndefined();
+      expect(diffSet({}, { onClick: false })).toBeUndefined();
+    });
+
+    it("only treats on + uppercase letter as an event (once, online, onto, onset are attributes)", () => {
+      const fn = () => {};
+      for (const key of ["once", "online", "onto", "onset"]) {
+        const patch = diffSet({}, { [key]: fn });
+        expect(patch?.setEvents).toBeUndefined();
+        expect(patch?.setAttrs).toHaveProperty(key);
+      }
+    });
+  });
+
+  it("adds to the patch it is given", () => {
+    const patch = diffSetProps(HTML_NS, {}, { id: "a" }, isReservedValueProp, {
+      ns: HTML_NS,
+      removeAttrs: ["title"],
+    });
+    expect(patch).toEqual({ ns: HTML_NS, removeAttrs: ["title"], setAttrs: { id: "a" } });
+  });
+
+  describe("attribute names per namespace", () => {
+    it("HTML: maps the four renamed props and leaves the rest as written", () => {
+      expect(
+        diffSet({}, { httpEquiv: "refresh", acceptCharset: "utf-8", readOnly: true, tabIndex: 1 }),
+      ).toEqual({
+        ns: HTML_NS,
+        setAttrs: {
+          "http-equiv": "refresh",
+          "accept-charset": "utf-8",
+          readOnly: "true",
+          tabIndex: "1",
+        },
+      });
+    });
+
+    it("MathML: follows the HTML rules", () => {
+      expect(
+        diffSetProps(
+          MATHML_NS,
+          {},
+          untyped({ className: "m", displaystyle: "true" }),
+          isReservedValueProp,
+          undefined,
+        ),
+      ).toEqual({ ns: MATHML_NS, setAttrs: { class: "m", displaystyle: "true" } });
+    });
+
+    it("SVG: kebab-cases and keeps case-sensitive names", () => {
+      expect(
+        diffSetProps(
+          SVG_NS,
+          {},
+          untyped({
+            strokeWidth: 2,
+            viewBox: "0 0 10 10",
+            href: "#a",
+            className: "c",
+            "aria-label": "x",
+          }),
+          isReservedValueProp,
+          undefined,
+        ),
+      ).toEqual({
+        ns: SVG_NS,
+        setAttrs: {
+          "stroke-width": "2",
+          viewBox: "0 0 10 10",
+          href: "#a",
+          class: "c",
+          "aria-label": "x",
+        },
+      });
     });
   });
 });

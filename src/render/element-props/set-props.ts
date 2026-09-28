@@ -5,12 +5,13 @@
  */
 import type { AnyElement } from "../elements/namespaces";
 import { nodeNameSpace } from "../elements/namespaces";
-import { propsRecord, reservedPropsFor } from "./utils";
+import { reservedPropsFor } from "./prop-key";
+import { propsRecord } from "./utils";
 import { registerElementEvent, unRegisterElementEvent } from "../elements/events";
 import type { ElementPatch, ElementProps } from "./types";
 import type { FieldSelectionMap, FieldValueMap } from "../../instances/types";
 import { assignStyle } from "./style";
-import { diffSetProps } from "./diff-set-props";
+import { diffSetProps } from "./diff-element-props";
 
 /**
  * Write every prop of a freshly created element.
