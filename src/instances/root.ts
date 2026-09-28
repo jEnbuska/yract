@@ -45,15 +45,6 @@ export class Root {
         if (e.target instanceof HTMLSelectElement) {
           const target = e.target;
           valueMap.set(target, target.value ?? "");
-        } else if (e.target instanceof HTMLInputElement) {
-          const target = e.target;
-          switch (e.target.type) {
-            case "checkbox":
-            case "radio": {
-              valueMap.set(target, Boolean(target.checked));
-              break;
-            }
-          }
         }
       },
       { capture: true },
@@ -93,7 +84,9 @@ export class Root {
       const target = e.target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
       console.log(e.type)
       const { type } = target;
-      if (type === "checkbox" || type === "radio") {
+      if (type === "radio") {
+        restoreRadioGroup(target as HTMLInputElement, valueMap);
+      } else if (type === "checkbox") {
         const el = target as HTMLInputElement;
         el.checked = Boolean(valueMap.get(el));
       } else {
@@ -124,6 +117,21 @@ export class Root {
       }
     });
     observer.observe(this.container, { childList: true, subtree: true });
+  }
+}
+
+/** Checking one radio silently unchecks its siblings, so restore the whole group, not just the target. */
+function restoreRadioGroup(target: HTMLInputElement, valueMap: FieldValueMap) {
+  const { name } = target;
+  if (!name) {
+    target.checked = Boolean(valueMap.get(target));
+    return;
+  }
+  const scope: ParentNode = target.form ?? (target.getRootNode() as Document | ShadowRoot);
+  const selector = `input[type="radio"][name="${CSS.escape(name)}"]`;
+  for (const radio of scope.querySelectorAll<HTMLInputElement>(selector)) {
+    if (!valueMap.has(radio)) continue; // Not rendered by this root.
+    radio.checked = Boolean(valueMap.get(radio));
   }
 }
 

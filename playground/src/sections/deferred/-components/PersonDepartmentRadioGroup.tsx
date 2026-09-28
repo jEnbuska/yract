@@ -13,7 +13,7 @@ type OwnProps = {
 export function* PersonDepartmentRadioGroup({ department, setDepartment, rows }: OwnProps) {
   const rowsPerDepartment = yield* useMemo(countRowsPerDepartment, [rows]);
   return (
-    <RadioGroup legend={"Department"} value={''} onValueChange={setDepartment}>
+    <RadioGroup legend={"Department"} value={department} onValueChange={setDepartment}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr" }}>
         <Radio label={"All"} value={""}  />
         {DEPARTMENTS.map((dep) => {
