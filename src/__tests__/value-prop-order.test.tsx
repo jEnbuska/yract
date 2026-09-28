@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { render, useState } from "yract";
-import { updateElementControlledProps, updateElementProps } from "../render/element-props";
 import { flush } from "./utils/flush";
+import { HTML_NS } from "../render/elements/namespaces";
 import { byTestId, mount } from "./utils/dom";
+import {
+  updateElementControlledProps,
+  updateElementProps,
+} from "../render/element-props/set-props";
 
 describe("value/checked are written after every other prop", () => {
   it("mount: a range input keeps its value when value precedes min/max in JSX", async () => {
@@ -25,7 +29,11 @@ describe("value/checked are written after every other prop", () => {
 
     // The diff carries `value` in `setControlled`, and commit writes it after
     // the attributes, so it is clamped against the new bounds, not the old ones.
-    updateElementProps(el, { setAttrs: { min: "0", max: "5000" }, setControlled: "2500" });
+    updateElementProps(el, {
+      ns: HTML_NS,
+      setAttrs: { min: "0", max: "5000" },
+      setControlled: "2500",
+    });
     updateElementControlledProps(el, "2500", new WeakMap(), new WeakMap());
 
     expect({ value: el.value, max: el.max }).toEqual({ value: "2500", max: "5000" });

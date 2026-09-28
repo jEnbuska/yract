@@ -1,5 +1,4 @@
 import type { TagNamespace } from "../render/elements/namespaces";
-import type { ElementPatch } from "../render/element-props";
 import type { Intent } from "../slots/intent";
 import type { ElementSlotType, Slot, TextSlotType } from "../slots/slot";
 import type {
@@ -9,6 +8,7 @@ import type {
   TEXT_UI_ACTION,
   UPDATE_UI_ACTION,
 } from "./constants";
+import type { ElementPatch } from "../render/element-props/types";
 
 type UIActionShape = {
   before: Node | null;

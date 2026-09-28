@@ -223,7 +223,12 @@ Accepted by every component and element; never passed to the DOM.
 
 ## Elements and events
 
-- `className` and `htmlFor` map to `class` and `for`. `true` writes an empty boolean attribute; `false`, `null` and `undefined` remove it.
+- `className` and `htmlFor` map to `class` and `for`.
+- Attribute props are typed by how they reach the DOM, never `boolean | string`:
+  - **toggles** (`disabled`, `hidden`, `readOnly`, …) take `boolean`: `true` adds the attribute, `false` removes it;
+  - **text and enumerated values** take `string`, e.g. `aria-expanded="false"`, `draggable="true"`, `download="report.pdf"` (`download=""` just downloads);
+  - **numbers** take `string | number` and are written as strings. A percentage is always a string (`width="50%"`).
+- `null` and `undefined` remove any attribute.
 - `style` takes an object. CSS custom properties (`--x`) are supported.
 - `on*` props receive the **native DOM event**, with `currentTarget` typed as the element. Handlers are attached to their own element, so `stopPropagation()` and non-bubbling events behave as in plain DOM.
 - `onFocus`/`onBlur` listen to `focusin`/`focusout`. `on*Capture` is not supported.
@@ -240,6 +245,8 @@ function* Upper() {
   return <input value={text} onInput={(e) => setText(e.currentTarget.value.toUpperCase())} />;
 }
 ```
+
+There are no uncontrolled variants: `defaultValue` and `defaultChecked` are not accepted. For a field the component does not need to track, keep its value in `useState` all the same.
 
 This holds for typing, paste, delete, autofill and password managers (which send `input` without `beforeinput`), range drags, `<select>` picks, and label clicks. For radio buttons the whole group is restored, including the option the browser unchecked when another was clicked. A `<select>` keeps its value even when its `<option>`s are rendered by a child component.
 

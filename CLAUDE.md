@@ -106,30 +106,30 @@ function* Counter(_props: object) {
 
 ### Core Module Map
 
-| File                                    | Responsibility                                                                     |
-| :-------------------------------------- | :--------------------------------------------------------------------------------- |
-| `index.ts`                              | Public API re-exports                                                              |
-| `jsx.ts`                                | `Child`/`Children`, `Component`, `FrameworkProps` (`key`, `deps`), `Fragment`      |
-| `jsx-types.ts`                          | Intrinsic element types (only `IntrinsicElements` is exported)                     |
-| `jsx-runtime.ts`                        | Automatic JSX transform (`jsx`, `jsxs`, `jsxDEV`)                                  |
-| `context.ts`                            | `createContext`, `resolveContext`                                                  |
-| `general.ts` / `general-types.ts`       | Shared helpers and `ComponentGenerator`, `DependencyList`                          |
-| `reasons.ts`                            | Symbols identifying why a fiber was scheduled                                      |
-| `hooks/*.ts`                            | One file per hook; `process-hook.ts` dispatches hook descriptors                   |
-| `capabilities/*.ts`                     | `withReturn`, `withRerender`, `withContext` — no hook slot                         |
-| `instances/component-fiber.ts`          | `ComponentFiber` — per-component state, queued UI actions, rerender                |
-| `instances/root.ts`                     | `Root`; container listeners that restore controlled `value`/`checked`              |
-| `instances/utils.ts`                    | `chunkInserts`, `foldSubtreeIntoStaging` (mount staging)                           |
-| `slots/*.ts`                            | `Slot`/`Intent`/`Draft` types, slot keys, node creation                            |
-| `reconciler/reconciler.ts`              | Reconciliation — walks intents against previous slots, records `UIAction`s         |
-| `reconciler/derive-stable-indexes.ts`   | Keyed move minimisation                                                            |
-| `ui-actions/`                           | `UIAction` types, `prepare*` builders, commit-time DOM appliers                    |
-| `scheduler/`                            | `Scheduler`, sync/deferred lifecycle groups, `RenderClock` (see docs/scheduler.md) |
-| `render/index.ts`                       | `createRoot()`, `render()`                                                         |
-| `render/resolve-component-generator.ts` | Drives a component generator: hooks and capabilities                               |
-| `render/element-props.ts`               | `diffElementProps` (reconcile) → `ElementPatch` → `updateElementProps` (commit)    |
-| `render/delegation.ts`                  | Prop-name → DOM-event mapping (`resolveEventProp`)                                 |
-| `render/elements/events.ts`             | Per-element listener registration; one stable listener per element + event         |
+| File                                    | Responsibility                                                                                                                |
+| :-------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------- |
+| `index.ts`                              | Public API re-exports                                                                                                         |
+| `jsx.ts`                                | `Child`/`Children`, `Component`, `FrameworkProps` (`key`, `deps`), `Fragment`                                                 |
+| `jsx-types.ts`                          | Intrinsic element types (only `IntrinsicElements` is exported)                                                                |
+| `jsx-runtime.ts`                        | Automatic JSX transform (`jsx`, `jsxs`, `jsxDEV`)                                                                             |
+| `context.ts`                            | `createContext`, `resolveContext`                                                                                             |
+| `general.ts` / `general-types.ts`       | Shared helpers and `ComponentGenerator`, `DependencyList`                                                                     |
+| `reasons.ts`                            | Symbols identifying why a fiber was scheduled                                                                                 |
+| `hooks/*.ts`                            | One file per hook; `process-hook.ts` dispatches hook descriptors                                                              |
+| `capabilities/*.ts`                     | `withReturn`, `withRerender`, `withContext` — no hook slot                                                                    |
+| `instances/component-fiber.ts`          | `ComponentFiber` — per-component state, queued UI actions, rerender                                                           |
+| `instances/root.ts`                     | `Root`; container listeners that restore controlled `value`/`checked`                                                         |
+| `instances/utils.ts`                    | `chunkInserts`, `foldSubtreeIntoStaging` (mount staging)                                                                      |
+| `slots/*.ts`                            | `Slot`/`Intent`/`Draft` types, slot keys, node creation                                                                       |
+| `reconciler/reconciler.ts`              | Reconciliation — walks intents against previous slots, records `UIAction`s                                                    |
+| `reconciler/derive-stable-indexes.ts`   | Keyed move minimisation                                                                                                       |
+| `ui-actions/`                           | `UIAction` types, `prepare*` builders, commit-time DOM appliers                                                               |
+| `scheduler/`                            | `Scheduler`, sync/deferred lifecycle groups, `RenderClock` (see docs/scheduler.md)                                            |
+| `render/index.ts`                       | `createRoot()`, `render()`                                                                                                    |
+| `render/resolve-component-generator.ts` | Drives a component generator: hooks and capabilities                                                                          |
+| `render/element-props/`                 | `diff-element-props.ts` (reconcile: `diffUnusedProps` + `diffSetProps` → `ElementPatch`), `set-props.ts` (commit), `style.ts` |
+| `render/delegation.ts`                  | Prop-name → DOM-event mapping (`resolveEventProp`)                                                                            |
+| `render/elements/events.ts`             | Per-element listener registration; one stable listener per element + event                                                    |
 
 ---
 

@@ -1,4 +1,5 @@
 import type { ComponentSlotType, ContextSlotType, ElementSlotType, FragmentSlotType } from "./slot";
+import type { ElementProps } from "../render/element-props/types";
 import type { DraftBy } from "../general-types";
 import type { Intent } from "./intent";
 import type { Children, Component, FrameworkProps } from "../jsx";
@@ -70,7 +71,7 @@ export function asContextDraft(
 export function asElementDraft(
   _key: string | undefined,
   element: string,
-  props: Record<string, unknown> & FrameworkProps,
+  props: ElementProps & FrameworkProps,
   children: Children[] | readonly Children[],
 ): Draft<ElementSlotType> {
   return {

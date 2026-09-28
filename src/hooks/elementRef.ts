@@ -2,8 +2,9 @@ import type { ElementRefHookState } from "../render/types";
 
 import { $ELEMENT_REF } from "./constants";
 import type { ElementRefHookDescription } from "./types";
-import type { ElementRef } from "../render/element-props";
 import type { AnyElement } from "../render/elements/namespaces";
+import type { ElementRef } from "../render/element-props/types";
+import {REF_ATTR} from "../render/element-props/translate-prop";
 
 export function* useElementRef<T extends AnyElement>(): Generator<
   ElementRefHookDescription,
@@ -28,7 +29,7 @@ export function processElementRef(prev?: ElementRefHookState): ElementRefHookSta
     type: $ELEMENT_REF,
     ref: {
       get current(): undefined | AnyElement {
-        return document.querySelector(`[data-yract-element-ref-id="${identifier}"]`) ?? undefined;
+        return document.querySelector(`[${REF_ATTR}="${identifier}"]`) ?? undefined;
       },
       identifier,
     },

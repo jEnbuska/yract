@@ -28,7 +28,7 @@ describe("smoke: elements", () => {
 });
 
 describe("smoke: components", () => {
-  // BUG: a leaf component directly under a root renders nothing (prepareMountChunk
+  // BUG: a leaf component directly under a root renders nothing (foldSubtreeIntoStaging
   // returns before folding the fiber). Flip back to `it` once fixed.
   it.fails("renders a component's JSX output", async () => {
     function* Greeting(props: { name: string }) {
@@ -41,7 +41,7 @@ describe("smoke: components", () => {
     expect(container.querySelector('[data-testid="greeting"]')?.textContent).toBe("Hello, world!");
   });
 
-  // BUG: a leaf component directly under a root renders nothing (prepareMountChunk
+  // BUG: a leaf component directly under a root renders nothing (foldSubtreeIntoStaging
   // returns before folding the fiber). Flip back to `it` once fixed.
   it.fails("renders state from useState on initial mount", async () => {
     function* Counter() {
@@ -76,7 +76,7 @@ describe("smoke: context", () => {
     expect(container.querySelector('[data-testid="badge"]')?.textContent).toBe("dark");
   });
 
-  // BUG: a leaf component directly under a root renders nothing (prepareMountChunk
+  // BUG: a leaf component directly under a root renders nothing (foldSubtreeIntoStaging
   // returns before folding the fiber). Flip back to `it` once fixed.
   it.fails("falls back to the context default when no provider is present", async () => {
     const LocaleCtx = createContext<"en" | "fi">("en");

@@ -2,9 +2,9 @@ import type { AnyElement } from "../render/elements/namespaces";
 import type { Children, Component } from "../jsx";
 import type { Context } from "../context";
 import type { Intent } from "./intent";
-import type { ElementRef } from "../render/element-props";
 import type { DependencyList, DraftBy } from "../general-types";
 import type { Fiber } from "../instances/types";
+import type { ElementProps } from "../render/element-props/types";
 
 /** @internal */
 export const textSlotType = "yract-text" as const;
@@ -98,7 +98,7 @@ export type SlotProps<T extends SlotType> = T extends ComponentSlotType
   : T extends ContextSlotType
     ? { deps?: DependencyList; key?: string; value: unknown }
     : T extends ElementSlotType
-      ? Record<string, unknown> & { ref?: ElementRef; children?: SlotChildren<T> }
+      ? ElementProps
       : undefined;
 
 /** @internal */

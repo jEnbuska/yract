@@ -1,9 +1,9 @@
 import type { ElementSlotType, FragmentSlotType, Slot, TextSlotType } from "./slot";
 import type { TagNamespace } from "../render/elements/namespaces";
 import { createElement } from "../render/elements/create";
-import { applyElementInitialProps } from "../render/element-props";
 import type { Intent } from "./intent";
 import type { DraftBy } from "../general-types";
+import { applyElementInitialProps } from "../render/element-props/set-props";
 
 /** @internal */
 export function toTextSlot(intent: Intent<TextSlotType>): Slot<TextSlotType> {

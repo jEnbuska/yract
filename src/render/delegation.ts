@@ -2,7 +2,7 @@
  * Prop-name to DOM-event mapping.
  *
  * Handlers are attached directly to their own element (see
- * `registerElementEvent` in `element-props.ts`), so all this has to do is turn
+ * `registerElementEvent` in `elements/events.ts`), so all this has to do is turn
  * an `on*` prop name into the event name to listen for.
  */
 
@@ -22,7 +22,7 @@ const PROP_TO_DOM_EVENT: Record<string, string> = {
  * TODO: `on*Capture` is not handled. Capture support means stripping the
  * suffix here and returning the flag alongside `domEvent`, and it only works
  * together with the two TODOs it pairs with: the `addEventListener` third
- * argument in `ensureListener` (`render/element-props.ts`) and the
+ * argument in `ensureListener` (`render/elements/events.ts`) and the
  * `on*Capture` clause in `EventHandlers` (`jsx-types.ts`).
  * @internal
  */

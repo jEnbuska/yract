@@ -8,7 +8,8 @@
  * @module jsx-types
  */
 import type { Children, FrameworkProps } from "./jsx";
-import type { ElementRef } from "./render/element-props";
+
+import type { ElementRef } from "./render/element-props/types";
 
 // ---------------------------------------------------------------------------
 // CSS Properties
@@ -562,7 +563,7 @@ interface CSSProperties {
 /**
  * TODO: no `on*Capture` variants. Adding a second mapped clause keyed
  * `on${Capitalize<string & K>}Capture` is the type half of capture support;
- * the runtime half is the TODO on `ensureListener` in `render/element-props.ts`.
+ * the runtime half is the TODO on `ensureListener` in `render/elements/events.ts`.
  * Both are needed — either alone leaves handlers silently in the wrong phase.
  */
 type EventHandlers<T extends EventTarget = EventTarget> = {
@@ -578,51 +579,51 @@ type EventHandlers<T extends EventTarget = EventTarget> = {
 /** WAI-ARIA attributes applicable to any HTML element. */
 interface AriaAttributes {
   "aria-activedescendant"?: string;
-  "aria-atomic"?: boolean | "false" | "true";
+  "aria-atomic"?: "false" | "true";
   "aria-autocomplete"?: "none" | "inline" | "list" | "both";
-  "aria-busy"?: boolean | "false" | "true";
-  "aria-checked"?: boolean | "false" | "mixed" | "true";
-  "aria-colcount"?: number;
-  "aria-colindex"?: number;
-  "aria-colspan"?: number;
+  "aria-busy"?: "false" | "true";
+  "aria-checked"?: "false" | "mixed" | "true";
+  "aria-colcount"?: string | number;
+  "aria-colindex"?: string | number;
+  "aria-colspan"?: string | number;
   "aria-controls"?: string;
-  "aria-current"?: boolean | "false" | "true" | "page" | "step" | "location" | "date" | "time";
+  "aria-current"?: "false" | "true" | "page" | "step" | "location" | "date" | "time";
   "aria-describedby"?: string;
   "aria-details"?: string;
-  "aria-disabled"?: boolean | "false" | "true";
+  "aria-disabled"?: "false" | "true";
   "aria-dropeffect"?: "none" | "copy" | "execute" | "link" | "move" | "popup";
   "aria-errormessage"?: string;
-  "aria-expanded"?: boolean | "false" | "true";
+  "aria-expanded"?: "false" | "true";
   "aria-flowto"?: string;
-  "aria-grabbed"?: boolean | "false" | "true";
-  "aria-haspopup"?: boolean | "false" | "true" | "menu" | "listbox" | "tree" | "grid" | "dialog";
-  "aria-hidden"?: boolean | "false" | "true";
-  "aria-invalid"?: boolean | "false" | "true" | "grammar" | "spelling";
+  "aria-grabbed"?: "false" | "true";
+  "aria-haspopup"?: "false" | "true" | "menu" | "listbox" | "tree" | "grid" | "dialog";
+  "aria-hidden"?: "false" | "true";
+  "aria-invalid"?: "false" | "true" | "grammar" | "spelling";
   "aria-keyshortcuts"?: string;
   "aria-label"?: string;
   "aria-labelledby"?: string;
-  "aria-level"?: number;
+  "aria-level"?: string | number;
   "aria-live"?: "off" | "assertive" | "polite";
-  "aria-modal"?: boolean | "false" | "true";
-  "aria-multiline"?: boolean | "false" | "true";
-  "aria-multiselectable"?: boolean | "false" | "true";
+  "aria-modal"?: "false" | "true";
+  "aria-multiline"?: "false" | "true";
+  "aria-multiselectable"?: "false" | "true";
   "aria-orientation"?: "horizontal" | "vertical";
   "aria-owns"?: string;
   "aria-placeholder"?: string;
-  "aria-posinset"?: number;
-  "aria-pressed"?: boolean | "false" | "mixed" | "true";
-  "aria-readonly"?: boolean | "false" | "true";
-  "aria-required"?: boolean | "false" | "true";
+  "aria-posinset"?: string | number;
+  "aria-pressed"?: "false" | "mixed" | "true";
+  "aria-readonly"?: "false" | "true";
+  "aria-required"?: "false" | "true";
   "aria-roledescription"?: string;
-  "aria-rowcount"?: number;
-  "aria-rowindex"?: number;
-  "aria-rowspan"?: number;
-  "aria-selected"?: boolean | "false" | "true";
-  "aria-setsize"?: number;
+  "aria-rowcount"?: string | number;
+  "aria-rowindex"?: string | number;
+  "aria-rowspan"?: string | number;
+  "aria-selected"?: "false" | "true";
+  "aria-setsize"?: string | number;
   "aria-sort"?: "none" | "ascending" | "descending" | "other";
-  "aria-valuemax"?: number;
-  "aria-valuemin"?: number;
-  "aria-valuenow"?: number;
+  "aria-valuemax"?: string | number;
+  "aria-valuemin"?: string | number;
+  "aria-valuenow"?: string | number;
   "aria-valuetext"?: string;
   role?: string;
 }
@@ -657,9 +658,9 @@ interface HTMLAttributes<T extends HTMLElement = HTMLElement>
   autoCapitalize?: string;
   autoFocus?: boolean;
   className?: string;
-  contentEditable?: boolean | "true" | "false" | "inherit" | "plaintext-only";
+  contentEditable?: "true" | "false" | "inherit" | "plaintext-only";
   dir?: "ltr" | "rtl" | "auto";
-  draggable?: boolean;
+  draggable?: "true" | "false";
   enterKeyHint?: "enter" | "done" | "go" | "next" | "previous" | "search" | "send";
   hidden?: boolean;
   id?: string;
@@ -670,14 +671,14 @@ interface HTMLAttributes<T extends HTMLElement = HTMLElement>
   nonce?: string;
   popover?: string;
   slot?: string;
-  spellCheck?: boolean;
+  spellCheck?: "true" | "false";
   style?: CSSProperties;
-  tabIndex?: number;
+  tabIndex?: string | number;
   title?: string;
   translate?: "yes" | "no";
 
   /** Any `data-*` attribute. */
-  [key: `data-${string}`]: string | number | boolean | undefined;
+  [key: `data-${string}`]: string | number | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -686,7 +687,7 @@ interface HTMLAttributes<T extends HTMLElement = HTMLElement>
 
 /** `<a>` – hyperlink */
 interface AnchorHTMLAttributes extends HTMLAttributes<HTMLAnchorElement> {
-  download?: string | boolean;
+  download?: string;
   href?: string;
   hrefLang?: string;
   media?: string;
@@ -702,7 +703,7 @@ interface AnchorHTMLAttributes extends HTMLAttributes<HTMLAnchorElement> {
 interface AreaHTMLAttributes extends HTMLAttributes<HTMLAreaElement> {
   alt?: string;
   coords?: string;
-  download?: string | boolean;
+  download?: string;
   href?: string;
   ping?: string;
   referrerPolicy?: ReferrerPolicy;
@@ -757,7 +758,7 @@ interface CanvasHTMLAttributes extends HTMLAttributes<HTMLCanvasElement> {
 
 /** `<col>` / `<colgroup>` */
 interface ColHTMLAttributes extends HTMLAttributes<HTMLTableColElement> {
-  span?: number;
+  span?: string | number;
   width?: string | number;
 }
 
@@ -855,10 +856,8 @@ interface InputHTMLAttributes extends HTMLAttributes<HTMLInputElement> {
   accept?: string;
   alt?: string;
   autoComplete?: string;
-  capture?: boolean | "user" | "environment";
+  capture?: true | "user" | "environment";
   checked?: boolean;
-  defaultChecked?: boolean;
-  defaultValue?: string | number;
   dirName?: string;
   disabled?: boolean;
   form?: string;
@@ -870,16 +869,16 @@ interface InputHTMLAttributes extends HTMLAttributes<HTMLInputElement> {
   height?: string | number;
   list?: string;
   max?: string | number;
-  maxLength?: number;
+  maxLength?: string | number;
   min?: string | number;
-  minLength?: number;
+  minLength?: string | number;
   multiple?: boolean;
   name?: string;
   pattern?: string;
   placeholder?: string;
   readOnly?: boolean;
   required?: boolean;
-  size?: number;
+  size?: string | number;
   src?: string;
   step?: string | number;
   type?:
@@ -918,7 +917,7 @@ interface LabelHTMLAttributes extends HTMLAttributes<HTMLLabelElement> {
 
 /** `<li>` */
 interface LiHTMLAttributes extends HTMLAttributes<HTMLLIElement> {
-  value?: number;
+  value?: string | number;
 }
 
 /** `<link>` */
@@ -955,11 +954,11 @@ interface MetaHTMLAttributes extends HTMLAttributes<HTMLMetaElement> {
 /** `<meter>` */
 interface MeterHTMLAttributes extends HTMLAttributes<HTMLMeterElement> {
   form?: string;
-  high?: number;
-  low?: number;
-  max?: number;
-  min?: number;
-  optimum?: number;
+  high?: string | number;
+  low?: string | number;
+  max?: string | number;
+  min?: string | number;
+  optimum?: string | number;
   value?: string | number;
 }
 
@@ -978,7 +977,7 @@ interface ObjectHTMLAttributes extends HTMLAttributes<HTMLObjectElement> {
 /** `<ol>` */
 interface OlHTMLAttributes extends HTMLAttributes<HTMLOListElement> {
   reversed?: boolean;
-  start?: number;
+  start?: string | number;
   type?: "1" | "a" | "A" | "i" | "I";
 }
 
@@ -1011,7 +1010,7 @@ interface ParamHTMLAttributes extends HTMLAttributes<HTMLParamElement> {
 
 /** `<progress>` */
 interface ProgressHTMLAttributes extends HTMLAttributes<HTMLProgressElement> {
-  max?: number;
+  max?: string | number;
   value?: string | number;
 }
 
@@ -1036,7 +1035,7 @@ interface SelectHTMLAttributes extends HTMLAttributes<HTMLSelectElement> {
   multiple?: boolean;
   name?: string;
   required?: boolean;
-  size?: number;
+  size?: string | number;
   value?: string | number;
 }
 
@@ -1075,10 +1074,10 @@ interface TableHTMLAttributes extends HTMLAttributes<HTMLTableElement> {
 interface TdHTMLAttributes extends HTMLAttributes<HTMLTableCellElement> {
   abbr?: string;
   align?: "left" | "center" | "right" | "justify" | "char";
-  colSpan?: number;
+  colSpan?: string | number;
   headers?: string;
   height?: string | number;
-  rowSpan?: number;
+  rowSpan?: string | number;
   scope?: string;
   valign?: "top" | "middle" | "bottom" | "baseline";
   width?: string | number;
@@ -1087,17 +1086,17 @@ interface TdHTMLAttributes extends HTMLAttributes<HTMLTableCellElement> {
 /** `<textarea>` */
 interface TextareaHTMLAttributes extends HTMLAttributes<HTMLTextAreaElement> {
   autoComplete?: string;
-  cols?: number;
+  cols?: string | number;
   dirName?: string;
   disabled?: boolean;
   form?: string;
-  maxLength?: number;
-  minLength?: number;
+  maxLength?: string | number;
+  minLength?: string | number;
   name?: string;
   placeholder?: string;
   readOnly?: boolean;
   required?: boolean;
-  rows?: number;
+  rows?: string | number;
   value?: string;
   wrap?: string;
 }
@@ -1106,9 +1105,9 @@ interface TextareaHTMLAttributes extends HTMLAttributes<HTMLTextAreaElement> {
 interface ThHTMLAttributes extends HTMLAttributes<HTMLTableCellElement> {
   abbr?: string;
   align?: "left" | "center" | "right" | "justify" | "char";
-  colSpan?: number;
+  colSpan?: string | number;
   headers?: string;
-  rowSpan?: number;
+  rowSpan?: string | number;
   scope?: "col" | "row" | "colgroup" | "rowgroup";
 }
 
@@ -1157,7 +1156,7 @@ interface SVGAttributes<T extends SVGElement = SVGElement>
   className?: string;
   id?: string;
   style?: CSSProperties;
-  tabIndex?: number;
+  tabIndex?: string | number;
 
   // Core SVG attributes
   color?: string;
@@ -1206,7 +1205,7 @@ interface SVGAttributes<T extends SVGElement = SVGElement>
   wordSpacing?: string | number;
   writingMode?: string;
 
-  [key: `data-${string}`]: string | number | boolean | undefined;
+  [key: `data-${string}`]: string | number | undefined;
 }
 
 /** `<svg>` root element */
@@ -1223,7 +1222,7 @@ interface SvgHTMLAttributes extends SVGAttributes<SVGSVGElement> {
 /** `<path>` */
 interface PathSVGAttributes extends SVGAttributes<SVGPathElement> {
   d?: string;
-  pathLength?: number;
+  pathLength?: string | number;
 }
 
 /** `<circle>` */
@@ -1231,7 +1230,7 @@ interface CircleSVGAttributes extends SVGAttributes<SVGCircleElement> {
   cx?: string | number;
   cy?: string | number;
   r?: string | number;
-  pathLength?: number;
+  pathLength?: string | number;
 }
 
 /** `<ellipse>` */
@@ -1240,13 +1239,13 @@ interface EllipseSVGAttributes extends SVGAttributes<SVGEllipseElement> {
   cy?: string | number;
   rx?: string | number;
   ry?: string | number;
-  pathLength?: number;
+  pathLength?: string | number;
 }
 
 /** `<rect>` */
 interface RectSVGAttributes extends SVGAttributes<SVGRectElement> {
   height?: string | number;
-  pathLength?: number;
+  pathLength?: string | number;
   rx?: string | number;
   ry?: string | number;
   width?: string | number;
@@ -1256,7 +1255,7 @@ interface RectSVGAttributes extends SVGAttributes<SVGRectElement> {
 
 /** `<line>` */
 interface LineSVGAttributes extends SVGAttributes<SVGLineElement> {
-  pathLength?: number;
+  pathLength?: string | number;
   x1?: string | number;
   x2?: string | number;
   y1?: string | number;
@@ -1265,7 +1264,7 @@ interface LineSVGAttributes extends SVGAttributes<SVGLineElement> {
 
 /** `<polyline>` / `<polygon>` */
 interface PolylineSVGAttributes extends SVGAttributes<SVGPolylineElement> {
-  pathLength?: number;
+  pathLength?: string | number;
   points?: string;
 }
 

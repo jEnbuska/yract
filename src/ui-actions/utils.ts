@@ -1,4 +1,3 @@
-import { updateElementControlledProps, updateElementProps } from "../render/element-props";
 import type { UIAction } from "./types";
 import {
   INSERT_UI_ACTION,
@@ -11,6 +10,10 @@ import { removeSlotNodes } from "./utils/remove-slot-nodes";
 import { moveSlotNodes } from "./utils/move-slot-nodes";
 import { insertNode } from "./utils/insert-node";
 import type { FieldSelectionMap, FieldValueMap } from "../instances/types";
+import {
+  updateElementControlledProps,
+  updateElementProps,
+} from "../render/element-props/set-props";
 
 /** @internal */
 export function applyDomAction(
