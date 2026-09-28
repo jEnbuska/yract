@@ -10,6 +10,7 @@ export function* withRerender(): Generator<RerenderAcquirementDescriptor, () => 
 
 const cache = new WeakMap<ComponentFiber, () => void>();
 const symb = Symbol("RERENDER");
+/** @internal */
 export function getRerender(instance: ComponentFiber) {
   return getOrInsert(cache, instance, () => instance.scheduleRender(symb));
 }

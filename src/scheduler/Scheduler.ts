@@ -7,6 +7,7 @@ import { RenderClock } from "./RenderClock";
 import { SyncFiberGroup } from "./SyncFiberGroup";
 import type { AnyElement } from "../render/elements/namespaces";
 
+/** @internal */
 export class Scheduler {
   renderIteration = 0;
   private readonly syncGroup: SyncLifecycleGroup;
@@ -110,7 +111,7 @@ export class Scheduler {
       deferredGroup.postCommit();
       const { renderIteration } = this.renderClock;
       for (const fiber of resolveGroups) {
-        if (fiber.isUnmounted(renderIteration)) return;
+        if (fiber.isUnmounted(renderIteration)) continue;
         fiber.hookStates?.forEach(stateResolver);
         fiber.resolveReasons?.clear();
       }

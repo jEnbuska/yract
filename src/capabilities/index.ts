@@ -8,3 +8,4 @@
  */
 export { withRerender } from "./rerender";
 export { withReturn } from "./return";
+export { withContext } from "./context";

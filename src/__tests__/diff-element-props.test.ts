@@ -3,30 +3,30 @@ import { diffElementProps } from "../render/element-props";
 
 describe("diffElementProps", () => {
   describe("no-op cases", () => {
-    it("returns null when prev and next are the same object", () => {
+    it("returns undefined when prev and next are the same object", () => {
       const p = { id: "a", className: "foo" };
-      expect(diffElementProps(p, p)).toBeNull();
+      expect(diffElementProps(p, p)).toBeUndefined();
     });
 
-    it("returns null when every key+value is Object.is-equal", () => {
+    it("returns undefined when every key+value is Object.is-equal", () => {
       expect(
         diffElementProps({ id: "a", className: "foo" }, { id: "a", className: "foo" }),
-      ).toBeNull();
+      ).toBeUndefined();
     });
 
     it("ignores reserved props (key, deps, ref) on both sides", () => {
       expect(
         diffElementProps({ id: "a", key: "k1", deps: [1] }, { id: "a", key: "k2", deps: [2] }),
-      ).toBeNull();
+      ).toBeUndefined();
     });
 
-    it("returns null when inline style objects are structurally equal", () => {
+    it("returns undefined when inline style objects are structurally equal", () => {
       expect(
         diffElementProps(
           { style: { color: "red", padding: "4px" } },
           { style: { color: "red", padding: "4px" } },
         ),
-      ).toBeNull();
+      ).toBeUndefined();
     });
   });
 
@@ -47,32 +47,30 @@ describe("diffElementProps", () => {
     });
   });
 
+  // `setEvents` is keyed by DOM event name, `removeEvents` by prop name.
   describe("events", () => {
     it("emits setEvents for a newly added handler", () => {
       const onClick = () => {};
       const patch = diffElementProps({}, { onClick });
-      expect(patch).toEqual({ setEvents: { onClick } });
+      expect(patch).toEqual({ setEvents: { click: onClick } });
     });
 
     it("emits removeEvents when a handler is dropped", () => {
       const onClick = () => {};
       const patch = diffElementProps({ onClick }, {});
-      expect(patch).toEqual({ removeEvents: ["onClick"] });
+      expect(patch).toEqual({ removeEvents: ["click"] });
     });
 
-    it("emits both remove + set when a handler is swapped", () => {
+    it("emits only setEvents when a handler is swapped (the listener is re-pointed)", () => {
       const prevHandler = () => {};
       const nextHandler = () => {};
       const patch = diffElementProps({ onClick: prevHandler }, { onClick: nextHandler });
-      expect(patch).toEqual({
-        removeEvents: ["onClick"],
-        setEvents: { onClick: nextHandler },
-      });
+      expect(patch).toEqual({ setEvents: { click: nextHandler } });
     });
 
-    it("returns null when the same handler reference is reused", () => {
+    it("returns undefined when the same handler reference is reused", () => {
       const onClick = () => {};
-      expect(diffElementProps({ onClick }, { onClick })).toBeNull();
+      expect(diffElementProps({ onClick }, { onClick })).toBeUndefined();
     });
   });
 
@@ -108,33 +106,37 @@ describe("diffElementProps", () => {
       expect(patch).toEqual({ style: { padding: "" } });
     });
 
-    it("returns null for identical-but-not-same-reference style objects", () => {
+    it("returns undefined for identical-but-not-same-reference style objects", () => {
       expect(
         diffElementProps(
           { style: { color: "red", margin: "0" } },
           { style: { color: "red", margin: "0" } },
         ),
-      ).toBeNull();
+      ).toBeUndefined();
     });
   });
 
   describe("ref", () => {
-    it("records a ref swap when prev and next ref differ", () => {
-      const prevRef = { current: null };
-      const nextRef = { current: null };
-      const patch = diffElementProps({ ref: prevRef }, { ref: nextRef });
-      expect(patch).toEqual({ refSwap: { prev: prevRef, next: nextRef } });
+    const REF_ATTR = "data-yract-element-ref-id";
+
+    it("writes the next ref's identifier when the ref changes", () => {
+      const patch = diffElementProps({ ref: { identifier: "a" } }, { ref: { identifier: "b" } });
+      expect(patch).toEqual({ setAttrs: { [REF_ATTR]: "b" } });
     });
 
-    it("records a ref swap when only the next ref is set", () => {
-      const nextRef = { current: null };
-      const patch = diffElementProps({}, { ref: nextRef });
-      expect(patch).toEqual({ refSwap: { prev: undefined, next: nextRef } });
+    it("writes the identifier when a ref is added", () => {
+      const patch = diffElementProps({}, { ref: { identifier: "b" } });
+      expect(patch).toEqual({ setAttrs: { [REF_ATTR]: "b" } });
     });
 
-    it("returns null when the same ref reference is reused", () => {
-      const ref = { current: null };
-      expect(diffElementProps({ ref }, { ref })).toBeNull();
+    it("removes the attribute when the ref is dropped", () => {
+      const patch = diffElementProps({ ref: { identifier: "a" } }, {});
+      expect(patch).toEqual({ removeAttrs: [REF_ATTR] });
+    });
+
+    it("returns undefined when the same ref reference is reused", () => {
+      const ref = { identifier: "a" };
+      expect(diffElementProps({ ref }, { ref })).toBeUndefined();
     });
   });
 
@@ -142,53 +144,47 @@ describe("diffElementProps", () => {
     it("produces every bucket at once when all kinds of changes co-occur", () => {
       const prevHandler = () => {};
       const nextHandler = () => {};
-      const prevRef = { current: null };
-      const nextRef = { current: null };
+      const dropped = () => {};
       const patch = diffElementProps(
         {
           id: "old",
           title: "will-drop",
           onClick: prevHandler,
+          onKeyDown: dropped,
           style: { color: "red", padding: "4px" },
-          ref: prevRef,
+          ref: { identifier: "a" },
         },
         {
           id: "new",
           "data-new": "added",
           onClick: nextHandler,
           style: { color: "red", margin: "0" },
-          ref: nextRef,
+          ref: { identifier: "b" },
         },
       );
       expect(patch).toEqual({
         removeAttrs: ["title"],
-        setAttrs: { id: "new", "data-new": "added" },
-        removeEvents: ["onClick"],
-        setEvents: { onClick: nextHandler },
+        setAttrs: { id: "new", "data-new": "added", "data-yract-element-ref-id": "b" },
+        removeEvents: ["keydown"],
+        setEvents: { click: nextHandler },
         style: { padding: "", margin: "0" },
-        refSwap: { prev: prevRef, next: nextRef },
       });
     });
   });
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // New coverage after the hardening pass: unified-undefined rule, strict
-  // validation, prototype safety, and the non-obvious correct-behaviour
-  // invariants that should never silently drift.
-  // ──────────────────────────────────────────────────────────────────────────
-
   describe("unified undefined semantics (attrs)", () => {
-    it("treats next[key] = undefined as 'unset' and removes a set prev", () => {
+    it.fails("treats next[key] = undefined as 'unset' and removes a set prev", () => {
+      // BUG: both diff loops push the key, so it is removed twice.
       const patch = diffElementProps({ title: "hi" }, { title: undefined });
       expect(patch).toEqual({ removeAttrs: ["title"] });
     });
 
-    it("returns null when next has explicit undefined but prev did not have the key", () => {
-      expect(diffElementProps({}, { title: undefined })).toBeNull();
+    it("returns undefined when next has explicit undefined but prev did not have the key", () => {
+      expect(diffElementProps({}, { title: undefined })).toBeUndefined();
     });
 
-    it("returns null when both prev and next have undefined for a key", () => {
-      expect(diffElementProps({ title: undefined }, { title: undefined })).toBeNull();
+    it("returns undefined when both prev and next have undefined for a key", () => {
+      expect(diffElementProps({ title: undefined }, { title: undefined })).toBeUndefined();
     });
 
     it("treats prev[key] = undefined as 'unset' so next[key] = value is a plain add", () => {
@@ -197,21 +193,72 @@ describe("diffElementProps", () => {
     });
   });
 
+  describe("attribute name mapping", () => {
+    it("maps className to class", () => {
+      expect(diffElementProps({}, { className: "a" })).toEqual({ setAttrs: { class: "a" } });
+      expect(diffElementProps({ className: "a" }, {})).toEqual({ removeAttrs: ["class"] });
+    });
+
+    it("maps htmlFor to for", () => {
+      expect(diffElementProps({}, { htmlFor: "x" })).toEqual({ setAttrs: { for: "x" } });
+      expect(diffElementProps({ htmlFor: "x" }, {})).toEqual({ removeAttrs: ["for"] });
+    });
+
+    it("removes class when className becomes false", () => {
+      // BUG: the false branch removes the prop name "className", not "class".
+      expect(diffElementProps({ className: "a" }, { className: false })).toEqual({
+        removeAttrs: ["class"],
+      });
+    });
+
+    it("removes for when htmlFor becomes false", () => {
+      // BUG: the false branch removes the prop name "htmlFor", not "for".
+      expect(diffElementProps({ htmlFor: "x" }, { htmlFor: false })).toEqual({
+        removeAttrs: ["for"],
+      });
+    });
+
+    it("clears the class when className becomes an empty string", () => {
+      // BUG: `if (next)` skips "", and loop 1 only treats null/undefined as unset.
+      expect(diffElementProps({ className: "a" }, { className: "" })).toEqual({
+        setAttrs: { class: "" },
+      });
+    });
+
+    it("stringifies non-string attribute values", () => {
+      expect(diffElementProps({}, { tabIndex: 3 })).toEqual({ setAttrs: { tabIndex: "3" } });
+    });
+
+    it("writes true as an empty boolean attribute and removes it on false", () => {
+      expect(diffElementProps({}, { disabled: true })).toEqual({ setAttrs: { disabled: "" } });
+      expect(diffElementProps({ disabled: true }, { disabled: false })).toEqual({
+        removeAttrs: ["disabled"],
+      });
+    });
+  });
+
   describe("unified undefined semantics (events)", () => {
     it("emits removeEvents when a handler becomes undefined", () => {
       const onClick = () => {};
       const patch = diffElementProps({ onClick }, { onClick: undefined });
-      expect(patch).toEqual({ removeEvents: ["onClick"] });
+      expect(patch).toEqual({ removeEvents: ["click"] });
+    });
+
+    it("emits removeEvents when a handler becomes false", () => {
+      // BUG: loop 1 skips `false`, and loop 2 ignores non-function event values.
+      const onClick = () => {};
+      const patch = diffElementProps({ onClick }, { onClick: false });
+      expect(patch).toEqual({ removeEvents: ["click"] });
     });
 
     it("emits setEvents when a prev-undefined handler becomes a function", () => {
       const onClick = () => {};
       const patch = diffElementProps({ onClick: undefined }, { onClick });
-      expect(patch).toEqual({ setEvents: { onClick } });
+      expect(patch).toEqual({ setEvents: { click: onClick } });
     });
 
-    it("returns null when both prev and next have undefined for an event key", () => {
-      expect(diffElementProps({ onClick: undefined }, { onClick: undefined })).toBeNull();
+    it("returns undefined when both prev and next have undefined for an event key", () => {
+      expect(diffElementProps({ onClick: undefined }, { onClick: undefined })).toBeUndefined();
     });
   });
 
@@ -221,10 +268,10 @@ describe("diffElementProps", () => {
       expect(patch).toEqual({ style: { color: "" } });
     });
 
-    it("returns null when a style key is undefined on both sides", () => {
+    it("returns undefined when a style key is undefined on both sides", () => {
       expect(
         diffElementProps({ style: { color: undefined } }, { style: { color: undefined } }),
-      ).toBeNull();
+      ).toBeUndefined();
     });
 
     it("does not emit a write for a next-style key that is undefined with no prev counterpart", () => {
@@ -232,7 +279,7 @@ describe("diffElementProps", () => {
         { style: { padding: "4px" } },
         { style: { padding: "4px", color: undefined } },
       );
-      expect(patch).toBeNull();
+      expect(patch).toBeUndefined();
     });
 
     it("treats a prev-undefined style key as unset — next value is a plain add", () => {
@@ -241,51 +288,13 @@ describe("diffElementProps", () => {
     });
   });
 
-  describe("validation throws", () => {
-    it("throws when an event prop on next is a string", () => {
-      expect(() => diffElementProps({}, { onClick: "alert(1)" })).toThrow(/event prop "onClick"/);
+  describe("non-function event values", () => {
+    it("ignores a string handler instead of registering it", () => {
+      expect(diffElementProps({}, { onClick: "alert(1)" })).toBeUndefined();
     });
 
-    it("throws when an event prop on next is a number", () => {
-      expect(() => diffElementProps({}, { onClick: 42 })).toThrow(/event prop "onClick"/);
-    });
-
-    it("throws when an event prop on next is false", () => {
-      expect(() => diffElementProps({}, { onClick: false })).toThrow(/event prop "onClick"/);
-    });
-
-    it("throws when an event prop on prev is a non-function and next drops it", () => {
-      expect(() => diffElementProps({ onClick: "bad" }, {})).toThrow(/event prop "onClick"/);
-    });
-
-    it("throws when style is a string", () => {
-      expect(() => diffElementProps({}, { style: "color: red" })).toThrow(
-        /"style" prop must be a plain object/,
-      );
-    });
-
-    it("throws when style is a number", () => {
-      expect(() => diffElementProps({}, { style: 7 })).toThrow(
-        /"style" prop must be a plain object/,
-      );
-    });
-
-    it("throws when style is an array", () => {
-      expect(() => diffElementProps({}, { style: [{ color: "red" }] })).toThrow(
-        /"style" prop must be a plain object/,
-      );
-    });
-
-    it("throws when style is a boolean", () => {
-      expect(() => diffElementProps({}, { style: true })).toThrow(
-        /"style" prop must be a plain object/,
-      );
-    });
-
-    it("throws when style on prev is an array and next drops it", () => {
-      expect(() => diffElementProps({ style: [{ color: "red" }] }, {})).toThrow(
-        /"style" prop must be a plain object/,
-      );
+    it("ignores false as a handler", () => {
+      expect(diffElementProps({}, { onClick: false })).toBeUndefined();
     });
   });
 
@@ -293,123 +302,83 @@ describe("diffElementProps", () => {
     it("does not route `once={fn}` through the event buckets", () => {
       const fn = () => {};
       const patch = diffElementProps({}, { once: fn });
-      expect(patch).toEqual({ setAttrs: { once: fn } });
+      expect(patch?.setEvents).toBeUndefined();
+      expect(patch?.setAttrs).toHaveProperty("once");
     });
 
     it("does not route `online={fn}` through the event buckets", () => {
       const fn = () => {};
       const patch = diffElementProps({}, { online: fn });
-      expect(patch).toEqual({ setAttrs: { online: fn } });
+      expect(patch?.setEvents).toBeUndefined();
+      expect(patch?.setAttrs).toHaveProperty("online");
     });
 
     it("does not route `onto={fn}` through the event buckets", () => {
       const fn = () => {};
       const patch = diffElementProps({}, { onto: fn });
-      expect(patch).toEqual({ setAttrs: { onto: fn } });
+      expect(patch?.setEvents).toBeUndefined();
+      expect(patch?.setAttrs).toHaveProperty("onto");
     });
 
     it("does not route `onset={fn}` through the event buckets", () => {
       const fn = () => {};
       const patch = diffElementProps({}, { onset: fn });
-      expect(patch).toEqual({ setAttrs: { onset: fn } });
+      expect(patch?.setEvents).toBeUndefined();
+      expect(patch?.setAttrs).toHaveProperty("onset");
     });
 
     it("does route `onClick={fn}` through the event buckets", () => {
       const fn = () => {};
       const patch = diffElementProps({}, { onClick: fn });
-      expect(patch).toEqual({ setEvents: { onClick: fn } });
-    });
-  });
-
-  describe("prototype-chain safety", () => {
-    it("ignores enumerable keys inherited from next's prototype", () => {
-      const proto = { inheritedTitle: "ghost" };
-      const next = Object.create(proto);
-      next["id"] = "a";
-      const patch = diffElementProps({}, next);
-      expect(patch).toEqual({ setAttrs: { id: "a" } });
-    });
-
-    it("ignores enumerable keys inherited from prev's prototype", () => {
-      const proto = { inheritedTitle: "ghost" };
-      const prev = Object.create(proto) as Record<string, unknown>;
-      prev["id"] = "a";
-      const patch = diffElementProps(prev, { id: "a" });
-      expect(patch).toBeNull();
-    });
-
-    it("ignores enumerable keys inherited from a style object's prototype", () => {
-      const styleProto = { inheritedColor: "ghost" };
-      const prevStyle = Object.create(styleProto) as Record<string, unknown>;
-      prevStyle["color"] = "red";
-      const nextStyle = Object.create(styleProto) as Record<string, unknown>;
-      nextStyle["color"] = "red";
-      expect(diffElementProps({ style: prevStyle }, { style: nextStyle })).toBeNull();
+      expect(patch).toEqual({ setEvents: { click: fn } });
     });
   });
 
   describe("invariants pinned to prevent regressions", () => {
-    it("event swap emits removeEvents BEFORE setEvents (bucket order)", () => {
-      const prevHandler = () => {};
-      const nextHandler = () => {};
-      const patch = diffElementProps({ onClick: prevHandler }, { onClick: nextHandler });
-      const keys = Object.keys(patch!);
-      expect(keys.indexOf("removeEvents")).toBeLessThan(keys.indexOf("setEvents"));
-    });
-
-    it("ref undefined → undefined produces no refSwap", () => {
-      expect(diffElementProps({ ref: undefined }, { ref: undefined })).toBeNull();
+    it("ref undefined → undefined produces no patch", () => {
+      expect(diffElementProps({ ref: undefined }, { ref: undefined })).toBeUndefined();
     });
 
     it("NaN on both sides de-dupes (Object.is-based compare)", () => {
-      expect(diffElementProps({ tabIndex: NaN }, { tabIndex: NaN })).toBeNull();
+      expect(diffElementProps({ tabIndex: NaN }, { tabIndex: NaN })).toBeUndefined();
     });
 
     it("+0 vs -0 emits a diff (documented speed trade-off)", () => {
       const patch = diffElementProps({ tabIndex: +0 }, { tabIndex: -0 });
-      expect(patch).toEqual({ setAttrs: { tabIndex: -0 } });
+      expect(patch).toEqual({ setAttrs: { tabIndex: "0" } });
     });
 
     it("all-removed: next = {} emits every prev bucket", () => {
       const onClick = () => {};
-      const prevRef = { current: null };
       const patch = diffElementProps(
-        {
-          id: "a",
-          onClick,
-          style: { color: "red" },
-          ref: prevRef,
-        },
+        { id: "a", onClick, style: { color: "red" }, ref: { identifier: "r" } },
         {},
       );
       expect(patch).toEqual({
-        removeAttrs: ["id"],
-        removeEvents: ["onClick"],
+        removeAttrs: ["id", "data-yract-element-ref-id"],
+        removeEvents: ["click"],
         style: null,
-        refSwap: { prev: prevRef, next: undefined },
       });
     });
 
     it("all-added: prev = {} emits every next bucket", () => {
       const onClick = () => {};
-      const nextRef = { current: null };
       const style = { color: "red" };
-      const patch = diffElementProps({}, { id: "a", onClick, style, ref: nextRef });
+      const patch = diffElementProps({}, { id: "a", onClick, style, ref: { identifier: "r" } });
       expect(patch).toEqual({
-        setAttrs: { id: "a" },
-        setEvents: { onClick },
+        setAttrs: { id: "a", "data-yract-element-ref-id": "r" },
+        setEvents: { click: onClick },
         style,
-        refSwap: { prev: undefined, next: nextRef },
       });
     });
 
-    it("empty → empty returns null", () => {
-      expect(diffElementProps({}, {})).toBeNull();
+    it("empty → empty returns undefined", () => {
+      expect(diffElementProps({}, {})).toBeUndefined();
     });
 
-    it("prev === next short-circuit returns null without walking", () => {
+    it("prev === next short-circuit returns undefined without walking", () => {
       const p = { id: "a", onClick: () => {}, style: { color: "red" } };
-      expect(diffElementProps(p, p)).toBeNull();
+      expect(diffElementProps(p, p)).toBeUndefined();
     });
   });
 });

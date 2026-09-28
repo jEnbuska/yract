@@ -6,9 +6,11 @@ import type { ElementRef } from "./element-props";
 import type { EffectCallback } from "../hooks/types";
 import type { AnyElement } from "./elements/namespaces";
 
+/** @internal */
 export type ContextMap = Map<string, ContextProperties<unknown>>;
 
-export type SetState<T = unknown> = (value: ((prevValue: T) => T) | T) => Promise<void>;
+type SetState<T = unknown> = (value: ((prevValue: T) => T) | T) => Promise<void>;
+/** @internal */
 export interface StateHookState<T = unknown> {
   type: typeof $STATE;
   value: T;
@@ -19,33 +21,39 @@ export interface StateHookState<T = unknown> {
   pendingResolve?: () => void;
 }
 
+/** @internal */
 export interface RefHookState<T = unknown> {
   type: typeof $REF;
   ref: { current: T };
 }
 
+/** @internal */
 export interface ElementRefHookState<T extends AnyElement = AnyElement> {
   type: typeof $ELEMENT_REF;
   ref: ElementRef<T>;
 }
 
+/** @internal */
 export interface IdHookState {
   type: typeof $ID;
   id: string;
 }
 
+/** @internal */
 export interface MemoHookState<T = unknown> {
   type: typeof $MEMO;
   value: T;
   deps: DependencyList;
 }
 
+/** @internal */
 export interface StableHookState<T extends (...args: any[]) => any = (...args: any[]) => any> {
   type: typeof $STABLE;
   current: T;
   callback: T;
 }
 
+/** @internal */
 export interface EffectHookState {
   type: typeof $EFFECT;
   deps: DependencyList;
@@ -55,6 +63,7 @@ export interface EffectHookState {
   dirty?: boolean;
 }
 
+/** @internal */
 export type HookState =
   | StateHookState
   | RefHookState

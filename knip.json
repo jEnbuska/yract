@@ -7,7 +7,7 @@
       "project": ["src/**/*.ts", "src/**/*.tsx"]
     },
     "playground": {
-      "entry": ["src/main.tsx"],
+      "entry": ["src/main.tsx", "src/fixtures/*.tsx"],
       "project": ["src/**/*.ts", "src/**/*.tsx"],
       "playwright": false,
       "vite": false

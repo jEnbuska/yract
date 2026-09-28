@@ -46,6 +46,7 @@ export function* useState(
   return [value, setState] as const;
 }
 
+/** @internal */
 export function processState(
   descriptor: StateHookDescriptor,
   prev: StateHookState | undefined,
@@ -83,7 +84,7 @@ function resolveValue<T>(initialValue: T | (() => T)): T {
 
 const cache = new WeakMap<Omit<StateHookState, "setState">, (newValue: unknown) => Promise<void>>();
 /** @internal */
-export function createStateSetter(
+function createStateSetter(
   fiber: Fiber,
   state: Omit<StateHookState, "setState">,
 ): (newValue: unknown) => Promise<void> {
@@ -124,6 +125,7 @@ function resolveNextValue<T>(value: T | ((prev: T) => T), currentPendingValue: T
   return typeof value === "function" ? (value as (prev: T) => T)(currentPendingValue) : value;
 }
 
+/** @internal */
 export function stateResolver(state: HookState) {
   if (state.type !== $STATE) return;
   state.pendingResolve?.();

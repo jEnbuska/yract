@@ -9,6 +9,7 @@ import {
 } from "../../slots/slot";
 import { getMapValuesReversed } from "../../general";
 
+/** @internal */
 export function removeSlotNodes(slot: Slot) {
   switch (slot.type) {
     case textSlotType:

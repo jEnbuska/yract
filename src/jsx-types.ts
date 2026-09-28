@@ -28,7 +28,7 @@ import type { ElementRef } from "./render/element-props";
  * Vendor-prefixed properties (e.g. `-webkit-*`, `-moz-*`) are intentionally
  * not supported; use standard CSS properties instead.
  */
-export interface CSSProperties {
+interface CSSProperties {
   accentColor?: string;
   alignContent?: string;
   alignItems?: string;
@@ -565,7 +565,7 @@ export interface CSSProperties {
  * the runtime half is the TODO on `ensureListener` in `render/element-props.ts`.
  * Both are needed — either alone leaves handlers silently in the wrong phase.
  */
-export type EventHandlers<T extends EventTarget = EventTarget> = {
+type EventHandlers<T extends EventTarget = EventTarget> = {
   [K in keyof HTMLElementEventMap as `on${Capitalize<string & K>}`]?: (
     event: HTMLElementEventMap[K] & { readonly currentTarget: T },
   ) => void;
@@ -576,7 +576,7 @@ export type EventHandlers<T extends EventTarget = EventTarget> = {
 // ---------------------------------------------------------------------------
 
 /** WAI-ARIA attributes applicable to any HTML element. */
-export interface AriaAttributes {
+interface AriaAttributes {
   "aria-activedescendant"?: string;
   "aria-atomic"?: boolean | "false" | "true";
   "aria-autocomplete"?: "none" | "inline" | "list" | "both";
@@ -640,7 +640,7 @@ export interface AriaAttributes {
  * The type parameter `T` is the concrete `HTMLElement` subtype for this
  * element, used to narrow `event.currentTarget` in event handlers.
  */
-export interface HTMLAttributes<T extends HTMLElement = HTMLElement>
+interface HTMLAttributes<T extends HTMLElement = HTMLElement>
   extends FrameworkProps, AriaAttributes, EventHandlers<T> {
   /** Ref object — set to the DOM element on mount, undefined on unmount. */
   ref?: ElementRef<T>;
@@ -685,7 +685,7 @@ export interface HTMLAttributes<T extends HTMLElement = HTMLElement>
 // ---------------------------------------------------------------------------
 
 /** `<a>` – hyperlink */
-export interface AnchorHTMLAttributes extends HTMLAttributes<HTMLAnchorElement> {
+interface AnchorHTMLAttributes extends HTMLAttributes<HTMLAnchorElement> {
   download?: string | boolean;
   href?: string;
   hrefLang?: string;
@@ -699,7 +699,7 @@ export interface AnchorHTMLAttributes extends HTMLAttributes<HTMLAnchorElement> 
 }
 
 /** `<area>` */
-export interface AreaHTMLAttributes extends HTMLAttributes<HTMLAreaElement> {
+interface AreaHTMLAttributes extends HTMLAttributes<HTMLAreaElement> {
   alt?: string;
   coords?: string;
   download?: string | boolean;
@@ -712,7 +712,7 @@ export interface AreaHTMLAttributes extends HTMLAttributes<HTMLAreaElement> {
 }
 
 /** `<audio>` */
-export interface AudioHTMLAttributes extends HTMLAttributes<HTMLAudioElement> {
+interface AudioHTMLAttributes extends HTMLAttributes<HTMLAudioElement> {
   autoPlay?: boolean;
   controls?: boolean;
   crossOrigin?: "anonymous" | "use-credentials";
@@ -724,18 +724,18 @@ export interface AudioHTMLAttributes extends HTMLAttributes<HTMLAudioElement> {
 }
 
 /** `<base>` */
-export interface BaseHTMLAttributes extends HTMLAttributes<HTMLBaseElement> {
+interface BaseHTMLAttributes extends HTMLAttributes<HTMLBaseElement> {
   href?: string;
   target?: string;
 }
 
 /** `<blockquote>` / `<q>` */
-export interface BlockquoteHTMLAttributes extends HTMLAttributes<HTMLQuoteElement> {
+interface BlockquoteHTMLAttributes extends HTMLAttributes<HTMLQuoteElement> {
   cite?: string;
 }
 
 /** `<button>` */
-export interface ButtonHTMLAttributes extends HTMLAttributes<HTMLButtonElement> {
+interface ButtonHTMLAttributes extends HTMLAttributes<HTMLButtonElement> {
   autoFocus?: boolean;
   disabled?: boolean;
   form?: string;
@@ -750,40 +750,40 @@ export interface ButtonHTMLAttributes extends HTMLAttributes<HTMLButtonElement> 
 }
 
 /** `<canvas>` */
-export interface CanvasHTMLAttributes extends HTMLAttributes<HTMLCanvasElement> {
+interface CanvasHTMLAttributes extends HTMLAttributes<HTMLCanvasElement> {
   height?: string | number;
   width?: string | number;
 }
 
 /** `<col>` / `<colgroup>` */
-export interface ColHTMLAttributes extends HTMLAttributes<HTMLTableColElement> {
+interface ColHTMLAttributes extends HTMLAttributes<HTMLTableColElement> {
   span?: number;
   width?: string | number;
 }
 
 /** `<data>` */
-export interface DataHTMLAttributes extends HTMLAttributes<HTMLDataElement> {
+interface DataHTMLAttributes extends HTMLAttributes<HTMLDataElement> {
   value?: string | number;
 }
 
 /** `<del>` / `<ins>` */
-export interface ModHTMLAttributes extends HTMLAttributes<HTMLModElement> {
+interface ModHTMLAttributes extends HTMLAttributes<HTMLModElement> {
   cite?: string;
   dateTime?: string;
 }
 
 /** `<details>` */
-export interface DetailsHTMLAttributes extends HTMLAttributes<HTMLDetailsElement> {
+interface DetailsHTMLAttributes extends HTMLAttributes<HTMLDetailsElement> {
   open?: boolean;
 }
 
 /** `<dialog>` */
-export interface DialogHTMLAttributes extends HTMLAttributes<HTMLDialogElement> {
+interface DialogHTMLAttributes extends HTMLAttributes<HTMLDialogElement> {
   open?: boolean;
 }
 
 /** `<embed>` */
-export interface EmbedHTMLAttributes extends HTMLAttributes<HTMLEmbedElement> {
+interface EmbedHTMLAttributes extends HTMLAttributes<HTMLEmbedElement> {
   height?: string | number;
   src?: string;
   type?: string;
@@ -791,14 +791,14 @@ export interface EmbedHTMLAttributes extends HTMLAttributes<HTMLEmbedElement> {
 }
 
 /** `<fieldset>` */
-export interface FieldsetHTMLAttributes extends HTMLAttributes<HTMLFieldSetElement> {
+interface FieldsetHTMLAttributes extends HTMLAttributes<HTMLFieldSetElement> {
   disabled?: boolean;
   form?: string;
   name?: string;
 }
 
 /** `<form>` */
-export interface FormHTMLAttributes extends HTMLAttributes<HTMLFormElement> {
+interface FormHTMLAttributes extends HTMLAttributes<HTMLFormElement> {
   acceptCharset?: string;
   action?: string;
   autoComplete?: string;
@@ -811,12 +811,12 @@ export interface FormHTMLAttributes extends HTMLAttributes<HTMLFormElement> {
 }
 
 /** `<html>` */
-export interface HtmlHTMLAttributes extends HTMLAttributes<HTMLHtmlElement> {
+interface HtmlHTMLAttributes extends HTMLAttributes<HTMLHtmlElement> {
   manifest?: string;
 }
 
 /** `<iframe>` */
-export interface IframeHTMLAttributes extends HTMLAttributes<HTMLIFrameElement> {
+interface IframeHTMLAttributes extends HTMLAttributes<HTMLIFrameElement> {
   allow?: string;
   allowFullScreen?: boolean;
   allowTransparency?: boolean;
@@ -835,7 +835,7 @@ export interface IframeHTMLAttributes extends HTMLAttributes<HTMLIFrameElement> 
 }
 
 /** `<img>` */
-export interface ImgHTMLAttributes extends HTMLAttributes<HTMLImageElement> {
+interface ImgHTMLAttributes extends HTMLAttributes<HTMLImageElement> {
   alt?: string;
   crossOrigin?: "anonymous" | "use-credentials";
   decoding?: "async" | "auto" | "sync";
@@ -851,7 +851,7 @@ export interface ImgHTMLAttributes extends HTMLAttributes<HTMLImageElement> {
 }
 
 /** `<input>` */
-export interface InputHTMLAttributes extends HTMLAttributes<HTMLInputElement> {
+interface InputHTMLAttributes extends HTMLAttributes<HTMLInputElement> {
   accept?: string;
   alt?: string;
   autoComplete?: string;
@@ -910,19 +910,19 @@ export interface InputHTMLAttributes extends HTMLAttributes<HTMLInputElement> {
 }
 
 /** `<label>` */
-export interface LabelHTMLAttributes extends HTMLAttributes<HTMLLabelElement> {
+interface LabelHTMLAttributes extends HTMLAttributes<HTMLLabelElement> {
   form?: string;
   /** Maps to the `for` HTML attribute. */
   htmlFor?: string;
 }
 
 /** `<li>` */
-export interface LiHTMLAttributes extends HTMLAttributes<HTMLLIElement> {
+interface LiHTMLAttributes extends HTMLAttributes<HTMLLIElement> {
   value?: number;
 }
 
 /** `<link>` */
-export interface LinkHTMLAttributes extends HTMLAttributes<HTMLLinkElement> {
+interface LinkHTMLAttributes extends HTMLAttributes<HTMLLinkElement> {
   as?: string;
   crossOrigin?: "anonymous" | "use-credentials";
   fetchPriority?: "high" | "low" | "auto";
@@ -939,12 +939,12 @@ export interface LinkHTMLAttributes extends HTMLAttributes<HTMLLinkElement> {
 }
 
 /** `<map>` */
-export interface MapHTMLAttributes extends HTMLAttributes<HTMLMapElement> {
+interface MapHTMLAttributes extends HTMLAttributes<HTMLMapElement> {
   name?: string;
 }
 
 /** `<meta>` */
-export interface MetaHTMLAttributes extends HTMLAttributes<HTMLMetaElement> {
+interface MetaHTMLAttributes extends HTMLAttributes<HTMLMetaElement> {
   charSet?: string;
   content?: string;
   httpEquiv?: string;
@@ -953,7 +953,7 @@ export interface MetaHTMLAttributes extends HTMLAttributes<HTMLMetaElement> {
 }
 
 /** `<meter>` */
-export interface MeterHTMLAttributes extends HTMLAttributes<HTMLMeterElement> {
+interface MeterHTMLAttributes extends HTMLAttributes<HTMLMeterElement> {
   form?: string;
   high?: number;
   low?: number;
@@ -964,7 +964,7 @@ export interface MeterHTMLAttributes extends HTMLAttributes<HTMLMeterElement> {
 }
 
 /** `<object>` */
-export interface ObjectHTMLAttributes extends HTMLAttributes<HTMLObjectElement> {
+interface ObjectHTMLAttributes extends HTMLAttributes<HTMLObjectElement> {
   classID?: string;
   data?: string;
   form?: string;
@@ -976,20 +976,20 @@ export interface ObjectHTMLAttributes extends HTMLAttributes<HTMLObjectElement> 
 }
 
 /** `<ol>` */
-export interface OlHTMLAttributes extends HTMLAttributes<HTMLOListElement> {
+interface OlHTMLAttributes extends HTMLAttributes<HTMLOListElement> {
   reversed?: boolean;
   start?: number;
   type?: "1" | "a" | "A" | "i" | "I";
 }
 
 /** `<optgroup>` */
-export interface OptgroupHTMLAttributes extends HTMLAttributes<HTMLOptGroupElement> {
+interface OptgroupHTMLAttributes extends HTMLAttributes<HTMLOptGroupElement> {
   disabled?: boolean;
   label?: string;
 }
 
 /** `<option>` */
-export interface OptionHTMLAttributes extends HTMLAttributes<HTMLOptionElement> {
+interface OptionHTMLAttributes extends HTMLAttributes<HTMLOptionElement> {
   disabled?: boolean;
   label?: string;
   selected?: boolean;
@@ -997,26 +997,26 @@ export interface OptionHTMLAttributes extends HTMLAttributes<HTMLOptionElement> 
 }
 
 /** `<output>` */
-export interface OutputHTMLAttributes extends HTMLAttributes<HTMLOutputElement> {
+interface OutputHTMLAttributes extends HTMLAttributes<HTMLOutputElement> {
   form?: string;
   htmlFor?: string;
   name?: string;
 }
 
 /** `<param>` */
-export interface ParamHTMLAttributes extends HTMLAttributes<HTMLParamElement> {
+interface ParamHTMLAttributes extends HTMLAttributes<HTMLParamElement> {
   name?: string;
   value?: string;
 }
 
 /** `<progress>` */
-export interface ProgressHTMLAttributes extends HTMLAttributes<HTMLProgressElement> {
+interface ProgressHTMLAttributes extends HTMLAttributes<HTMLProgressElement> {
   max?: number;
   value?: string | number;
 }
 
 /** `<script>` */
-export interface ScriptHTMLAttributes extends HTMLAttributes<HTMLScriptElement> {
+interface ScriptHTMLAttributes extends HTMLAttributes<HTMLScriptElement> {
   async?: boolean;
   charSet?: string;
   crossOrigin?: string;
@@ -1029,7 +1029,7 @@ export interface ScriptHTMLAttributes extends HTMLAttributes<HTMLScriptElement> 
 }
 
 /** `<select>` */
-export interface SelectHTMLAttributes extends HTMLAttributes<HTMLSelectElement> {
+interface SelectHTMLAttributes extends HTMLAttributes<HTMLSelectElement> {
   autoComplete?: string;
   disabled?: boolean;
   form?: string;
@@ -1041,12 +1041,12 @@ export interface SelectHTMLAttributes extends HTMLAttributes<HTMLSelectElement> 
 }
 
 /** `<slot>` */
-export interface SlotHTMLAttributes extends HTMLAttributes<HTMLSlotElement> {
+interface SlotHTMLAttributes extends HTMLAttributes<HTMLSlotElement> {
   name?: string;
 }
 
 /** `<source>` */
-export interface SourceHTMLAttributes extends HTMLAttributes<HTMLSourceElement> {
+interface SourceHTMLAttributes extends HTMLAttributes<HTMLSourceElement> {
   height?: string | number;
   media?: string;
   sizes?: string;
@@ -1057,14 +1057,14 @@ export interface SourceHTMLAttributes extends HTMLAttributes<HTMLSourceElement> 
 }
 
 /** `<style>` */
-export interface StyleHTMLAttributes extends HTMLAttributes<HTMLStyleElement> {
+interface StyleHTMLAttributes extends HTMLAttributes<HTMLStyleElement> {
   media?: string;
   scoped?: boolean;
   type?: string;
 }
 
 /** `<table>` */
-export interface TableHTMLAttributes extends HTMLAttributes<HTMLTableElement> {
+interface TableHTMLAttributes extends HTMLAttributes<HTMLTableElement> {
   cellPadding?: string | number;
   cellSpacing?: string | number;
   summary?: string;
@@ -1072,7 +1072,7 @@ export interface TableHTMLAttributes extends HTMLAttributes<HTMLTableElement> {
 }
 
 /** `<td>` */
-export interface TdHTMLAttributes extends HTMLAttributes<HTMLTableCellElement> {
+interface TdHTMLAttributes extends HTMLAttributes<HTMLTableCellElement> {
   abbr?: string;
   align?: "left" | "center" | "right" | "justify" | "char";
   colSpan?: number;
@@ -1085,7 +1085,7 @@ export interface TdHTMLAttributes extends HTMLAttributes<HTMLTableCellElement> {
 }
 
 /** `<textarea>` */
-export interface TextareaHTMLAttributes extends HTMLAttributes<HTMLTextAreaElement> {
+interface TextareaHTMLAttributes extends HTMLAttributes<HTMLTextAreaElement> {
   autoComplete?: string;
   cols?: number;
   dirName?: string;
@@ -1103,7 +1103,7 @@ export interface TextareaHTMLAttributes extends HTMLAttributes<HTMLTextAreaEleme
 }
 
 /** `<th>` */
-export interface ThHTMLAttributes extends HTMLAttributes<HTMLTableCellElement> {
+interface ThHTMLAttributes extends HTMLAttributes<HTMLTableCellElement> {
   abbr?: string;
   align?: "left" | "center" | "right" | "justify" | "char";
   colSpan?: number;
@@ -1113,12 +1113,12 @@ export interface ThHTMLAttributes extends HTMLAttributes<HTMLTableCellElement> {
 }
 
 /** `<time>` */
-export interface TimeHTMLAttributes extends HTMLAttributes<HTMLTimeElement> {
+interface TimeHTMLAttributes extends HTMLAttributes<HTMLTimeElement> {
   dateTime?: string;
 }
 
 /** `<track>` */
-export interface TrackHTMLAttributes extends HTMLAttributes<HTMLTrackElement> {
+interface TrackHTMLAttributes extends HTMLAttributes<HTMLTrackElement> {
   default?: boolean;
   kind?: "subtitles" | "captions" | "descriptions" | "chapters" | "metadata";
   label?: string;
@@ -1127,7 +1127,7 @@ export interface TrackHTMLAttributes extends HTMLAttributes<HTMLTrackElement> {
 }
 
 /** `<video>` */
-export interface VideoHTMLAttributes extends HTMLAttributes<HTMLVideoElement> {
+interface VideoHTMLAttributes extends HTMLAttributes<HTMLVideoElement> {
   autoPlay?: boolean;
   controls?: boolean;
   crossOrigin?: "anonymous" | "use-credentials";
@@ -1148,7 +1148,7 @@ export interface VideoHTMLAttributes extends HTMLAttributes<HTMLVideoElement> {
 // ---------------------------------------------------------------------------
 
 /** Presentation attributes shared by all SVG elements. */
-export interface SVGAttributes<T extends SVGElement = SVGElement>
+interface SVGAttributes<T extends SVGElement = SVGElement>
   extends FrameworkProps, AriaAttributes, EventHandlers<T> {
   /** Ref object — set to the SVG element on mount, undefined on unmount. */
   ref?: ElementRef<T>;
@@ -1210,7 +1210,7 @@ export interface SVGAttributes<T extends SVGElement = SVGElement>
 }
 
 /** `<svg>` root element */
-export interface SvgHTMLAttributes extends SVGAttributes<SVGSVGElement> {
+interface SvgHTMLAttributes extends SVGAttributes<SVGSVGElement> {
   height?: string | number;
   preserveAspectRatio?: string;
   viewBox?: string;
@@ -1221,13 +1221,13 @@ export interface SvgHTMLAttributes extends SVGAttributes<SVGSVGElement> {
 }
 
 /** `<path>` */
-export interface PathSVGAttributes extends SVGAttributes<SVGPathElement> {
+interface PathSVGAttributes extends SVGAttributes<SVGPathElement> {
   d?: string;
   pathLength?: number;
 }
 
 /** `<circle>` */
-export interface CircleSVGAttributes extends SVGAttributes<SVGCircleElement> {
+interface CircleSVGAttributes extends SVGAttributes<SVGCircleElement> {
   cx?: string | number;
   cy?: string | number;
   r?: string | number;
@@ -1235,7 +1235,7 @@ export interface CircleSVGAttributes extends SVGAttributes<SVGCircleElement> {
 }
 
 /** `<ellipse>` */
-export interface EllipseSVGAttributes extends SVGAttributes<SVGEllipseElement> {
+interface EllipseSVGAttributes extends SVGAttributes<SVGEllipseElement> {
   cx?: string | number;
   cy?: string | number;
   rx?: string | number;
@@ -1244,7 +1244,7 @@ export interface EllipseSVGAttributes extends SVGAttributes<SVGEllipseElement> {
 }
 
 /** `<rect>` */
-export interface RectSVGAttributes extends SVGAttributes<SVGRectElement> {
+interface RectSVGAttributes extends SVGAttributes<SVGRectElement> {
   height?: string | number;
   pathLength?: number;
   rx?: string | number;
@@ -1255,7 +1255,7 @@ export interface RectSVGAttributes extends SVGAttributes<SVGRectElement> {
 }
 
 /** `<line>` */
-export interface LineSVGAttributes extends SVGAttributes<SVGLineElement> {
+interface LineSVGAttributes extends SVGAttributes<SVGLineElement> {
   pathLength?: number;
   x1?: string | number;
   x2?: string | number;
@@ -1264,13 +1264,13 @@ export interface LineSVGAttributes extends SVGAttributes<SVGLineElement> {
 }
 
 /** `<polyline>` / `<polygon>` */
-export interface PolylineSVGAttributes extends SVGAttributes<SVGPolylineElement> {
+interface PolylineSVGAttributes extends SVGAttributes<SVGPolylineElement> {
   pathLength?: number;
   points?: string;
 }
 
 /** `<text>` */
-export interface TextSVGAttributes extends SVGAttributes<SVGTextElement> {
+interface TextSVGAttributes extends SVGAttributes<SVGTextElement> {
   dx?: string | number;
   dy?: string | number;
   lengthAdjust?: "spacing" | "spacingAndGlyphs";
@@ -1281,7 +1281,7 @@ export interface TextSVGAttributes extends SVGAttributes<SVGTextElement> {
 }
 
 /** `<tspan>` */
-export interface TSpanSVGAttributes extends SVGAttributes<SVGTSpanElement> {
+interface TSpanSVGAttributes extends SVGAttributes<SVGTSpanElement> {
   dx?: string | number;
   dy?: string | number;
   lengthAdjust?: "spacing" | "spacingAndGlyphs";
@@ -1292,7 +1292,7 @@ export interface TSpanSVGAttributes extends SVGAttributes<SVGTSpanElement> {
 }
 
 /** `<use>` */
-export interface UseSVGAttributes extends SVGAttributes<SVGUseElement> {
+interface UseSVGAttributes extends SVGAttributes<SVGUseElement> {
   href?: string;
   height?: string | number;
   width?: string | number;
@@ -1301,7 +1301,7 @@ export interface UseSVGAttributes extends SVGAttributes<SVGUseElement> {
 }
 
 /** `<symbol>` */
-export interface SymbolSVGAttributes extends SVGAttributes<SVGSymbolElement> {
+interface SymbolSVGAttributes extends SVGAttributes<SVGSymbolElement> {
   height?: string | number;
   preserveAspectRatio?: string;
   refX?: string | number;
@@ -1313,7 +1313,7 @@ export interface SymbolSVGAttributes extends SVGAttributes<SVGSymbolElement> {
 }
 
 /** `<pattern>` */
-export interface PatternSVGAttributes extends SVGAttributes<SVGPatternElement> {
+interface PatternSVGAttributes extends SVGAttributes<SVGPatternElement> {
   height?: string | number;
   href?: string;
   patternContentUnits?: string;
@@ -1327,7 +1327,7 @@ export interface PatternSVGAttributes extends SVGAttributes<SVGPatternElement> {
 }
 
 /** `<linearGradient>` */
-export interface LinearGradientSVGAttributes extends SVGAttributes<SVGLinearGradientElement> {
+interface LinearGradientSVGAttributes extends SVGAttributes<SVGLinearGradientElement> {
   gradientTransform?: string;
   gradientUnits?: string;
   href?: string;
@@ -1339,7 +1339,7 @@ export interface LinearGradientSVGAttributes extends SVGAttributes<SVGLinearGrad
 }
 
 /** `<radialGradient>` */
-export interface RadialGradientSVGAttributes extends SVGAttributes<SVGRadialGradientElement> {
+interface RadialGradientSVGAttributes extends SVGAttributes<SVGRadialGradientElement> {
   cx?: string | number;
   cy?: string | number;
   fr?: string | number;
@@ -1353,17 +1353,17 @@ export interface RadialGradientSVGAttributes extends SVGAttributes<SVGRadialGrad
 }
 
 /** `<stop>` */
-export interface StopSVGAttributes extends SVGAttributes<SVGStopElement> {
+interface StopSVGAttributes extends SVGAttributes<SVGStopElement> {
   offset?: string | number;
 }
 
 /** `<clipPath>` */
-export interface ClipPathSVGAttributes extends SVGAttributes<SVGClipPathElement> {
+interface ClipPathSVGAttributes extends SVGAttributes<SVGClipPathElement> {
   clipPathUnits?: "userSpaceOnUse" | "objectBoundingBox";
 }
 
 /** `<mask>` */
-export interface MaskSVGAttributes extends SVGAttributes<SVGMaskElement> {
+interface MaskSVGAttributes extends SVGAttributes<SVGMaskElement> {
   height?: string | number;
   maskContentUnits?: string;
   maskUnits?: string;
@@ -1373,7 +1373,7 @@ export interface MaskSVGAttributes extends SVGAttributes<SVGMaskElement> {
 }
 
 /** `<filter>` */
-export interface FilterSVGAttributes extends SVGAttributes<SVGFilterElement> {
+interface FilterSVGAttributes extends SVGAttributes<SVGFilterElement> {
   filterUnits?: string;
   height?: string | number;
   primitiveUnits?: string;
@@ -1383,7 +1383,7 @@ export interface FilterSVGAttributes extends SVGAttributes<SVGFilterElement> {
 }
 
 /** `<image>` (SVG) */
-export interface ImageSVGAttributes extends SVGAttributes<SVGImageElement> {
+interface ImageSVGAttributes extends SVGAttributes<SVGImageElement> {
   crossOrigin?: "anonymous" | "use-credentials";
   decoding?: "async" | "auto" | "sync";
   height?: string | number;

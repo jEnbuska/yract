@@ -41,6 +41,7 @@ function prepareFiber(fiber: Fiber): asserts fiber is ReconcileFiber {
   fiber.uiActions = [];
 }
 
+/** @internal */
 export function mountFiber(fiber: Fiber, child: Child): Slot {
   prepareFiber(fiber);
   const { parentDom, ns, ctx, uiActions } = fiber;
@@ -51,6 +52,7 @@ export function mountFiber(fiber: Fiber, child: Child): Slot {
   return intent as Slot;
 }
 
+/** @internal */
 export function reconcilerFiber(fiber: Fiber, child: Child): Slot {
   prepareFiber(fiber);
   const { parentDom, slot, ns, tailNode, ctx, uiActions } = fiber;
@@ -256,19 +258,19 @@ function storeFormElementInitialValue(
   scheduler: Scheduler,
 ) {
   switch (element.localName) {
-    case 'textarea':
-    case 'select': {
-      const p = props as ComponentProps<"textarea" | 'select'>;
+    case "textarea":
+    case "select": {
+      const p = props as ComponentProps<"textarea" | "select">;
       const value = `${p.value ?? ""}`;
       scheduler.registerPropsValue(element, value);
       break;
     }
-    case 'input': {
-      const p = props as ComponentProps<'input'>;
-      const input = element as HTMLInputElement
+    case "input": {
+      const p = props as ComponentProps<"input">;
+      const input = element as HTMLInputElement;
       switch (input.type) {
-        case 'radio':
-        case 'checkbox': {
+        case "radio":
+        case "checkbox": {
           scheduler.registerPropsValue(element, Boolean(p.checked));
           break;
         }

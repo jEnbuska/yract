@@ -3,6 +3,7 @@ import type { ElementPatch } from "../../render/element-props";
 import type { ElementUpdateAction } from "../types";
 import { UPDATE_UI_ACTION } from "../constants";
 
+/** @internal */
 export function prepareUpdate(
   slot: Slot<ElementSlotType>,
   patch: ElementPatch,

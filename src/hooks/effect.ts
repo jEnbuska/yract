@@ -44,6 +44,7 @@ export function processEffect(
   return state;
 }
 
+/** @internal */
 export function effectResolver(state: HookState) {
   if (state.type !== $EFFECT) return;
   if (!state.controller) {

@@ -6,7 +6,7 @@
 
 > A minimal JSX UI library powered by JavaScript generator functions
 
-**yract** uses plain JavaScript [generator functions](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function*) as components. Hooks are called with `yield*`, JSX is produced by `return`, and state lives in local variables managed by the framework. No magic, no hidden machinery.
+**yract** uses plain JavaScript [generator functions](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function*) as components. Hooks are called with `yield*`, JSX is produced by `return`, and state lives in local variables managed by the framework.
 
 ---
 
@@ -16,9 +16,7 @@
 npm install yract
 ```
 
-### JSX setup
-
-Add to your `tsconfig.json` (recommended):
+Configure the automatic JSX transform in `tsconfig.json`:
 
 ```json
 {
@@ -29,28 +27,7 @@ Add to your `tsconfig.json` (recommended):
 }
 ```
 
-No manual imports needed — the automatic JSX transform handles everything. Full `JSX.IntrinsicElements` type checking for all HTML/SVG tags is included out of the box.
-
-<details>
-<summary>Classic JSX transform (alternative)</summary>
-
-```json
-{
-  "compilerOptions": {
-    "jsx": "react",
-    "jsxFactory": "createElement",
-    "jsxFragmentFactory": "Fragment"
-  }
-}
-```
-
-With the classic transform, import at the top of every JSX file:
-
-```ts
-import { createElement, Fragment } from "yract";
-```
-
-</details>
+No JSX imports are needed, and every HTML/SVG tag is type-checked.
 
 ---
 
@@ -64,11 +41,10 @@ function* Counter() {
   return <button onClick={() => setCount((c) => c + 1)}>Clicked {count} times</button>;
 }
 
-const root = createRoot(document.getElementById("root")!);
-root.render(<Counter />);
+createRoot(document.getElementById("root")!).render(<Counter />);
 ```
 
-Components are generator functions. The body re-runs from the top on every render, but hook state persists across runs — there are no stale-closure problems.
+The component body re-runs from the top on every render, so handlers always see the current values.
 
 ---
 
@@ -81,150 +57,80 @@ All hooks are generators called with `yield*`.
 ```tsx
 function* Timer() {
   const [tick, setTick] = yield* useState(0);
-
   yield* useEffect((signal) => {
     const id = setInterval(() => setTick((t) => t + 1), 1000);
-    return () => clearInterval(id);
+    signal.onabort = () => clearInterval(id);
   }, []);
-
   return <p>Seconds: {tick}</p>;
 }
 ```
 
-Available hooks: `useState`, `useEffect`, `useRef`, `useId`, `useMemo`, `useResolve`, `useResolveRaw`, `useRender`, `useResume`.
+`useState`, `useEffect`, `useMemo`, `useRef`, `useId`, `useStable`, `useContext`, `useElementRef` and `useDefer`.
 
 ### Context
 
-Pass data through the tree without prop-drilling.
+A context is itself the provider component:
 
 ```tsx
-import { createContext, useContext } from "yract";
+const Theme = createContext<"light" | "dark">("light", "Theme");
 
-const ThemeCtx = createContext<"light" | "dark">("light");
-
-function* ThemedButton() {
-  const theme = yield* useContext(ThemeCtx);
-  return <button className={theme}>Click</button>;
+function* Badge() {
+  const theme = yield* useContext(Theme);
+  return <span className={theme}>{theme}</span>;
 }
 
 function* App() {
   return (
-    <ThemeCtx.Provider value="dark">
-      <ThemedButton />
-    </ThemeCtx.Provider>
+    <Theme value="dark">
+      <Badge />
+    </Theme>
   );
 }
 ```
 
-`useContext` supports optional selectors to skip rerenders when only unrelated fields change.
+`useContext` takes an optional selector, so a consumer only rerenders when the part it reads changes.
 
-### Async data
+### Controlled form elements
 
-`useResolve` pauses rendering while a promise is pending and shows a loading placeholder:
+`value` and `checked` always win. Whatever the user types, pastes, autofills or clicks, the element ends up showing what the component rendered — including radio buttons the browser unchecked as a side effect.
 
 ```tsx
-function* UserProfile({ userId }: { userId: number }) {
-  const user = yield* useResolve(
-    {
-      fn: (signal) => fetch(`/api/users/${userId}`, { signal }).then((r) => r.json()),
-      loading: <p>Loading...</p>,
-      error: <p>Failed to load</p>,
-    },
-    [userId],
-  );
-  return <div>{user.name}</div>;
+function* Digits() {
+  const [text, setText] = yield* useState("");
+  return <input value={text} onInput={(e) => setText(e.currentTarget.value.replace(/\D/g, ""))} />;
 }
 ```
 
-The `fn` callback receives an `AbortSignal` that is automatically aborted when deps change or the component unmounts.
+### Deferred rendering
 
-### Conditional rendering
-
-`$shown` mounts/unmounts any element or component without shifting sibling positions:
+`useDefer` renders a subtree after the urgent work, so typing stays responsive while a large table catches up:
 
 ```tsx
-function* App() {
-  const [open, setOpen] = yield* useState(false);
+function* Search() {
+  const [query, setQuery] = yield* useState("");
+  const [Defer, deferring] = yield* useDefer();
   return (
     <>
-      <button onClick={() => setOpen((v) => !v)}>Toggle</button>
-      <Modal $shown={open} />
+      <input value={query} onInput={(e) => setQuery(e.currentTarget.value)} />
+      <Defer>
+        <Results query={query} faded={deferring} />
+      </Defer>
     </>
   );
 }
 ```
 
-### Portals
+### Capabilities
 
-Render children into a DOM node outside the render root:
-
-```tsx
-import { createPortal } from "yract";
-
-function* App() {
-  return (
-    <div>
-      <h1>App</h1>
-      {createPortal(<Modal />, document.getElementById("modal-root")!)}
-    </div>
-  );
-}
-```
-
-Context and events flow through the component tree, not the DOM tree.
-
-### Deferred rendering
-
-Use `$deferred` to mark lower-priority subtrees for the cooperative scheduler:
-
-```tsx
-function* App() {
-  return (
-    <div>
-      <Header /> {/* priority 0 — renders first */}
-      <HeavyList $deferred={true} /> {/* priority 1 — renders after */}
-    </div>
-  );
-}
-```
-
-<!-- UI patches (transitions) section disabled — $patch feature temporarily removed. See issue #163 for restoration plan.
-
-### UI patches (transitions)
-
-Freeze DOM updates during async work, then apply all changes at once:
-
-```tsx
-import { startUIPatch, commitUIPatch } from 'yract';
-
-async function navigate(next: string) {
-  startUIPatch();
-  try {
-    const data = await fetchPageData(next);
-    setPageData(data);
-  } finally {
-    commitUIPatch(); // all changes applied atomically
-  }
-}
-```
-
-Use `$patch="live"` on subtrees that should keep updating during a patch (e.g. clocks, animations). Use `useUIPatch` for component-scoped patches.
-
-UI patches disabled content end (#163) -->
+`withReturn`, `withRerender` and `withContext` are hook-like helpers that take no hook slot, so they can be called conditionally.
 
 ---
 
-## API reference
+## Documentation
 
-See the full [API documentation](docs/api.md) for detailed signatures, examples, and design decisions.
-
----
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, commands, and workflow.
-
----
+- [API reference](docs/api.md)
+- [Scheduler internals](docs/scheduler.md)
+- [Contributing](CONTRIBUTING.md)
 
 ## License
 

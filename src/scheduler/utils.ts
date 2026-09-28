@@ -7,6 +7,7 @@ import { unmountHookCleanup } from "../hooks/process-hook";
 import type { DeferredFiberGroup } from "./DeferredFiberGroup";
 import type { SyncFiberGroup } from "./SyncFiberGroup";
 
+/** @internal */
 export function renderFiber(fiber: Fiber, renderIteration: number) {
   try {
     fiber.confidentIteration = renderIteration;
@@ -19,6 +20,7 @@ export function renderFiber(fiber: Fiber, renderIteration: number) {
   }
 }
 
+/** @internal */
 export function applyUIActions(
   fiber: Fiber,
   valueMap: FieldValueMap,
@@ -34,14 +36,16 @@ export function applyUIActions(
   uiActions.length = 0;
 }
 
-export async function waitForIdle() {
+/** @internal */
+export async function waitForIdle(channel = new MessageChannel()) {
   const { promise, resolve } = createResolvable<unknown>();
-  const { port1, port2 } = new MessageChannel();
+  const { port1, port2 } = channel;
   port1.onmessage = resolve;
   port2.postMessage(null);
   return promise;
 }
 
+/** @internal */
 export function handlePostCommit(
   commitGroup: DeferredFiberGroup | SyncFiberGroup,
   renderIteration: number,

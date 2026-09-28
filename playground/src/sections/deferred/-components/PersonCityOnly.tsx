@@ -1,6 +1,5 @@
-import { Checkbox, Field, FieldDescription } from "../../../dos";
+import { Checkbox, Field } from "../../../dos";
 import { NO_HIGHLIGHT } from "./PersonTable.shared";
-import { PersonRow } from "../../../types";
 
 type OwnProps = {
   cityOnly: boolean;

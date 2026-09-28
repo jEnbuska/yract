@@ -7,9 +7,11 @@ import { componentSlotType, contextSlotType, elementSlotType, fragmentSlotType }
 
 type DraftSlotType = ComponentSlotType | ContextSlotType | FragmentSlotType | ElementSlotType;
 
+/** @internal */
 export type Draft<T extends DraftSlotType = DraftSlotType> = T extends DraftSlotType
   ? DraftBy<Intent<T>, "index" | "path" | "instance" | "key">
   : never;
+/** @internal */
 export function asFragmentDraft(
   _key: string | undefined,
   children: Children[] | readonly Children[],
@@ -36,6 +38,7 @@ export function asFragmentDraft(
   };
 }
 
+/** @internal */
 export function asContextDraft(
   _key: string | undefined,
   context: Context,
@@ -63,6 +66,7 @@ export function asContextDraft(
   };
 }
 
+/** @internal */
 export function asElementDraft(
   _key: string | undefined,
   element: string,
@@ -91,6 +95,7 @@ export function asElementDraft(
   };
 }
 
+/** @internal */
 export function asComponentDraft(
   _key: string | undefined,
   component: Component,
@@ -117,21 +122,25 @@ export function asComponentDraft(
     type: componentSlotType,
   };
 }
+/** @internal */
 export function ensureFreshComponentDraft(draft: Draft<ComponentSlotType>) {
   if (!draft.key) return draft;
   return asComponentDraft(draft._key, draft.component, draft.props);
 }
 
+/** @internal */
 export function ensureFreshElementDraft(draft: Draft<ElementSlotType>) {
   if (!draft.key) return draft;
   return asElementDraft(draft._key, draft.element, draft.props, draft.children);
 }
 
+/** @internal */
 export function ensureFreshFragmentDraft(draft: Draft<FragmentSlotType>) {
   if (!draft.key) return draft;
   return asFragmentDraft(draft._key, draft.children);
 }
 
+/** @internal */
 export function ensureFreshContextDraft(draft: Draft<ContextSlotType>) {
   if (!draft.key) return draft;
   return asContextDraft(draft._key, draft.context, draft.props);

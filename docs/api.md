@@ -1,122 +1,44 @@
-# yract — API Documentation
+# yract — API reference
 
-> A minimal JSX UI library that uses JavaScript **generator functions** as components.
-> State lives in local variables managed by hooks. The entire core is ~100 lines.
+> Components are **generator functions**: hooks are called with `yield*`, JSX is `return`ed.
 
----
+## Contents
 
-## Table of Contents
-
-1. [Core concepts](#core-concepts)
-2. [Component model](#component-model)
-3. [JSX configuration](#jsx-configuration)
-4. [Rendering](#rendering)
-5. [Hooks](#hooks)
-   - [useState](#usestate)
-   - [useEffect](#useeffect)
-   - [useRef](#useref)
-   - [useId](#useid)
-   - [useMemo](#usememo)
-   - [useResolve](#useresolve)
-   - [useResolveRaw](#useresolveraw)
-   - [useRender](#userender)
-   - [useResume](#useresume)
-   - [useUIPatch](#useuipatch) _(disabled — #163)_
-   - [usePatchContext](#usepatchcontext) _(disabled — #163)_
-6. [Context](#context)
-   - [createContext](#createcontext)
-   - [useContext](#usecontext)
-7. [Portals](#portals)
-   - [createPortal](#createportal)
-8. [UI patches](#ui-patches) _(disabled — #163)_
-   - [startUIPatch / commitUIPatch](#startuipatch--commituipatch) _(disabled — #163)_
-9. [Special props](#special-props)
-10. [Events](#events)
-11. [Design decisions](#design-decisions)
+1. [Components](#components)
+2. [Rendering](#rendering)
+3. [Hooks](#hooks)
+4. [Capabilities](#capabilities)
+5. [Context](#context)
+6. [Framework props](#framework-props)
+7. [Elements and events](#elements-and-events)
+8. [Controlled form elements](#controlled-form-elements)
+9. [Types](#types)
+10. [Known limitations](#known-limitations)
 
 ---
 
-## Core concepts
-
-yract components are **generator functions**. Instead of returning JSX on every call (like React), a component:
-
-- Calls hooks with `yield*` to read/write persistent state
-- **Returns** JSX for the current render at the end of the function body
-
-Because the function body re-runs from the top on every render, local variables always reflect the latest state — there are no stale-closure problems.
+## Components
 
 ```tsx
-function* Counter(_props: object) {
+function* Greeting(props: { name: string }) {
   const [count, setCount] = yield* useState(0);
-  return <button onClick={() => setCount((c) => c + 1)}>Clicked {count} times</button>;
-}
-```
-
----
-
-## Component model
-
-### Components
-
-```ts
-function* MyComponent(props: MyProps): Generator<unknown, Child, unknown> {
-  // yield* hooks ...
-  return <div />;   // return JSX
-}
-```
-
-- Must be a `function*` (generator function)
-- Hooks are called with `yield*`
-- JSX is produced by `return`, not `yield`
-- The generator body re-runs from the top on every re-render; hook state persists across runs
-
-### Fragments
-
-```tsx
-function* List() {
   return (
-    <>
-      <li>One</li>
-      <li>Two</li>
-    </>
+    <button onClick={() => setCount((c) => c + 1)}>
+      Hi {props.name} ({count})
+    </button>
   );
 }
 ```
 
-`<>...</>` (Fragment) children are flattened into the parent during reconciliation.
+- A component is a `function*`. Hooks run with `yield*`; the JSX is the `return` value.
+- The body re-runs from the top on every render. Hook state persists, keyed by call order, so hooks must run in the same order every render.
+- `<>…</>` (`Fragment`) groups children without a wrapper element.
 
----
-
-## JSX configuration
-
-### Classic transform
+JSX setup (`tsconfig.json`):
 
 ```json
-{
-  "compilerOptions": {
-    "jsx": "react",
-    "jsxFactory": "createElement",
-    "jsxFragmentFactory": "Fragment"
-  }
-}
+{ "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "yract" } }
 ```
-
-```tsx
-import { createElement, Fragment } from "yract";
-```
-
-### Automatic transform
-
-```json
-{
-  "compilerOptions": {
-    "jsx": "react-jsx",
-    "jsxImportSource": "yract"
-  }
-}
-```
-
-No manual imports needed for JSX.
 
 ---
 
@@ -124,893 +46,227 @@ No manual imports needed for JSX.
 
 ### `createRoot(container)`
 
-Creates a root for rendering a component tree into a DOM element. This is the recommended way to bootstrap your application.
-
 ```ts
-import { createRoot } from 'yract';
-
-const root = createRoot(document.getElementById('root')!);
+const root = createRoot(document.getElementById("root")!);
 root.render(<App />);
 ```
 
-| Parameter   | Type      | Description                    |
-| ----------- | --------- | ------------------------------ |
-| `container` | `Element` | The DOM element to render into |
+Returns a `Root`. Each root has its own scheduler and context.
 
-**Returns:** a `Root` object with a single `render(vnode)` method.
+### `render(child, container)`
 
----
-
-### `render(vnode, container)`
-
-Mounts a component tree into a DOM element. Call once to bootstrap the application.
-
-```ts
-import { render } from 'yract';
-
-render(<App />, document.getElementById('root')!);
-```
-
-| Parameter   | Type      | Description                    |
-| ----------- | --------- | ------------------------------ |
-| `vnode`     | `VNode`   | The root VNode to mount        |
-| `container` | `Element` | The DOM element to render into |
+Shorthand for `createRoot(container)` followed by `root.render(child)`. Returns the `Root`.
 
 ---
 
 ## Hooks
 
-All hooks are generator functions and must be called with `yield*` inside a component or another hook.
-
----
-
-### `useState`
+### `useState(initial, deps?)`
 
 ```ts
-const [value, setValue] = yield * useState(initialValue);
+const [value, setValue] = yield * useState(0);
+await setValue((prev) => prev + 1);
 ```
 
-Persistent state that survives re-renders. Calling `setControlled` triggers a re-render and returns a `Promise<void>` that resolves after the new state is committed to the DOM.
+- `initial` may be a function; it is called once.
+- The setter accepts a value or an updater and returns a promise that resolves once the update is committed. Setting the current value is a no-op.
+- `deps`: when they change, the state resets to `initial`.
 
-| Parameter      | Type             | Description                            |
-| -------------- | ---------------- | -------------------------------------- |
-| `initialValue` | `T \| (() => T)` | Initial value or a lazy initialiser fn |
-
-**Returns** `[T, (value: T \| ((prev: T) => T)) => Promise<void>]`
-
-The setter is safe to call during an active render (e.g. from inside a `useMemo` factory). When called during rendering the current render is cancelled and a single follow-up render runs with the accumulated latest state. The returned `Promise<void>` resolves after that committed render, so you can `await setValue(x)` inside an async `useMemo` factory to continue only once the DOM reflects the new value.
-
-```tsx
-function* Counter() {
-  const [count, setCount] = yield* useState(0);
-  return <button onClick={() => setCount((c) => c + 1)}>{count}</button>;
-}
-
-// Lazy initialiser — called only on first render:
-const [data, setData] = yield * useState(() => expensiveCompute());
-
-// Functional updater — receives previous state:
-setCount((prev) => prev + 1);
-```
-
-> **Note:** Like React, any function passed as `initialValue` or to the setter is treated as a lazy initialiser / updater. To store a function as state, wrap it: `useState(() => myFn)`.
->
-> **setState cannot be called during render.** Calling a setter from inside a component's generator body (or from a synchronous `useMemo` callback during render) throws a `SetStateDuringRenderError`. State updates must be triggered from event handlers, effects, or other asynchronous callbacks. This restriction ensures predictable rendering order and enables the deferred rendering model.
-
----
-
-### `useEffect`
+### `useEffect(fn, deps = [])`
 
 ```ts
-yield * useEffect(fn, deps);
-```
-
-Runs a side-effect **after** the component's DOM has been updated. Re-runs when `deps` change. If `fn` returns a function, that function is called as cleanup before the next effect run and when the component unmounts.
-
-`fn` receives an `AbortSignal` that is aborted just as cleanup runs (when deps change or the component unmounts). Use this signal to cancel async work without needing a separate cleanup function.
-
-| Parameter | Type                                            | Description                                                           |
-| --------- | ----------------------------------------------- | --------------------------------------------------------------------- |
-| `fn`      | `(signal: AbortSignal) => (() => void) \| void` | Effect callback; receives an abort signal and may return a cleanup fn |
-| `deps`    | `unknown[]`                                     | Dependency array                                                      |
-
-```tsx
-function* Timer() {
-  const [tick, setTick] = yield* useState(0);
-
-  yield* useEffect((signal) => {
-    const id = setInterval(() => setTick((t) => t + 1), 1000);
-    return () => clearInterval(id); // cleanup on unmount
-  }, []);
-
-  return <p>Seconds: {tick}</p>;
-}
-```
-
-```tsx
-// Using the AbortSignal to cancel a fetch without a cleanup function
-function* UserProfile({ id }: { id: string }) {
-  const [data, setData] = yield* useState<string | null>(null);
-
-  yield* useEffect(
+yield *
+  useEffect(
     (signal) => {
-      fetch(`/api/users/${id}`, { signal })
-        .then((res) => {
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res.text();
-        })
-        .then((text) => {
-          if (!signal.aborted) setData(text);
-        })
-        .catch(() => {
-          // AbortError and other errors silently ignored
-        });
+      const id = setInterval(tick, 1000);
+      signal.onabort = () => clearInterval(id);
     },
-    [id],
+    [delay],
   );
-
-  return <p>{data ?? "Loading…"}</p>;
-}
 ```
 
-> **Note:** The effect is **not** fired while the generator is paused inside `useRender`. It fires once the generator has returned its final JSX and the DOM is in place.
+- Runs after the DOM is committed, and again whenever `deps` change.
+- `deps` defaults to `[]`, so an effect without deps runs **once** (unlike React).
+- `signal` aborts before the next run and on unmount. `fn` may also return a cleanup function.
+
+### `useMemo(fn, deps)`
+
+```ts
+const visible = yield * useMemo(filterRows, [rows, query]); // filterRows(rows, query)
+```
+
+Recomputes only when `deps` change. The deps are passed to `fn` as arguments, so a module-level function can be used directly.
+
+### `useRef(initial)`
+
+Returns `{ current }`, stable for the component's lifetime.
+
+### `useId()`
+
+Returns a string id that is unique and stable for the component's lifetime.
+
+### `useStable(fn)`
+
+Returns a function with a permanent identity that always calls the latest `fn`. Use it for callbacks passed to children.
+
+### `useContext(ctx, selector?, transform?)`
+
+See [Context](#context).
+
+### `useElementRef()`
+
+```tsx
+const input = yield * useElementRef<HTMLInputElement>();
+yield * useEffect(() => input.current?.focus(), []);
+return <input ref={input} />;
+```
+
+`ref.current` looks the element up on access, so it is `undefined` until the element is mounted.
+
+### `useDefer(config?)`
+
+```tsx
+const [Defer, deferring] = yield * useDefer();
+return (
+  <>
+    <SearchBox />
+    <Defer>
+      <HugeTable faded={deferring} />
+    </Defer>
+  </>
+);
+```
+
+- Children of `Defer` mount normally, then **update** at low priority: urgent updates (typing, clicks) commit first, and the deferred subtree commits once it has caught up.
+- `deferring` is `true` while a deferred update is pending.
+- `config.disabled` turns deferral off.
 
 ---
 
-### `useRef`
+## Capabilities
 
-```ts
-const ref = yield * useRef(initialValue);
-```
+Hook-like helpers that take **no hook slot**, so they may be called conditionally or in any order.
 
-Returns a stable `{ current }` object that persists across re-renders. Mutating `.current` does **not** trigger a re-render.
-
-| Parameter      | Type | Description   |
-| -------------- | ---- | ------------- |
-| `initialValue` | `T`  | Initial value |
-
-**Returns** `RefObject<T>` — `{ current: T }`
+| Capability          | Returns                                                                 |
+| :------------------ | :---------------------------------------------------------------------- |
+| `withReturn(child)` | Ends the render immediately with `child`, skipping the rest of the body |
+| `withRerender()`    | A stable callback that rerenders the component                          |
+| `withContext(ctx)`  | The context's current value, without subscribing to changes             |
 
 ```tsx
-function* StopWatch() {
-  const startTime = yield* useRef<number | null>(null);
-  const [elapsed, setElapsed] = yield* useState(0);
-
-  return (
-    <button
-      onClick={() => {
-        startTime.current = Date.now();
-        setElapsed(0);
-      }}
-    >
-      Start
-    </button>
-  );
+function* Gate(props: { open: boolean }) {
+  if (!props.open) yield* withReturn(<p>Closed</p>);
+  const [n] = yield* useState(0);
+  return <p>Open {n}</p>;
 }
 ```
-
----
-
-### `useId`
-
-```ts
-const id = yield * useId();
-```
-
-Returns a stable, globally unique string ID. The same component instance always gets the same ID across re-renders.
-
-**Returns** `string` — e.g. `:r0:`, `:r1:`, …
-
-```tsx
-function* LabelledInput() {
-  const id = yield* useId();
-  return (
-    <>
-      <label htmlFor={id}>Name</label>
-      <input id={id} />
-    </>
-  );
-}
-```
-
----
-
-### `useMemo`
-
-```ts
-const result = yield * useMemo(fn, deps);
-```
-
-Memoises a computed value. Re-computes only when `deps` change. The dependency values are forwarded as arguments to `fn`.
-
-| Parameter | Type                   | Description      |
-| --------- | ---------------------- | ---------------- |
-| `fn`      | `(...args: Deps) => T` | Factory function |
-| `deps`    | `[...Deps]`            | Dependency array |
-
-**Returns** `T`
-
-```tsx
-function* Expensive({ a, b }: { a: number; b: number }) {
-  const result = yield* useMemo((a, b) => heavyCalc(a, b), [a, b]);
-  return <div>{result}</div>;
-}
-
-// Empty deps — computed once per component instance:
-const value = yield * useMemo(() => computeOnce(), []);
-```
-
----
-
-### `useResolve`
-
-```ts
-const data = yield * useResolve({ fn, loading, error }, deps);
-```
-
-Async data hook that **pauses rendering** while a promise is pending. Shows `loading` until the promise resolves, then returns the data. Shows `error` indefinitely if the promise rejects.
-
-The `fn` callback receives an `AbortSignal` that is aborted when `deps` change or the component unmounts — pass it to `fetch` or other cancellable APIs.
-
-| Parameter         | Type                                  | Description                                 |
-| ----------------- | ------------------------------------- | ------------------------------------------- |
-| `options.fn`      | `(signal: AbortSignal) => Promise<T>` | Promise factory; called when deps change    |
-| `options.loading` | `Renderable`                          | Shown while pending (VNode or component fn) |
-| `options.error`   | `Renderable`                          | Shown on rejection (VNode or component fn)  |
-| `deps`            | `unknown[]`                           | Re-runs `fn` when any value changes         |
-
-**Returns** `T` — the resolved value
-
-```tsx
-function* UserProfile({ userId }: { userId: number }) {
-  const user = yield* useResolve(
-    {
-      fn: (signal) => fetch(`/api/users/${userId}`, { signal }).then((r) => r.json()),
-      loading: <Spinner />,
-      error: <ErrorMessage />,
-    },
-    [userId],
-  );
-  return <div>{user.name}</div>;
-}
-```
-
-> **Pass `[]`** to run the promise exactly once per component instance.
-
----
-
-### `useResolveRaw`
-
-```ts
-const { data, loading, error } = yield * useResolveRaw<T, E>(promise);
-```
-
-Low-level async hook. Does **not** pause rendering — returns the current state immediately and triggers a re-render when the promise settles. The component controls how each state is rendered.
-
-| Parameter | Type         | Description          |
-| --------- | ------------ | -------------------- |
-| `promise` | `Promise<T>` | The promise to track |
-
-**Returns** `ResolveRawResult<T, E>` — a discriminated union:
-
-```ts
-| { data: T;         loading: false; error: undefined }
-| { data: undefined; loading: true;  error: undefined }
-| { data: undefined; loading: false; error: E }
-```
-
-```tsx
-function* PostViewer({ postId }: { postId: number }) {
-  const promise = yield* useMemo(() => fetchPost(postId), [postId]);
-  const { data, loading, error } = yield* useResolveRaw<Post, Error>(promise);
-
-  if (loading) return <p>Loading…</p>;
-  if (error) return <p>Error: {error.message}</p>;
-  return <article>{data.title}</article>;
-}
-```
-
----
-
-### `useRender`
-
-```ts
-// Variant 1 — pass JSX; child calls useResume() to unblock
-const value = yield* useRender<T>(child);
-
-// Variant 2 — inline render function; resume injected as prop
-const value = yield* useRender<T>(({ resume }) => <UI />, deps);
-```
-
-Pauses the generator and renders UI until `resume(value)` is called. Whatever is passed to `resume` becomes the return value of `yield* useRender(...)`.
-
-**Variant 1** — pass a JSX child. The child component obtains `resume` via `yield* useResume()`.
-
-```tsx
-function* ConfirmDialog() {
-  const resume = yield* useResume<boolean>();
-  return (
-    <div>
-      <button onClick={() => resume(true)}>Yes</button>
-      <button onClick={() => resume(false)}>No</button>
-    </div>
-  );
-}
-
-function* DeleteButton() {
-  const confirmed = yield* useRender<boolean>(<ConfirmDialog />);
-  if (confirmed) await deleteItem();
-  return <button>Delete</button>;
-}
-```
-
-**Variant 2** — inline render function with `deps`. Re-creates the render when `deps` change.
-
-```tsx
-function* Form() {
-  const answer = yield* useRender<"yes" | "no">(
-    ({ resume }) => (
-      <div>
-        <button onClick={() => resume("yes")}>Yes</button>
-        <button onClick={() => resume("no")}>No</button>
-      </div>
-    ),
-    [],
-  );
-  return <p>You chose: {answer}</p>;
-}
-```
-
----
-
-### `useResume`
-
-```ts
-const resume = yield * useResume<T>();
-```
-
-Returns the `resume` callback injected by the nearest parent `useRender` call (Variant 1). Calling `resume(value)` unblocks the parent generator.
-
-**Throws** if called outside a component rendered by `useRender`.
-
-```tsx
-function* Modal() {
-  const resume = yield* useResume<string>();
-  return <button onClick={() => resume("done")}>Close</button>;
-}
-```
-
----
-
-### `useUIPatch`
-
-> **Disabled:** The `$patch` feature is temporarily removed. See issue #163 for restoration plan.
-
-<!-- useUIPatch disabled content start (#163)
-
-```ts
-const startPatch = yield * useUIPatch();
-```
-
-Returns a stable `startPatch` function that, when called, freezes the **calling component's subtree** — only its descendant components defer their DOM updates. Components outside the subtree (siblings, parents) continue updating normally.
-
-**Returns** `() => () => void` — a `startPatch` function. Calling `startPatch()` begins a local patch and returns a `commit` function. Call `commit()` to atomically flush all deferred DOM updates for the frozen subtree.
-
-```tsx
-function* PageContent() {
-  const startPatch = yield* useUIPatch();
-  const [page, setPage] = yield* useState('home');
-
-  const navigate = async (next: string) => {
-    const commit = startPatch();
-    try {
-      await fetchPageData(next); // DOM stays frozen
-      setPage(next);
-    } finally {
-      commit(); // all changes applied at once
-    }
-  };
-
-  return <main>...</main>;
-}
-```
-
-- The snapshot of descendant instances is taken **at `startPatch()` call time** (not at hook registration time), so it always reflects the current tree.
-- Components inside the subtree that have `$patch="live"` continue to update immediately even during a local patch.
-- Nesting is supported: `startPatch()` can be called while a global patch is active; `commit()` flushes the local snapshot independently.
-
-> See also: [`startUIPatch` / `commitUIPatch`](#startuipatch--commituipatch) for a global patch that freezes the entire tree.
-
-useUIPatch disabled content end (#163) -->
-
----
-
-### `usePatchContext`
-
-> **Disabled:** The `$patch` feature is temporarily removed. See issue #163 for restoration plan.
-
-<!-- usePatchContext disabled content start (#163)
-
-```ts
-const batch = yield * usePatchContext();
-```
-
-Read the current `$patch` batch behaviour from the context. Returns `'live'` or `'default'`.
-
-Works exactly like `useContext` — the component rerenders when the effective batch changes (e.g. when a parent toggles `$patch`). If the component's own `$patch` prop changes but no other props change, the component only rerenders if it consumes `usePatchContext`.
-
-**Returns** `'live' | 'default'`
-
-```tsx
-function* StatusBar() {
-  const patch = yield* usePatchContext();
-  return <span>{patch === 'live' ? 'Updating live' : 'Updates deferred'}</span>;
-}
-
-// Reads 'live' when inside a $patch="live" ancestor:
-function* App() {
-  return (
-    <div $patch="live">
-      <StatusBar /> {/* patch === 'live' */}
-    </div>
-  );
-}
-```
-
-usePatchContext disabled content end (#163) -->
 
 ---
 
 ## Context
 
-Context lets you pass data through the component tree without prop-drilling.
-
-### `createContext`
-
-```ts
-const MyCtx = createContext<T>(defaultValue);
-```
-
-Creates a context with a default value. The returned object exposes a `Provider` component.
-
-| Parameter      | Type | Description                                |
-| -------------- | ---- | ------------------------------------------ |
-| `defaultValue` | `T`  | Value used when no Provider is in the tree |
-
-**Returns** `PublicContext<T>` — `{ Provider, _defaultValue }`
+### `createContext(defaultValue, name?)`
 
 ```tsx
-const ThemeCtx = createContext<"light" | "dark">("light");
+const Theme = createContext<"light" | "dark">("light", "Theme");
 
-function* App() {
-  const [theme, setTheme] = yield* useState<"light" | "dark">("light");
-  return (
-    <ThemeCtx.Provider value={theme}>
-      <Page />
-    </ThemeCtx.Provider>
-  );
-}
+<Theme value="dark">
+  <Badge />
+</Theme>;
 ```
 
-### `useContext`
+- The context is itself the provider component: `<Theme value={…}>`.
+- `defaultValue` may be a function; it is called once. It is used when no provider is above the consumer.
+- `name` (capitalised) appears in debug names.
 
-Three call signatures:
+### `useContext(ctx, selector?, transform?)`
 
 ```ts
-// 1. No selector — rerenders whenever the Provider value reference changes.
-const value = yield * useContext(MyCtx);
-
-// 2. Selector — rerenders only when the selected deps change; returns full value.
-const { currentGroup } = yield * useContext(MyCtx, (ctx) => [ctx.currentGroup]);
-
-// 3. Selector + transform — same rerender guard; returns transformed value.
-const name =
+const theme = yield * useContext(Theme);
+// Rerender only when `highlight` flips for this row:
+const settings = yield * useContext(Settings, (s) => [s.highlight === row.city]);
+// Return a derived value instead of the whole context:
+const isMine =
   yield *
   useContext(
-    MyCtx,
-    (ctx) => [ctx.name] as [string],
-    (n) => n.toUpperCase(),
+    Settings,
+    (s) => [s.highlight],
+    (_s, h) => h === row.city,
   );
 ```
 
-**Overload 1 (no selector):** existing behavior, no breaking change.
+- Without a selector the consumer rerenders whenever the provided value changes identity.
+- With a selector it rerenders only when the selected array changes (compared item by item).
 
-**Overload 2 (selector):** `selector` is called on both the old and new Provider value when the value changes. If the returned dep arrays are shallowly equal (using `Object.is` per element), the component does **not** rerender. The full context value is still returned.
+### `resolveContext(map, ctx)`
 
-**Overload 3 (selector + transform):** same rerender guard as overload 2; additionally the return value of `useContext` is `transform(...selectorDeps)` rather than the raw context value.
-
-```tsx
-function* ThemedButton() {
-  const theme = yield* useContext(ThemeCtx);
-  return <button className={theme}>Click</button>;
-}
-
-// Suppresses rerenders when only unrelated fields change:
-function* GroupHeader() {
-  const group = yield* useContext(
-    AppCtx,
-    (c) => [c.currentGroup],
-    (g) => g,
-  );
-  return <h2>{group.name}</h2>;
-}
-```
+Low-level lookup used by the renderer; returns the provided value or the default.
 
 ---
 
-## Portals
+## Framework props
 
-Portals let you render children into a DOM node that exists outside the render root's DOM hierarchy. The portaled content participates in the normal component tree for context, events, and reconciliation — only the physical DOM placement differs.
+Accepted by every component and element; never passed to the DOM.
 
-### `createPortal`
-
-```ts
-createPortal(children, container, key?)
-```
-
-Creates a portal VNode that renders `children` into `container`.
-
-| Parameter   | Type               | Description                                      |
-| ----------- | ------------------ | ------------------------------------------------ |
-| `children`  | `Child \| Child[]` | The children to render into the container        |
-| `container` | `Element`          | The target DOM element (outside the render root) |
-| `key`       | `string?`          | Optional reconciliation key                      |
-
-**Returns** `VNode` — a portal VNode (type = `Portal` symbol)
-
-#### Basic portal
-
-```tsx
-function* App() {
-  const modalRoot = document.getElementById("modal-root")!;
-  return (
-    <div>
-      <h1>App</h1>
-      {createPortal(<Modal />, modalRoot)}
-    </div>
-  );
-}
-```
-
-#### Portal with context
-
-Context flows through the component tree, not the DOM tree. A portaled child reads context from its logical parent:
-
-```tsx
-const ThemeCtx = createContext<"light" | "dark">("light");
-
-function* ThemeReader() {
-  const theme = yield* useContext(ThemeCtx);
-  return <span>{theme}</span>;
-}
-
-function* App() {
-  return (
-    <ThemeCtx.Provider value="dark">
-      {createPortal(
-        <ThemeReader />, // reads "dark" from context
-        document.getElementById("portal-target")!,
-      )}
-    </ThemeCtx.Provider>
-  );
-}
-```
-
-#### Cleanup
-
-When the portal VNode is removed from the tree (e.g. via `$shown` or conditional rendering), the portaled children are unmounted from the container and all cleanup functions (effects, abort signals) run as usual.
-
-```tsx
-function* App() {
-  const [showModal, setShowModal] = yield* useState(false);
-  return (
-    <>
-      <button onClick={() => setShowModal((v) => !v)}>Toggle</button>
-      {showModal ? createPortal(<Modal />, document.getElementById("modal-root")!) : null}
-    </>
-  );
-}
-```
-
-> **Notes:**
->
-> - A comment node placeholder is inserted in the original DOM position for reconciliation tracking.
-> - Event delegation works inside portals — `onClick` and other delegated events fire normally.
-> - `$deferred` and `$shown` props work on portal children as expected. <!-- $patch also worked here but is temporarily disabled (#163) -->
-
----
-
-## UI patches
-
-> **Disabled:** The `$patch` feature is temporarily removed. See issue #163 for restoration plan.
-
-<!-- UI patches disabled content start (#163)
-
-UI patches let you freeze DOM updates while async work runs, then apply all changes atomically. Components still execute their generators, process hooks, and update internal state during a patch — only the final DOM write is deferred.
-
-### `startUIPatch` / `commitUIPatch`
-
-```ts
-startUIPatch(): void
-commitUIPatch(): void
-```
-
-Global patch that freezes the **entire component tree**. Any code (event handlers, async functions, middleware) can call these — no hook needed.
-
-Calls are reference-counted: nested `startUIPatch()` calls require a matching number of `commitUIPatch()` calls before the DOM is flushed.
-
-```tsx
-import { startUIPatch, commitUIPatch } from 'yract';
-
-async function navigate(next: string) {
-  startUIPatch();
-  try {
-    const data = await fetchPageData(next); // DOM stays frozen
-    setPageData(data);
-    setPage(next);
-  } finally {
-    commitUIPatch(); // all changes applied at once
-  }
-}
-```
-
-Components with `$patch="live"` update immediately even during a global patch.
-
-> See also: [`useUIPatch`](#useuipatch) for a local patch scoped to a specific component's subtree.
-
-UI patches disabled content end (#163) -->
-
----
-
-## Special props
-
-### `$shown`
-
-```tsx
-<Component $shown={boolean} />
-<div $shown={boolean} />
-```
-
-Conditionally mounts/unmounts any element or component. When `$shown={false}` the node is replaced with an empty text node (unmounted). When it returns to `true` the component is remounted fresh.
-
-```tsx
-function* App() {
-  const [open, setOpen] = yield* useState(false);
-  return (
-    <>
-      <button onClick={() => setOpen((v) => !v)}>Toggle</button>
-      <Modal $shown={open} />
-    </>
-  );
-}
-```
-
-> Unlike a conditional `{open && <Modal />}`, `$shown` keeps the JSX position stable in the tree, which avoids reconciler position-shift issues.
-
-### `$deps`
-
-```tsx
-<Component $deps={[relevantValue]} otherProp={data} />
-<div $deps={[relevantValue]} className={cls} />
-```
-
-Replaces the default shallow-equal props check with a dependency-array comparison — the same `depsChanged()` mechanism used by hooks. The component or element only rerenders/updates when the deps change.
-
-Useful when a parent passes new object references on every render but the component only cares about a subset of values.
-
-| Parameter | Type        | Description                                       |
-| --------- | ----------- | ------------------------------------------------- |
-| `$deps`   | `unknown[]` | Dependency array compared via shallow `Object.is` |
-
-```tsx
-function* Parent() {
-  const [relevant, setRelevant] = yield* useState(0);
-  const [irrelevant, setIrrelevant] = yield* useState(0);
-
-  // ExpensiveChild only rerenders when `relevant` changes,
-  // even though `data` is a new object reference every render.
-  return <ExpensiveChild data={{ relevant, irrelevant }} $deps={[relevant]} />;
-}
-```
-
-**For components:** when `$deps` is present and unchanged, the component's generator body is not re-executed. Context changes still trigger a rerender regardless of `$deps`.
-
-**For HTML elements:** when `$deps` is present and unchanged, the entire subtree is frozen — prop diffing (`updateProps`) and child reconciliation are both skipped.
-
-`$deps` is never set as a DOM attribute and is not visible in the component's props object.
-
-### `$patch`
-
-> **Disabled:** The `$patch` feature is temporarily removed. See issue #163 for restoration plan.
-
-<!-- $patch disabled content start (#163)
-
-```tsx
-<Component $patch="live" />
-<div $patch="live">...</div>
-```
-
-Controls DOM update behaviour during a [UI patch](#ui-patches). Inherited recursively by all children unless overridden deeper in the tree.
-
-| Value       | Behaviour                                                                               |
-| ----------- | --------------------------------------------------------------------------------------- |
-| `'default'` | DOM write deferred during any active patch (global or local). This is the root default. |
-| `'live'`    | Component and its subtree always update immediately, even during a patch.               |
-
-```tsx
-function* App() {
-  const startPatch = yield* useUIPatch();
-  return (
-    <div>
-      {/* continues ticking during any patch */}
-      <Header $patch="live" />
-      {/* frozen while patch is active */}
-      <PageContent />
-    </div>
-  );
-}
-```
-
-`$patch` is never set as a DOM attribute — it is a renderer-only instruction.
-
-$patch disabled content end (#163) -->
-
-### `$deferred`
-
-```tsx
-<Component $deferred={true} />
-<div $deferred={true}>...</div>
-```
-
-Marks a subtree as lower priority for the [cooperative scheduler](./scheduler.md). Components inside a `$deferred` boundary are rendered after higher-priority components complete.
-
-Each `$deferred={true}` increments the priority level by 1. Priority 0 (default) is the highest urgency. The scheduler processes levels in ascending order, committing DOM atomically per level.
-
-```tsx
-function* App() {
-  return (
-    <div>
-      <Header /> {/* priority 0 — renders first */}
-      <HeavyList $deferred={true} /> {/* priority 1 — renders after */}
-    </div>
-  );
-}
-```
-
-`$deferred` is stripped from component props — the component never sees it. During the initial mount, priority levels are ignored and the entire tree renders in a single pass.
-
-> See [Priority Scheduler & Batched Commits](./scheduler.md) for the full specification.
-
----
-
-### `key`
+| Prop   | Effect                                                                                  |
+| :----- | :-------------------------------------------------------------------------------------- |
+| `key`  | Identity among siblings. Keyed children are moved rather than re-created when reordered |
+| `deps` | On a component: rerender from the parent only when `deps` change                        |
 
 ```tsx
 {
-  items.map((item) => <Row key={item.id} item={item} />);
+  rows.map((row) => <Row key={row.id} row={row} deps={[row]} />);
 }
 ```
 
-Stable identity hint for list items. Prevents accidental reuse of a slot from a different item when the list order changes.
+---
 
-### `ref`
+## Elements and events
 
-```tsx
-<input ref={myRef} />
-```
-
-Assigns the DOM element to `myRef.current` after mount. Use with `useRef`.
+- `className` and `htmlFor` map to `class` and `for`. `true` writes an empty boolean attribute; `false`, `null` and `undefined` remove it.
+- `style` takes an object. CSS custom properties (`--x`) are supported.
+- `on*` props receive the **native DOM event**, with `currentTarget` typed as the element. Handlers are attached to their own element, so `stopPropagation()` and non-bubbling events behave as in plain DOM.
+- `onFocus`/`onBlur` listen to `focusin`/`focusout`. `on*Capture` is not supported.
 
 ---
 
-## Events
+## Controlled form elements
 
-All `onXxx` props receive the **native DOM event** — there is no wrapper. The
-only refinement is `currentTarget`, narrowed to the element the handler sits on
-so element-specific properties need no cast.
+`value` (inputs, `<textarea>`, `<select>`) and `checked` (checkboxes, radios) are **controlled**: after every user or browser change the element is put back to the rendered value, and the handler decides what the next render shows.
 
 ```tsx
-function* TextInput() {
-  const [value, setValue] = yield* useState("");
-  return <input value={value} onInput={(e) => setValue(e.currentTarget.value)} />;
+function* Upper() {
+  const [text, setText] = yield* useState("");
+  return <input value={text} onInput={(e) => setText(e.currentTarget.value.toUpperCase())} />;
 }
 ```
 
-Handlers are attached straight to their own element with `addEventListener`, so
-`preventDefault()`, `stopPropagation()` and `stopImmediatePropagation()` behave
-exactly as the platform defines them — including on events that do not bubble,
-such as `ended`, `scroll` and `mouseenter`.
-
-`on*Capture` props are **not supported**; every listener is registered in the
-bubble phase.
+This holds for typing, paste, delete, autofill and password managers (which send `input` without `beforeinput`), range drags, `<select>` picks, and label clicks. For radio buttons the whole group is restored, including the option the browser unchecked when another was clicked. A `<select>` keeps its value even when its `<option>`s are rendered by a child component.
 
 ---
 
-## HTML defaults
+## Types
 
-yract applies two opinionated defaults to prevent common HTML footguns:
-
-| Element    | Behaviour                                                                                          |
-| ---------- | -------------------------------------------------------------------------------------------------- |
-| `<button>` | `type` defaults to `"button"` (not `"submit"`) to prevent accidental form submission               |
-| `<a>`      | `target="_blank"` without any `rel` logs a `console.warn` recommending `rel="noopener noreferrer"` |
-
-Both can be overridden by explicitly setting the prop.
+| Type                 | Description                                              |
+| :------------------- | :------------------------------------------------------- |
+| `Component<P>`       | `(props: P) => ComponentGenerator`                       |
+| `ComponentProps<T>`  | Props of an intrinsic element (`"input"`) or a component |
+| `PropsWithChildren`  | `{ children: Children }`                                 |
+| `Child` / `Children` | What a component can return / receive as children        |
+| `FrameworkProps`     | `{ key?, deps? }`                                        |
+| `Context<T>`         | A context, usable as a provider component                |
+| `ContextProps<T>`    | Provider props: `{ value, children, key? }`              |
+| `RefObject<T>`       | `{ current: T }`                                         |
+| `ComponentGenerator` | The generator a component returns                        |
+| `DependencyList`     | `readonly unknown[]`                                     |
 
 ---
 
-## Design decisions
+## Known limitations
 
-### Generator functions as components
+These are pinned by `it.fails` / `test.fail` tests and will flip when fixed:
 
-React components are plain functions that return the current UI. Re-renders mean re-calling the function, which requires hooks to maintain identity via call-order rules.
-
-yract components are generator functions. The generator body **re-runs from the top** on every render, but hook state is persisted in the renderer (keyed by call order), so state is never lost between renders. This gives:
-
-- **No stale closures** — every render sees fresh variables
-- **Linear control flow** — `yield*` hooks read like synchronous calls
-- **Pausable execution** — `useRender` and `useResolve` can pause the generator mid-body
-
-### Hook descriptor protocol
-
-Hooks do not access module-level variables. Instead, each hook `yield`s a **descriptor object** (`{ type: Symbol, ...payload }`). The renderer intercepts it, processes the state, and sends the result back via `gen.next(result)`. This makes hooks:
-
-- **Pure generators** — no hidden side-effects inside the hook itself
-- **Testable in isolation** — a hook is just a generator that yields objects
-- **Renderer-agnostic** — the same hook can work in different renderers
-
-```
-component body
-  └─ yield* useState(0)
-       └─ yield { type: USE_STATE, initialValue: 0 }
-            ↕  renderer intercepts, reads/writes hookStates[i], sends back [value, setter]
-       └─ return [value, setter]  ← back in component body
-```
-
-### Reconciliation
-
-The renderer tracks component instances in a `GenInstance` stored in a `WeakMap` keyed by the host span. On re-render:
-
-1. A fresh generator is created from the component function
-2. `resolveComponentGenerator` drives the descriptor loop, rebuilding derived state
-3. `reconcileSlots` diffs the new VNode tree against the previous one:
-   - **Same type, same props** → no DOM change (memoisation)
-   - **Same type, changed props** → in-place DOM update
-   - **Different type** → unmount old, mount new
-
-### Context implementation
-
-Context values are stored in an immutable `Map<Context, value>` that is set as a module-level variable before each generator run and restored afterwards. Providers create a new map (shallow copy + one entry updated) for their subtree. Components capture the map at mount time (`capturedCtx`) and use it on subsequent re-renders.
-
-### Async rendering
-
-`useResolve` (and the lower-level `useResolveRaw`) handle async data by storing promise state in `hookStates`. When a promise settles, it calls `rerender()` which re-runs the component body from the top — the hook then returns the settled value. A stale-promise guard (`hookStates[i] === state`) prevents resolved promises from updating the DOM after the component has moved on.
-
-### AbortSignal lifecycle
-
-`useResolve`'s `fn` receives an `AbortSignal` that is automatically aborted when:
-
-- The dependency array changes (a new fetch starts)
-- The component unmounts
-
-Abort cleanup is registered via `cleanupFns[hookIndex]` on the `GenInstance`. `unmountSlot()` recursively walks the slot tree and calls all cleanup functions when a component is removed.
-
-### Effect scheduling
-
-`useEffect` queues its callback in `pendingEffects[]` during `resolveComponentGenerator`. After `reconcileSlots` (DOM updated), `flushEffects(instance)` is called. It runs each pending effect and stores the returned cleanup in `hookStates`. The guard `instance.gen === null` ensures effects only fire when the generator has fully returned its JSX — effects are deferred if the generator is still paused (e.g. inside `useRender`).
-
-### Unmount and cleanup
-
-When `reconcileSlots` replaces or removes a slot, it calls `unmountSlot(slot)` which:
-
-1. Recursively unmounts all `childSlots`
-2. For components, recursively unmounts `genInstance.slots`
-3. Calls all `cleanupFns` entries on the `GenInstance`
-
-This covers `useEffect` cleanup, `useResolve` abort controllers, and any future hooks that register cleanup.
-
-### Priority scheduling
-
-yract includes a priority-aware cooperative scheduler. Components marked with `$deferred={true}` render at lower priority, allowing critical UI to update first. The scheduler batches DOM operations per priority level and commits them atomically, preventing partial visual updates. Higher-priority work preempts lower-priority work at yield boundaries.
-
-See [Priority Scheduler & Batched Commits](./scheduler.md) for the full specification.
+- A component with no child components, rendered directly under a root (`render(<Leaf />, el)`), renders nothing. Wrap it in another component.
+- Removing an `on*` handler (setting it to `undefined`) does not detach it.
+- `className={false}` after a set class leaves the class in place.
+- When a keystroke in the middle of a controlled input is rejected, the caret moves to the end.

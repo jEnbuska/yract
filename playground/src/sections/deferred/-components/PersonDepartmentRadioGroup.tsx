@@ -1,5 +1,5 @@
 import { DEPARTMENTS } from "./utils/row-store";
-import { Radio, RadioGroup } from "../../../dos/Radio";
+import { Radio, RadioGroup } from "../../../dos";
 import type { PersonRow } from "../../../types";
 import { countRowsPerDepartment } from "./utils/misc";
 import { useMemo } from "yract";
@@ -15,7 +15,7 @@ export function* PersonDepartmentRadioGroup({ department, setDepartment, rows }:
   return (
     <RadioGroup legend={"Department"} value={department} onValueChange={setDepartment}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr" }}>
-        <Radio label={"All"} value={""}  />
+        <Radio label={"All"} value={""} />
         {DEPARTMENTS.map((dep) => {
           const count = rowsPerDepartment.get(dep);
           let label = dep;

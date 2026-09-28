@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { render, useState } from "yract";
-import { updateElementProps } from "../render/element-props";
-
-async function flush(t = 8) {
-  for (let i = 0; i < t; i++) await Promise.resolve();
-}
+import { updateElementControlledProps, updateElementProps } from "../render/element-props";
+import { flush } from "./utils/flush";
+import { byTestId, mount } from "./utils/dom";
 
 describe("value/checked are written after every other prop", () => {
   it("mount: a range input keeps its value when value precedes min/max in JSX", async () => {
@@ -25,24 +23,23 @@ describe("value/checked are written after every other prop", () => {
     el.type = "range";
     document.body.appendChild(el);
 
-    // Key order puts `value` first, which is what a naive loop would honour.
-    updateElementProps(el, { setAttrs: { value: "2500", min: "0", max: "5000" } });
+    // The diff carries `value` in `setControlled`, and commit writes it after
+    // the attributes, so it is clamped against the new bounds, not the old ones.
+    updateElementProps(el, { setAttrs: { min: "0", max: "5000" }, setControlled: "2500" });
+    updateElementControlledProps(el, "2500", new WeakMap(), new WeakMap());
 
     expect({ value: el.value, max: el.max }).toEqual({ value: "2500", max: "5000" });
   });
 
   it("update: a later value change still lands", async () => {
-    const c = document.createElement("div");
-    document.body.appendChild(c);
     let set!: (n: number) => unknown;
     function* F(_p: object) {
       const [v, s] = yield* useState(10);
       set = s;
       return <input data-testid="r" type="range" value={String(v)} min="0" max="5000" />;
     }
-    render(<F />, c);
-    await flush();
-    const el = c.querySelector<HTMLInputElement>('[data-testid="r"]')!;
+    const host = await mount(<F />);
+    const el = byTestId<HTMLInputElement>(host, "r");
     expect(el.value).toBe("10");
     void set(4321);
     await flush();

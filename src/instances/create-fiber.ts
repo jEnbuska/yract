@@ -8,6 +8,7 @@ import { ContextFiber } from "./context-fiber";
 import { Defer } from "../hooks/defer";
 import type { Fiber } from "./types";
 
+/** @internal */
 export function createFiber(
   intent: DraftBy<Slot<ComponentSlotType | ContextSlotType>, "instance" | "prevProps">,
   parentCtx: ContextMap,

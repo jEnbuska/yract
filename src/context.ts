@@ -16,6 +16,7 @@ export type Context<T = any> = ContextProperties<T> & {
   (props: ContextProps<T>): ComponentGenerator;
 };
 
+/** @internal */
 export type ContextProperties<T> = {
   ref: { current: T };
   version: number;
@@ -27,7 +28,7 @@ export type ContextProperties<T> = {
 };
 
 function getDefaultValue<T>(defaultValue: (() => T) | T): T {
-  if (defaultValue === "function") {
+  if (typeof defaultValue === "function") {
     return (defaultValue as any)() as T;
   }
   return defaultValue as T;

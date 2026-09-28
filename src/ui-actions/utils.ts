@@ -12,6 +12,7 @@ import { moveSlotNodes } from "./utils/move-slot-nodes";
 import { insertNode } from "./utils/insert-node";
 import type { FieldSelectionMap, FieldValueMap } from "../instances/types";
 
+/** @internal */
 export function applyDomAction(
   action: UIAction,
   valueMap: FieldValueMap,

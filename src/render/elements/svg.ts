@@ -86,6 +86,7 @@ const SVG_XLINK_ATTRS: ReadonlySet<string> = new Set([
 
 const camelToKebab = (s: string): string => s.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase());
 
+/** @internal */
 export function isSvg(el: Element): el is SVGElement {
   return el.namespaceURI === SVG_NS;
 }
@@ -102,6 +103,7 @@ function svgAttrName(key: string): string {
   return camelToKebab(key);
 }
 
+/** @internal */
 export function writeSvgAttr(el: SVGElement, key: string, value: unknown): void {
   if (SVG_XLINK_ATTRS.has(key)) {
     const local = svgAttrName(key);
@@ -114,6 +116,7 @@ export function writeSvgAttr(el: SVGElement, key: string, value: unknown): void 
   }
 }
 
+/** @internal */
 export function clearSvgElementAttr(el: SVGElement, key: string): void {
   if (SVG_XLINK_ATTRS.has(key)) el.removeAttributeNS(XLINK_NS, svgAttrName(key));
   else el.removeAttribute(svgAttrName(key));

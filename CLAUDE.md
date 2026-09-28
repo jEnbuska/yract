@@ -106,37 +106,30 @@ function* Counter(_props: object) {
 
 ### Core Module Map
 
-| File                                  | Responsibility                                                                                              |
-| :------------------------------------ | :---------------------------------------------------------------------------------------------------------- |
-| `index.ts`                            | Public API re-exports                                                                                       |
-| `jsx.ts`                              | `Child`/`Children`, `Component`, `FrameworkProps` (`key`, `shown`, `deps`), `Fragment`                      |
-| `jsx-types.ts`                        | Intrinsic element type definitions (HTML/SVG attribute types)                                               |
-| `jsx-runtime.ts`                      | Automatic JSX transform (`jsx`, `jsxs`, `jsxDEV`)                                                           |
-| `context.ts`                          | `createContext`, `resolveContext`, context map helpers                                                      |
-| `general.ts` / `general-types.ts`     | Shared helpers and `ComponentGenerator`, `DependencyList`                                                   |
-| `reasons.ts`                          | Symbols identifying why a fiber was scheduled                                                               |
-| `hooks/*.ts`                          | One file per hook (`state`, `effect`, `memo`, `ref`, `context`, `id`, `load`, `halt`, `defer`, `stable`, …) |
-| `hooks/constants.ts`                  | Hook type symbols (`$STATE`, `$EFFECT`, …)                                                                  |
-| `hooks/types.ts`                      | Hook descriptor interfaces                                                                                  |
-| `instances/component-fiber.ts`        | `ComponentFiber` — per-component state, queued UI actions, rerender                                         |
-| `instances/context-fiber.ts`          | Context provider fiber                                                                                      |
-| `instances/create-fiber.ts`           | Fiber construction                                                                                          |
-| `slots/slot.ts`                       | `Slot` types (element, text, fragment, component, context)                                                  |
-| `slots/intent.ts`                     | `Intent` — a slot before it is committed                                                                    |
-| `slots/draft.ts`                      | Draft/partial slot types                                                                                    |
-| `slots/slot-keys.ts`                  | Stable slot key derivation                                                                                  |
-| `slots/utils.ts`                      | Slot inheritance and node preparation                                                                       |
-| `reconciler/reconciler.ts`            | Reconciliation — walks intents against previous slots                                                       |
-| `reconciler/actions.ts`               | `UIAction` union (`INSERT`/`MOVE`/`TEXT`/`UPDATE`/`REMOVE`) + `prepare*`                                    |
-| `reconciler/dom-updates.ts`           | DOM primitives used at commit                                                                               |
-| `reconciler/fiber-handlers.ts`        | Per-slot-kind handling during reconcile                                                                     |
-| `reconciler/derive-stable-indexes.ts` | Keyed move minimisation                                                                                     |
-| `render/root.ts` / `render/index.ts`  | `createRoot()`, `render()` entry points                                                                     |
-| `render/scheduler.ts`                 | Cooperative scheduler; applies queued `UIAction`s at commit                                                 |
-| `render/element-props.ts`             | `diffElementProps` (reconcile) → `ElementPatch` → `updateElementProps` (commit)                             |
-| `render/delegation.ts`                | Prop-name → DOM-event mapping (`resolveEventProp`)                                                          |
-| `render/elements/events.ts`           | Per-element listener registration; one stable listener per element + prop                                   |
-| `render/types.ts`                     | `RenderContext`, hook state types                                                                           |
+| File                                    | Responsibility                                                                     |
+| :-------------------------------------- | :--------------------------------------------------------------------------------- |
+| `index.ts`                              | Public API re-exports                                                              |
+| `jsx.ts`                                | `Child`/`Children`, `Component`, `FrameworkProps` (`key`, `deps`), `Fragment`      |
+| `jsx-types.ts`                          | Intrinsic element types (only `IntrinsicElements` is exported)                     |
+| `jsx-runtime.ts`                        | Automatic JSX transform (`jsx`, `jsxs`, `jsxDEV`)                                  |
+| `context.ts`                            | `createContext`, `resolveContext`                                                  |
+| `general.ts` / `general-types.ts`       | Shared helpers and `ComponentGenerator`, `DependencyList`                          |
+| `reasons.ts`                            | Symbols identifying why a fiber was scheduled                                      |
+| `hooks/*.ts`                            | One file per hook; `process-hook.ts` dispatches hook descriptors                   |
+| `capabilities/*.ts`                     | `withReturn`, `withRerender`, `withContext` — no hook slot                         |
+| `instances/component-fiber.ts`          | `ComponentFiber` — per-component state, queued UI actions, rerender                |
+| `instances/root.ts`                     | `Root`; container listeners that restore controlled `value`/`checked`              |
+| `instances/utils.ts`                    | `chunkInserts`, `foldSubtreeIntoStaging` (mount staging)                           |
+| `slots/*.ts`                            | `Slot`/`Intent`/`Draft` types, slot keys, node creation                            |
+| `reconciler/reconciler.ts`              | Reconciliation — walks intents against previous slots, records `UIAction`s         |
+| `reconciler/derive-stable-indexes.ts`   | Keyed move minimisation                                                            |
+| `ui-actions/`                           | `UIAction` types, `prepare*` builders, commit-time DOM appliers                    |
+| `scheduler/`                            | `Scheduler`, sync/deferred lifecycle groups, `RenderClock` (see docs/scheduler.md) |
+| `render/index.ts`                       | `createRoot()`, `render()`                                                         |
+| `render/resolve-component-generator.ts` | Drives a component generator: hooks and capabilities                               |
+| `render/element-props.ts`               | `diffElementProps` (reconcile) → `ElementPatch` → `updateElementProps` (commit)    |
+| `render/delegation.ts`                  | Prop-name → DOM-event mapping (`resolveEventProp`)                                 |
+| `render/elements/events.ts`             | Per-element listener registration; one stable listener per element + event         |
 
 ---
 
@@ -147,7 +140,8 @@ function* Counter(_props: object) {
 - **Linting:** oxlint (`.oxlintrc.json`) lints; oxfmt (`.oxfmtrc.json`) formats. They are separate tools — `lint` does not check formatting, so run `format:check` too.
 - **TypeScript:** Strictly typed; `any` is forbidden. `noUncheckedIndexedAccess` and `noPropertyAccessFromIndexSignature` are enabled.
 - **Prefer `satisfies` over `as`:** Strongly avoid `as` type assertions. Use `satisfies` to validate that a value conforms to a type without silencing the type checker. Only use `as` where genuine type narrowing is required (e.g., DOM element downcasts, narrowing `T | undefined` to `T`, casting `unknown` from external APIs, generator yield values). Never use `as` when `satisfies` would work.
-- **Special Props:** Always support the `shown={boolean}` prop (no `$` prefix — see `FrameworkProps` in `jsx.ts`, alongside `key` and `deps`).
+- **Framework Props:** `key` and `deps` (see `FrameworkProps` in `jsx.ts`) are never passed to the DOM.
+- **`@internal`:** Anything exported from a `src/` module but not from `src/index.ts` gets an `@internal` JSDoc tag. Keep comments short.
 - **Dependencies:** Zero-dependency goal.
 - **JSX Config:** Both the library and consumers (including `playground/`) use the automatic `react-jsx` transform with `jsxImportSource: "yract"`, backed by `src/jsx-runtime.ts`.
 - **Multi-root:** Each `render()`/`createRoot()` creates an independent `RenderContext` with its own state (scheduler queue, context map, DOM ops queue). The global `idCounter` is the only shared state (IDs must be globally unique).
@@ -175,7 +169,12 @@ source (no build step between them). Its entry point is `playground/src/main.tsx
 which mounts `App.tsx` — the shell that stacks every demo on one page.
 
 - `playground/src/sections/<name>/index.tsx` — one folder per demo section.
-- `playground/src/components/` — leaf components shared between sections.
-- `playground/src/dos/` — the DOS text-mode UI kit used by the shell (`styles.css` plus one file per component).
-- `playground/src/contexts.ts` — contexts shared across sections.
-- `playground/tests/` — Playwright specs; `helpers.ts` holds `goToApp` and the tab helpers.
+- `playground/src/dos/` — the DOS text-mode UI kit used by the shell (`styles.css` plus one file per component). `react-playground/src/dos/` mirrors it; keep the two in step.
+- `playground/fixtures/*.html` + `playground/src/fixtures/*.tsx` — standalone pages for Playwright (served by Vite, not linked from the app; registered as knip entries).
+- `playground/tests/` — Playwright specs; `helpers.ts` holds `goToDemo`, `readRows` and `settled` (waits for the deferred table to catch up).
+
+### Testing Notes
+
+- Unit tests mount through `mount()` in `src/__tests__/utils/dom.tsx` and simulate input with its helpers (`typeText`, `autofill`, `selectOption`, `slideTo`); wait with `flush()` from `utils/flush.ts`.
+- Known bugs are pinned with `it.fails` / `test.fail()` plus a `// BUG:` comment. When one starts "failing", the bug is fixed — flip it back to `it`/`test`.
+- The desktop preview entries in the main repo's `.claude/launch.json` are per worktree; `react-playground` / `promote-beta-playground` serve the `promote-beta` worktree.

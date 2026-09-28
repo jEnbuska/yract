@@ -1,5 +1,4 @@
-import { Field, FieldDescription, FieldLabel, Select } from "../../../dos";
-import { NO_HIGHLIGHT } from "./PersonTable.shared";
+import { Field, FieldLabel, Select } from "../../../dos";
 import CityOptions from "./CityOptions";
 import type { PersonRow } from "../../../types";
 

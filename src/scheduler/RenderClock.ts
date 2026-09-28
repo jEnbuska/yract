@@ -1,5 +1,6 @@
 import { createResolvable } from "../create-resolvable";
 
+/** @internal */
 export class RenderClock {
   #workYieldDeadline = 0;
   readonly #chunkMs: number;

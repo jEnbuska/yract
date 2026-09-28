@@ -1,6 +1,5 @@
 import type { Children, FrameworkProps } from "./jsx";
 import type { DependencyList } from "./general-types";
-import type { ComponentSlotType, ContextSlotType, SlotProps } from "./slots/slot";
 
 function getOrInsertComputedNative(
   map: Map<any, any> | WeakMap<any, any>,
@@ -32,6 +31,7 @@ const _getOrInsertComputed =
  * Uses `has` rather than a truthiness check on `get`, so a computed
  * `undefined` is cached instead of recomputed on every call, matching the
  * built-in's semantics.
+ * @internal
  */
 export function getOrInsertComputed<K, V>(map: Map<K, V>, key: K, compute: (key: K) => V): V;
 export function getOrInsertComputed<K extends object, V>(
@@ -56,6 +56,7 @@ const _getOrInsert =
   typeof WeakMap.prototype.getOrInsert === "function"
     ? getOrInsertNative
     : getOrInsertPolyfill;
+/** @internal */
 export function getOrInsert<K extends object | symbol, V>(map: WeakMap<K, V>, key: K, value: V): V;
 export function getOrInsert<K, V>(map: Map<K, V>, key: K, value: V): V;
 export function getOrInsert(map: any, key: any, value: any): any {
@@ -65,6 +66,7 @@ export function getOrInsert(map: any, key: any, value: any): any {
 const _values = new WeakMap<ReadonlyMap<any, any>, any[]>();
 const _valuesReversed = new WeakMap<ReadonlyMap<any, any>, any[]>();
 
+/** @internal */
 export function getMapValuesReversed<T>(map: ReadonlyMap<any, T>): T[] {
   return getOrInsertComputed(_valuesReversed, map, mapValuesReversed);
 }
@@ -73,6 +75,7 @@ function mapValuesReversed<T>(map: ReadonlyMap<any, T>) {
   return getMapValues(map).toReversed();
 }
 
+/** @internal */
 export function getMapValues<T>(map: ReadonlyMap<any, T>): T[] {
   return getOrInsertComputed(_values, map, mapValues);
 }
@@ -81,10 +84,12 @@ function mapValues<T>(map: ReadonlyMap<string, T>) {
   return [...map.values()];
 }
 
+/** @internal */
 export const emptyMap: ReadonlyMap<any, any> = new Map<any, any>();
 
 let randomRoot: string | undefined;
 let randomIndex = 0;
+/** @internal */
 export function randomId(): string {
   if (randomRoot === undefined) {
     randomRoot = Math.random().toString(36).slice(2);
@@ -92,7 +97,10 @@ export function randomId(): string {
   }
   return `${randomRoot}${randomIndex++}`;
 }
-/** Returns true when the dependency arrays differ (shallow `Object.is` comparison). */
+/**
+ * Returns true when the dependency arrays differ (shallow `Object.is` comparison).
+ * @internal
+ */
 export function depsChanged(
   prev: DependencyList | undefined,
   next: DependencyList | undefined,
@@ -105,7 +113,10 @@ export function depsChanged(
   return false;
 }
 
-/** Shallow equality check for two objects (same keys, all values `Object.is`). */
+/**
+ * Shallow equality check for two objects (same keys, all values `Object.is`).
+ * @internal
+ */
 export function shallowEqual(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
   if (a === b) return true;
   const aKeys = Object.keys(a);
@@ -116,27 +127,8 @@ export function shallowEqual(a: Record<string, unknown>, b: Record<string, unkno
   return true;
 }
 
-export const frameworkProps: Set<string> = new Set(["key", "deps"] satisfies Array<
-  keyof FrameworkProps
->);
-export function propsEquals(
-  a: SlotProps<ComponentSlotType | ContextSlotType>,
-  b: SlotProps<ComponentSlotType | ContextSlotType>,
-): boolean {
-  if (a === b) return true;
-  for (const k in a) {
-    if (frameworkProps.has(k)) continue;
-    const key = k as keyof SlotProps<ComponentSlotType | ContextSlotType>;
-    if (!Object.is(a[key], b[key])) return false;
-  }
-  for (const k in b) {
-    if (frameworkProps.has(k)) continue;
-    const key = k as keyof SlotProps<ComponentSlotType | ContextSlotType>;
-    if (!Object.is(a[key], b[key])) return false;
-  }
-  return true;
-}
-
+const frameworkProps: Set<string> = new Set(["key", "deps"] satisfies Array<keyof FrameworkProps>);
+/** @internal */
 export function stripFrameworkProps<T extends Record<string, any>>(props: T): T {
   const copy: T = {} as any;
   let hasFrameworkProps = false;
@@ -151,6 +143,7 @@ export function stripFrameworkProps<T extends Record<string, any>>(props: T): T 
   return hasFrameworkProps ? copy : props;
 }
 
+/** @internal */
 export function isArrayChildren(children: Children): children is ReadonlyArray<Children> {
   return Array.isArray(children);
 }

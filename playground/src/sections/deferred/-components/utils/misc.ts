@@ -13,27 +13,6 @@ export function toPersonTableContext(
   return { updatePerson, highlight };
 }
 
-export function filterPersonTableRows(
-  query: string,
-  rows: PersonRow[] = [],
-  city: string,
-  department: string,
-) {
-  if (city) rows = rows.filter((row) => row.city === city);
-  if (department) rows = rows?.filter((row) => row.department === department);
-  query = query.trim();
-  if (!query) return rows;
-  const lower = query
-    .toLowerCase()
-    .split(" ")
-    .map((word) => word.trim())
-    .filter(Boolean);
-  return rows?.filter(({ name, id, department, city }) => {
-    const combined = `${name} ${id} ${department} ${city}`.toLowerCase();
-    return lower.every((word) => combined.includes(word));
-  });
-}
-
 export function filterRowsBySearch(rows: PersonRow[] = [], query: string) {
   query = query.trim();
   if (!query) return rows;

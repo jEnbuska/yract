@@ -41,11 +41,11 @@ export function* RadioGroup({
   // Outside a Field the ids are empty, and an empty reference would point at nothing.
   const describedBy = invalid ? errorId : descriptionId;
   return (
-    <RadioGroupContext value={{ name: name ?? generatedName, value }} >
+    <RadioGroupContext value={{ name: name ?? generatedName, value }}>
       <fieldset
         {...rest}
-        onChange={e => {
-          onValueChange((e.target as HTMLInputElement).value)
+        onChange={(e) => {
+          onValueChange((e.target as HTMLInputElement).value);
         }}
         className="dos-fieldset"
         aria-invalid={invalid ? "true" : undefined}

@@ -10,7 +10,10 @@ import { getOrInsert, getOrInsertComputed } from "../../general";
 import { resolveEventProp } from "../delegation";
 import type { AnyElement } from "./namespaces";
 
-/** What every `on*` prop receives: the real DOM event, unwrapped. */
+/**
+ * What every `on*` prop receives: the real DOM event, unwrapped.
+ * @internal
+ */
 export type ElementEventHandler = (event: Event) => void;
 
 type ListenerWrapper = {
@@ -18,6 +21,7 @@ type ListenerWrapper = {
   initialized: boolean;
 };
 const elementEventMaps = new WeakMap<AnyElement, Map<string, ListenerWrapper>>();
+/** @internal */
 export function registerElementEvent(
   el: AnyElement,
   domEvent: string,
@@ -55,6 +59,7 @@ function ensureListener(el: AnyElement, domEvent: string, wrapper: ListenerWrapp
   wrapper.initialized = true;
 }
 
+/** @internal */
 export function unRegisterElementEvent(el: AnyElement, propKey: string): void {
   const map = getOrInsertComputed(elementEventMaps, el, () => new Map<string, ListenerWrapper>());
   const wrapper = getOrInsert(map, propKey, { current: undefined, initialized: false });

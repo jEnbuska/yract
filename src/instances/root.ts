@@ -41,7 +41,6 @@ export class Root {
     this.container.addEventListener(
       "focus",
       function onFocusCapture(e) {
-        console.log(e.type)
         if (e.target instanceof HTMLSelectElement) {
           const target = e.target;
           valueMap.set(target, target.value ?? "");
@@ -54,7 +53,6 @@ export class Root {
       "mousedown",
       function onMouseDown(e) {
         if (!(e.target instanceof HTMLInputElement)) return;
-        console.log(e.type)
         const target = e.target;
         if (e.target.type !== "range") return;
         valueMap.set(target, target.value);
@@ -70,7 +68,6 @@ export class Root {
       "beforeinput",
       function onBeforeInputCapture(e) {
         block();
-        console.log(e.type)
         const target = e.target as HTMLInputElement | HTMLTextAreaElement;
         valueMap.set(target, target.value ?? "");
       },
@@ -82,7 +79,6 @@ export class Root {
     const { valueMap, selectionMap, scheduler } = this;
     this.container.addEventListener("input", function onChange(e) {
       const target = e.target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
-      console.log(e.type)
       const { type } = target;
       if (type === "radio") {
         restoreRadioGroup(target as HTMLInputElement, valueMap);
@@ -128,8 +124,9 @@ function restoreRadioGroup(target: HTMLInputElement, valueMap: FieldValueMap) {
     return;
   }
   const scope: ParentNode = target.form ?? (target.getRootNode() as Document | ShadowRoot);
-  const selector = `input[type="radio"][name="${CSS.escape(name)}"]`;
-  for (const radio of scope.querySelectorAll<HTMLInputElement>(selector)) {
+  // Compare names in JS rather than escaping them into a selector: `CSS.escape` is not everywhere.
+  for (const radio of scope.querySelectorAll<HTMLInputElement>('input[type="radio"]')) {
+    if (radio.name !== name) continue;
     if (!valueMap.has(radio)) continue; // Not rendered by this root.
     radio.checked = Boolean(valueMap.get(radio));
   }

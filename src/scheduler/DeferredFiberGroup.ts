@@ -1,6 +1,7 @@
 import type { Fiber } from "../instances/types";
 import { waitForIdle } from "./utils";
 
+/** @internal */
 export class DeferredFiberGroup {
   head: number;
   _members = new Set<Fiber>();
@@ -10,6 +11,7 @@ export class DeferredFiberGroup {
   readonly queues: Fiber[][] = [];
   #direction: 1 | -1;
   #pruneScheduled = false;
+  #waitChannel = new MessageChannel();
 
   constructor(direction: -1 | 1) {
     this.#direction = direction;
@@ -54,7 +56,7 @@ export class DeferredFiberGroup {
   async schedulePrune() {
     if (this.#pruneScheduled || !this._cancelled.size) return;
     this.#pruneScheduled = true;
-    await waitForIdle();
+    await waitForIdle(this.#waitChannel);
     this.#pruneScheduled = false;
     if (!this._cancelled.size) return;
     this.#prune();

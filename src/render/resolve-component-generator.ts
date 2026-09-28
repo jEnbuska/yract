@@ -4,6 +4,7 @@ import { processHook, setupSkippedHookCleanups } from "../hooks/process-hook";
 import { getRerender } from "../capabilities/rerender";
 import { $$CONTEXT, $$RERENDER, $$RETURN } from "../capabilities/constants";
 
+/** @internal */
 export function resolveComponentGenerator(
   gen: ComponentGenerator<any>,
   instance: ComponentFiber,
@@ -22,7 +23,8 @@ export function resolveComponentGenerator(
         break;
       }
       case $$CONTEXT: {
-        step = gen.next(instance.ctx.get(descriptor.ctx.id));
+        const { ctx } = descriptor;
+        step = gen.next((instance.ctx.get(ctx.id) ?? ctx).ref.current);
         break;
       }
       case $$RETURN: {

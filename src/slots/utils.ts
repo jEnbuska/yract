@@ -1,27 +1,11 @@
 import type { ElementSlotType, FragmentSlotType, Slot, TextSlotType } from "./slot";
-import { elementSlotType, fragmentSlotType, textSlotType } from "./slot";
 import type { TagNamespace } from "../render/elements/namespaces";
 import { createElement } from "../render/elements/create";
 import { applyElementInitialProps } from "../render/element-props";
 import type { Intent } from "./intent";
 import type { DraftBy } from "../general-types";
 
-export function prepareSlotNodes(
-  intent: Intent<ElementSlotType | TextSlotType | FragmentSlotType>,
-  ns: TagNamespace | undefined,
-): Slot<ElementSlotType | TextSlotType | FragmentSlotType> {
-  switch (intent.type) {
-    case elementSlotType:
-      return toElementSlot(intent, ns!);
-    case textSlotType:
-      return toTextSlot(intent);
-    case fragmentSlotType:
-      return toFragmentSlot(intent);
-    default:
-      throw new Error(`Invalid CREATE kind ${JSON.stringify(intent satisfies never)}`);
-  }
-}
-
+/** @internal */
 export function toTextSlot(intent: Intent<TextSlotType>): Slot<TextSlotType> {
   const text = intent.text;
   intent.headNode = document.createTextNode(text);
@@ -31,6 +15,7 @@ export function toTextSlot(intent: Intent<TextSlotType>): Slot<TextSlotType> {
   > as Slot<TextSlotType>;
 }
 
+/** @internal */
 export function toElementSlot(
   intent: Intent<ElementSlotType>,
   ns: TagNamespace,
@@ -42,6 +27,7 @@ export function toElementSlot(
   return intent as Slot<ElementSlotType>;
 }
 
+/** @internal */
 export function toFragmentSlot(intent: Intent<FragmentSlotType>): Slot<FragmentSlotType> {
   intent.headNode = document.createComment("<Fragment>");
   intent.tailNode = document.createComment("</Fragment>");

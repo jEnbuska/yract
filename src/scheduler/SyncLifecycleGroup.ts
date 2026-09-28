@@ -3,6 +3,7 @@ import type { RenderClock } from "./RenderClock";
 import type { Fiber, FieldSelectionMap, FieldValueMap } from "../instances/types";
 import { SyncFiberGroup } from "./SyncFiberGroup";
 
+/** @internal */
 export class SyncLifecycleGroup {
   readonly name = "SyncGroup";
 

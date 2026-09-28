@@ -3,6 +3,7 @@ import type { RenderClock } from "./RenderClock";
 import type { Fiber, FieldSelectionMap, FieldValueMap } from "../instances/types";
 import { DeferredFiberGroup } from "./DeferredFiberGroup";
 
+/** @internal */
 export class DeferredLifecycleGroup {
   readonly name = "DeferredGroup";
 

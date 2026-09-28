@@ -14,6 +14,7 @@ import type { Fiber } from "./types";
 import type { Scheduler } from "../scheduler/Scheduler";
 import { chunkInserts, foldSubtreeIntoStaging } from "./utils";
 
+/** @internal */
 export class ComponentFiber<TProps extends Record<string, unknown> = Record<string, any>> {
   public readonly ns: TagNamespace;
   public confidentIteration: number;

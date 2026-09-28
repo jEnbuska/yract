@@ -22,26 +22,13 @@ import {
 import { DEPARTMENTS } from "../../../global-state";
 import type { SortDir } from "../../../dos/Table";
 import { PersonTableContext } from "./PersonTable.shared";
+import { filterRowsByCity, filterRowsByDepartment, filterRowsBySearch } from "./utils/misc";
 
 const formatter = new Intl.DateTimeFormat("fi", {
   hour: "2-digit",
   minute: "2-digit",
   second: "2-digit",
 });
-
-export function filterRows(query: string, rows?: PersonRow[]) {
-  query = query.trim();
-  if (!query) return rows;
-  const lower = query
-    .toLowerCase()
-    .split(" ")
-    .map((word) => word.trim())
-    .filter(Boolean);
-  return rows?.filter(({ name, id, department, city }) => {
-    const combined = `${name} ${id} ${department} ${city}`.toLowerCase();
-    return lower.every((word) => combined.includes(word));
-  });
-}
 
 function sortRows(rows: PersonRow[] | undefined, sortDir: SortDir) {
   return rows?.toSorted((a, b) => {
@@ -58,9 +45,13 @@ function sortRows(rows: PersonRow[] | undefined, sortDir: SortDir) {
 type PersonTableProps = {
   rows: Promise<PersonRow[]>;
   search: string;
+  /** Narrow to this city, or `""` for every city. */
+  city: string;
+  /** Narrow to this department, or `""` for every department. */
+  department: string;
 };
 
-export function PersonTable({ rows, search }: PersonTableProps) {
+export function PersonTable({ rows, search, city, department }: PersonTableProps) {
   const [sortDir, setSortDir] = useState<SortDir>("ascending");
   const sortLabel = sortDir === "ascending" ? " ▲" : sortDir === "descending" ? " ▼" : "";
   /*
@@ -71,7 +62,13 @@ export function PersonTable({ rows, search }: PersonTableProps) {
    */
   const deferredRows = useDeferredValue(rows);
   const deferredSearch = useDeferredValue(search);
-  const deferring = deferredRows !== rows || deferredSearch !== search;
+  const deferredCity = useDeferredValue(city);
+  const deferredDepartment = useDeferredValue(department);
+  const deferring =
+    deferredRows !== rows ||
+    deferredSearch !== search ||
+    deferredCity !== city ||
+    deferredDepartment !== department;
   const updateSortDir = useCallback(() => {
     setSortDir((dir) => (dir === "descending" ? "ascending" : "descending"));
   }, []);
@@ -96,7 +93,13 @@ export function PersonTable({ rows, search }: PersonTableProps) {
         </TableRow>
       </TableHead>
       <Suspense fallback={<LoaderTrain label={`Deferred rendering…`} />}>
-        <PersonTableBody rows={deferredRows} search={deferredSearch} sortDir={sortDir} />
+        <PersonTableBody
+          rows={deferredRows}
+          search={deferredSearch}
+          city={deferredCity}
+          department={deferredDepartment}
+          sortDir={sortDir}
+        />
       </Suspense>
     </Table>
   );
@@ -105,12 +108,16 @@ export function PersonTable({ rows, search }: PersonTableProps) {
 type PersonTableBodyProps = {
   rows: Promise<PersonRow[]>;
   search: string;
+  city: string;
+  department: string;
   sortDir: SortDir;
 };
 
 const PersonTableBody = memo(function PersonTableBody({
   rows,
   search,
+  city,
+  department,
   sortDir,
 }: PersonTableBodyProps) {
   /*
@@ -122,7 +129,14 @@ const PersonTableBody = memo(function PersonTableBody({
    * rather than merely wasteful.
    */
   const resolved = use(rows);
-  const filtered = useMemo(() => filterRows(search, resolved) ?? resolved, [search, resolved]);
+  const filtered = useMemo(
+    () =>
+      filterRowsByDepartment(
+        filterRowsByCity(filterRowsBySearch(resolved, search), city, true),
+        department,
+      ),
+    [resolved, search, city, department],
+  );
   const sorted = useMemo(() => sortRows(filtered, sortDir) ?? [], [filtered, sortDir]);
   const mounted = useRef(new Date());
   const renders = useRef(0);

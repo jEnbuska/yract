@@ -1,3 +1,4 @@
+/** @internal */
 export function deriveStableIndexes<Slot extends { index: number }>(
   drafts: ReadonlyMap<string, any>,
   oldSlots: ReadonlyMap<string, Slot>,

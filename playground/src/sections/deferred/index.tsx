@@ -7,15 +7,9 @@ import { PersonFiltering } from "./-components/PersonFiltering";
 import { PersonCount } from "./-components/PersonCount";
 import { PersonHighlight } from "./-components/PersonHighlight";
 import { PersonCityOnly } from "./-components/PersonCityOnly";
-import {
-  NO_HIGHLIGHT,
-  PersonTableContext,
-  type PersonTableSettings,
-  type UpdatePerson,
-} from "./-components/PersonTable.shared";
+import { PersonTableContext } from "./-components/PersonTable.shared";
 import LagSpinner from "./-components/LagSpinner";
 import {
-  filterPersonTableRows,
   filterRowsByCity,
   filterRowsByDepartment,
   filterRowsBySearch,
@@ -35,7 +29,9 @@ export function* DeferredDemo() {
     void setCount(n);
     const { signal } = (controllerRef.current = new AbortController());
     const { resolve } = (resolvable.current = Promise.withResolvers());
-    const rows = await getPersonRows(n, signal);
+    // A newer count aborts this load; its rejection is expected, not an error.
+    const rows = await getPersonRows(n, signal).catch(() => undefined);
+    if (!rows || signal.aborted) return;
     return setRows(rows).then(resolve);
   });
 

@@ -42,6 +42,7 @@ export function* useDefer(
 
 const staticId = "defer";
 
+/** @internal */
 export const DeferContext = createContext<boolean>(false, "Defer");
 DeferContext.id = staticId;
 
@@ -125,6 +126,7 @@ class DeferFiber extends ComponentFiber<DeferProps> {
   }
 }
 
+/** @internal */
 export const Defer = Object.assign(
   function* Defer({ children }: PropsWithChildren) {
     return jsx(Fragment, { children });

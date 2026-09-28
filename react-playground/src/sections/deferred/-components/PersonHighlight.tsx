@@ -1,15 +1,15 @@
-import { Field, FieldDescription, FieldLabel, Select } from "../../../dos";
-import { CITIES } from "../../../global-state";
-import { NO_HIGHLIGHT } from "./PersonTable.shared";
+import { Field, FieldLabel, Select } from "../../../dos";
+import CityOptions from "./CityOptions";
+import type { PersonRow } from "../../../types";
 import { type ChangeEvent, useCallback } from "react";
 
 type OwnProps = {
   highlight: string;
   setHighlight(next: string): unknown;
-  matches: number;
+  rows: PersonRow[] | undefined;
 };
 
-export function PersonHighlight({ highlight, setHighlight, matches }: OwnProps) {
+export function PersonHighlight({ highlight, setHighlight, rows }: OwnProps) {
   const onChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
       setHighlight(e.target.value);
@@ -18,29 +18,16 @@ export function PersonHighlight({ highlight, setHighlight, matches }: OwnProps) 
   );
   return (
     <Field>
-      <FieldLabel id="person-highlight-label">Show only highlighted</FieldLabel>
+      <FieldLabel id="person-highlight-label">Highlight city</FieldLabel>
       <Select
         value={highlight}
         aria-labelledby="person-highlight-label"
         data-testid="highlight-select"
+        name="highligh"
         onChange={onChange}
       >
-        <option value={NO_HIGHLIGHT}>— none —</option>
-        {CITIES.map((city) => (
-          <option key={city} value={city}>
-            {city}
-          </option>
-        ))}
+        <CityOptions rows={rows} />
       </Select>
-      <FieldDescription>
-        {highlight === NO_HIGHLIGHT ? (
-          "Picking a city rerenders every row: React context has no selector."
-        ) : (
-          <>
-            <b data-testid="highlight-matches">{matches}</b> rows match.
-          </>
-        )}
-      </FieldDescription>
     </Field>
   );
 }

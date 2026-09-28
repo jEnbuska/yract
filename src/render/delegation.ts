@@ -24,6 +24,7 @@ const PROP_TO_DOM_EVENT: Record<string, string> = {
  * together with the two TODOs it pairs with: the `addEventListener` third
  * argument in `ensureListener` (`render/element-props.ts`) and the
  * `on*Capture` clause in `EventHandlers` (`jsx-types.ts`).
+ * @internal
  */
 export function resolveEventProp(propKey: string): { domEvent: string } {
   const mapped = PROP_TO_DOM_EVENT[propKey];

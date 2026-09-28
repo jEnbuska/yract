@@ -9,6 +9,7 @@ import { PROPS_REASON } from "../reasons";
 import type { ContextHookState } from "../hooks/context";
 import type { Fiber } from "./types";
 
+/** @internal */
 export class ContextFiber extends ComponentFiber<{ value: unknown }> {
   context: ContextProperties<unknown>;
   subscribers: Set<ContextHookState> = new Set();

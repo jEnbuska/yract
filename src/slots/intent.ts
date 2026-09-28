@@ -43,6 +43,7 @@ import {
   getTextSlotKey,
 } from "./slot-keys";
 
+/** @internal */
 export type Intent<T extends SlotType = SlotType> = T extends SlotType
   ? {
       _key: string | undefined;
@@ -66,7 +67,7 @@ export type Intent<T extends SlotType = SlotType> = T extends SlotType
     }
   : never;
 
-export function arrayAsFragmentIntent(
+function arrayAsFragmentIntent(
   children: ReadonlyArray<Children>,
   key: string,
   index: number,
@@ -94,7 +95,7 @@ export function arrayAsFragmentIntent(
   };
 }
 
-export function asTextIntent(
+function asTextIntent(
   text: string,
   index: number,
   key: string,
@@ -122,8 +123,10 @@ export function asTextIntent(
   };
 }
 
+/** @internal */
 export const emptyChildren: ReadonlyArray<Children> = [];
 
+/** @internal */
 export function getIntentChildren(
   children: Children | ReadonlyArray<Children>,
 ): ReadonlyArray<Children> {
@@ -131,31 +134,31 @@ export function getIntentChildren(
   if (children === undefined) return emptyChildren;
   return [children];
 }
-export function draftToIntent(
+function draftToIntent(
   draft: Draft<ComponentSlotType>,
   key: string,
   index: number,
   parentPath: string,
 ): Intent<ComponentSlotType>;
-export function draftToIntent(
+function draftToIntent(
   draft: Draft<ContextSlotType>,
   key: string,
   index: number,
   parentPath: string,
 ): Intent<ContextSlotType>;
-export function draftToIntent(
+function draftToIntent(
   draft: Draft<ElementSlotType>,
   key: string,
   index: number,
   parentPath: string,
 ): Intent<ElementSlotType>;
-export function draftToIntent(
+function draftToIntent(
   draft: Draft<FragmentSlotType>,
   key: string,
   index: number,
   parentPath: string,
 ): Intent<FragmentSlotType>;
-export function draftToIntent(draft: Draft, key: string, index: number, parentPath: string) {
+function draftToIntent(draft: Draft, key: string, index: number, parentPath: string) {
   const same = draft as any as Intent;
   same.key = key;
   same.path = `${parentPath}/${key}`;
@@ -163,6 +166,7 @@ export function draftToIntent(draft: Draft, key: string, index: number, parentPa
   return same;
 }
 
+/** @internal */
 export function childToIntent(child: Child, index: number, parentPath: string): Intent {
   child ??= "";
   const type = typeof child;
@@ -209,6 +213,7 @@ export function childToIntent(child: Child, index: number, parentPath: string): 
   }
 }
 
+/** @internal */
 export function childrenToIntents(
   children: ReadonlyArray<Children>,
   parentPath: string,
@@ -229,6 +234,7 @@ export function childrenToIntents(
   return intents;
 }
 
+/** @internal */
 export function inheritSlot(draft: Intent, prev: Slot): Slot {
   draft.prevText = prev.text;
   draft.prevProps = prev.props;

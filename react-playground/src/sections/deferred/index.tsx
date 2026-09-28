@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Window, WindowBar, WindowBody } from "../../dos";
-import { PersonTable, filterRows } from "./-components/PersonTable";
+import { PersonTable } from "./-components/PersonTable";
 import { PersonFiltering } from "./-components/PersonFiltering";
 import { PersonCount } from "./-components/PersonCount";
 import { PersonHighlight } from "./-components/PersonHighlight";
+import { PersonCityOnly } from "./-components/PersonCityOnly";
+import { PersonDepartmentRadioGroup } from "./-components/PersonDepartmentRadioGroup";
 import {
   NO_HIGHLIGHT,
   PersonTableContext,
@@ -12,6 +14,11 @@ import {
 } from "./-components/PersonTable.shared";
 import { INITIAL_COUNT, rowsStore } from "./-components/utils/rows-store";
 import LagSpinner from "./-components/LagSpinner";
+import {
+  filterRowsByCity,
+  filterRowsByDepartment,
+  filterRowsBySearch,
+} from "./-components/utils/misc";
 
 /**
  * Memoised so the provider hands down the same object while nothing it carries
@@ -26,6 +33,8 @@ export function DeferredDemo() {
   const [search, setSearch] = useState("");
   const [highlight, setHighlight] = useState<string>(() => localStorage.getItem("highlight") ?? "");
   const [count, setCount] = useState(INITIAL_COUNT);
+  const [cityOnly, setCityOnly] = useState(false);
+  const [department, setDepartment] = useState("");
 
   useEffect(() => {
     localStorage.setItem("highlight", highlight);
@@ -49,14 +58,15 @@ export function DeferredDemo() {
     rowsStore.updatePerson(person);
   }, []);
 
-  // For the labels only. The table filters the rows it resolves, below.
-  const filtered = useMemo(() => filterRows(search, rows), [search, rows]);
-  const highlighted = useMemo(
-    () =>
-      highlight === NO_HIGHLIGHT
-        ? 0
-        : (filtered?.filter((row) => row.city === highlight).length ?? 0),
-    [highlight, filtered],
+  // For the controls' counts and labels only. The table filters the rows it resolves.
+  const filteredBySearch = useMemo(() => filterRowsBySearch(rows, search), [rows, search]);
+  const filteredByCity = useMemo(
+    () => filterRowsByCity(filteredBySearch, highlight, cityOnly),
+    [filteredBySearch, highlight, cityOnly],
+  );
+  const filtered = useMemo(
+    () => filterRowsByDepartment(filteredByCity, department),
+    [filteredByCity, department],
   );
   const settings = useMemo(() => toSettings(updatePerson, highlight), [updatePerson, highlight]);
 
@@ -74,15 +84,28 @@ export function DeferredDemo() {
           <PersonFiltering
             value={search}
             setValue={setSearch}
-            matches={`${filtered?.length ?? 0}/${rows?.length ?? 0}`}
+            matches={`${filtered.length}/${rows?.length ?? 0}`}
           />
-          <PersonHighlight
-            highlight={highlight}
-            setHighlight={setHighlight}
-            matches={highlighted}
+          <div>
+            <PersonHighlight
+              highlight={highlight}
+              setHighlight={setHighlight}
+              rows={filteredBySearch}
+            />
+            <PersonCityOnly cityOnly={cityOnly} setCityOnly={setCityOnly} highlight={highlight} />
+          </div>
+          <PersonDepartmentRadioGroup
+            department={department}
+            setDepartment={setDepartment}
+            rows={filteredByCity}
           />
           <PersonTableContext value={settings}>
-            <PersonTable rows={promise} search={search} />
+            <PersonTable
+              rows={promise}
+              search={search}
+              city={cityOnly ? highlight : NO_HIGHLIGHT}
+              department={department}
+            />
           </PersonTableContext>
         </WindowBody>
       </Window>

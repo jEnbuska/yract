@@ -34,6 +34,7 @@ function getTypedPrev<K extends HookState["type"]>(
 /**
  * Dispatch one hook descriptor, store its persistent state on the instance,
  * and return the value to feed back into `gen.next(...)`.
+ * @internal
  */
 export function processHook(
   descriptor: Exclude<HookDescriptor, { type: `$$${string}` }>,
@@ -100,6 +101,7 @@ export function processHook(
 }
 
 const CLEANUP_SYMBOL = Symbol("CLEANUP");
+/** @internal */
 export function setupSkippedHookCleanups(instance: ComponentFiber, hookIndex: number) {
   const { hookStates } = instance;
   if (!hookStates || hookIndex >= hookStates.length) return;
@@ -130,6 +132,7 @@ export function setupSkippedHookCleanups(instance: ComponentFiber, hookIndex: nu
   };
 }
 
+/** @internal */
 export function unmountHookCleanup(state: HookState) {
   switch (state.type) {
     case $CONTEXT:

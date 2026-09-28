@@ -63,7 +63,7 @@ function isReservedProp(key: string): boolean {
   }
 }
 
-export function isReservedCheckableProp(key: string): boolean {
+function isReservedCheckableProp(key: string): boolean {
   switch (key) {
     case "key":
     case "deps":
@@ -85,18 +85,19 @@ export function isReservedCheckableProp(key: string): boolean {
  */
 function assignStyle(el: AnyElement, style: Record<string, unknown>): void {
   for (const key in style) {
-    if (!key.startsWith("--")) continue;
     const value = style[key];
-    el.style.setProperty(key, value === undefined ? "" : `${value}`);
-  }
-  for (const key in style) {
-    if (key.startsWith("--")) continue;
-    Object.assign(el.style, { [key]: style[key] });
+    if (key.startsWith("--")) {
+      el.style.setProperty(key, value === undefined ? "" : `${value}`);
+      continue;
+    }
+    // Plain assignment, without Object.assign's throwaway object per key.
+    Reflect.set(el.style, key, value);
   }
 }
 
 /** Local shape for the `ref` prop — the universal `VNodeProps` type doesn't
  * declare `ref` (it lives on `HTMLAttributes`/`SVGAttributes` only), so the
+ * @internal
  * runtime accesses it through this lightweight cast. */
 export type ElementRef<T extends AnyElement = AnyElement> = {
   get current(): undefined | T;
@@ -105,6 +106,7 @@ export type ElementRef<T extends AnyElement = AnyElement> = {
 
 // ── Initial mount ───────────────────────────────────────────────────────────
 
+/** @internal */
 export function applyElementInitialProps(
   element: AnyElement,
   props: Record<string, unknown>,
@@ -187,6 +189,7 @@ export function applyElementInitialProps(
  * writes — either a full replace (when prev had no style) or a delta
  * (when both sides had style objects). In the delta form, `""` values
  * clear individual style keys that went away.
+ * @internal
  */
 export interface ElementPatch {
   removeAttrs?: string[];
@@ -233,6 +236,7 @@ function diffStyle(
 /**
  * Walk prev+next props once and return a minimal `ElementPatch`, or `null`
  * when nothing observable changed. No DOM access.
+ * @internal
  */
 export function diffElementProps(
   prevProps: Record<string, unknown>,
@@ -263,12 +267,16 @@ export function diffElementProps(
         continue;
     }
     const next = nextProps[key];
-    if (next != null) continue;
+
     // Next value is not set, so remove it
     if (isEventKey(key)) {
-      (ensure().removeEvents ??= []).push(key);
+      if (typeof next !== "function") {
+        const { domEvent } = resolveEventProp(key);
+        (ensure().removeEvents ??= []).push(domEvent);
+      }
       continue;
     }
+    if (next != null) continue;
     switch (key) {
       case "style": {
         ensure().style = null;
@@ -279,7 +287,7 @@ export function diffElementProps(
         break;
       }
       case "htmlFor": {
-        (ensure().removeAttrs ??= []).push("for");
+        if (prev) (ensure().removeAttrs ??= []).push("for");
         break;
       }
       case "ref": {
@@ -300,7 +308,8 @@ export function diffElementProps(
     if (Object.is(next, prev)) continue;
     if (isEventKey(key)) {
       if (typeof next === "function") {
-        (ensure().setEvents ??= {})[key] = next as ElementEventHandler;
+        const { domEvent } = resolveEventProp(key);
+        (ensure().setEvents ??= {})[domEvent] = next as ElementEventHandler;
       }
       continue;
     }
@@ -310,9 +319,26 @@ export function diffElementProps(
         continue;
       case undefined:
       case null:
-      case false:
-        if (prev) (ensure().removeAttrs ??= []).push(key);
-        continue;
+      case false: {
+        if (prev) {
+          switch (key) {
+            case "style":
+              ensure().style = null;
+              break;
+            case "className":
+              (ensure().removeAttrs ??= []).push("class");
+              break;
+            case "htmlFor":
+              (ensure().removeAttrs ??= []).push("for");
+              break;
+            default: {
+              (ensure().removeAttrs ??= []).push(key);
+              break;
+            }
+          }
+          continue;
+        }
+      }
     }
     switch (key) {
       case "style": {
@@ -328,7 +354,7 @@ export function diffElementProps(
         break;
       }
       case "className": {
-        if (next) (ensure().setAttrs ??= {})["class"] = `${next}`;
+        (ensure().setAttrs ??= {})["class"] = `${next}`;
         break;
       }
       case "htmlFor": {
@@ -377,6 +403,7 @@ function diffValueProps(
   return patch;
 }
 
+/** @internal */
 export function diffAnyElementProps(
   tagName: string,
   prevProps: Record<string, unknown>,
@@ -401,6 +428,7 @@ export function diffAnyElementProps(
  * Apply a pre-computed `ElementPatch` to `el`. No diffing, no `Object.is`,
  * no access to the previous props — the caller has already decided what
  * needs to happen.
+ * @internal
  */
 export function updateElementProps(el: AnyElement, patch: ElementPatch) {
   const isSvgElement = isSvg(el);
@@ -438,6 +466,7 @@ export function updateElementProps(el: AnyElement, patch: ElementPatch) {
   }
 }
 
+/** @internal */
 export function updateElementControlledProps(
   node: AnyElement,
   change: boolean | string,
