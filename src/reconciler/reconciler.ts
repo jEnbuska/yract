@@ -193,7 +193,6 @@ function buildIntentToSlot(
       intent.slots = mount(children, fiber, headNode, headNode, path, ns, ctx);
       const { props } = intent;
       storeFormElementInitialValue(headNode, props, fiber.scheduler);
-
       fiber.uiActions.push(prepareInsert(parentDom, headNode, beforeNode));
       return;
     }
