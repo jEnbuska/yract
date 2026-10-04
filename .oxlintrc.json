@@ -17,7 +17,8 @@
       "warn",
       {
         "argsIgnorePattern": "^_",
-        "varsIgnorePattern": "^_"
+        "varsIgnorePattern": "^_",
+        "fix": { "imports": "safe-fix", "variables": "off" }
       }
     ],
     "typescript/no-base-to-string": "off",

@@ -67,7 +67,7 @@ Each branch gets its own worktree under `.worktrees/feat/` so multiple Claude Co
 - `npm run knip` — Detect dead code, unused exports, and unused dependencies (Knip)
 - `npm run lint` — Lint (oxlint, type-aware)
 - `npm run lint:fix` — Auto-fix lint issues
-- `npm run fix` — Auto-fix lint issues, then format (lint first: `--fix` can leave code needing a reformat)
+- `npm run fix` — Auto-fix lint issues, then format (lint first: `--fix` can leave code needing a reformat). Also removes unused imports: `no-unused-vars` has `fix.imports: "safe-fix"` (side-effect imports like `import "./x"` are kept; unused variables are only reported, never deleted). `lint:fix` runs twice because one pass skips overlapping import removals.
 - `npm run format` — Format (oxfmt)
 - `npm run format:check` — Check formatting without writing
 - `npm test -- <path>` — Run specific test file

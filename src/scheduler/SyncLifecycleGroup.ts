@@ -36,6 +36,10 @@ export class SyncLifecycleGroup {
     this.postCommitGroup.add(fiber);
   }
 
+  cancelCommit(fiber: Fiber) {
+    this.commitsGroup.delete(fiber);
+  }
+
   /** --- Scheduling cancellations ---**/
 
   cancelRender(fiber: Fiber) {

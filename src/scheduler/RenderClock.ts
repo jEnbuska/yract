@@ -10,10 +10,6 @@ export class RenderClock {
     this.#chunkMs = chunkMs;
   }
 
-  onRenderStart() {
-    this.#workYieldDeadline = Date.now() + this.#chunkMs;
-  }
-
   async throttle(): Promise<void> {
     if (Date.now() <= this.#workYieldDeadline) return;
     const { promise, resolve } = createResolvable<unknown>();

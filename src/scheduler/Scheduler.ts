@@ -86,7 +86,7 @@ export class Scheduler {
   }
 
   cancelCommit(fiber: Fiber): void {
-    this.getGroup(fiber.isDeferred()).scheduleCommit(fiber);
+    this.getGroup(fiber.isDeferred()).cancelCommit(fiber);
   }
 
   private run = async (): Promise<void> => {
