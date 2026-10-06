@@ -5,6 +5,7 @@
  */
 import { HTML_NS, MATHML_NS, SVG_NS, type TagNamespace } from "../elements/namespaces";
 import { camelToKebab, SVG_CASED_ATTRS } from "../elements/svg";
+import type { ElementReservedExtraProp } from "./types";
 
 /**
  * The attribute an element carries while a `ref` from `useElementRef` points at it.
@@ -86,7 +87,7 @@ export function isEventKey(key: string): boolean {
  * Props that are never attributes on any element.
  * @internal
  */
-export function isFrameworkProp(key: string): boolean {
+export function isReservedElementProp(key: string): boolean {
   switch (key) {
     case "key":
     case "deps":
@@ -98,40 +99,37 @@ export function isFrameworkProp(key: string): boolean {
 }
 
 /**
- * Framework props plus `value`, for fields whose value is controlled.
  * @internal
  */
-export function isReservedValueProp(key: string): boolean {
-  return key === "value" || isFrameworkProp(key);
-}
-
-/**
- * Framework props plus `checked`, for checkboxes and radios.
- * @internal
- */
-export function isReservedCheckedProp(key: string): boolean {
-  return key === "checked" || isFrameworkProp(key);
-}
-
-/**
- * The props that `el` does not write as attributes. Only HTML form fields
- * control a value (written as a DOM property instead); on every other element
- * `value` and `checked` are ordinary attributes.
- * @internal
- */
-export function reservedPropsFor(
+export function getReservedExtraProp(
   ns: TagNamespace,
-  tagName: string,
-  type: unknown,
-): (key: string) => boolean {
-  if (ns !== HTML_NS) return isFrameworkProp;
-  switch (tagName) {
-    case "input":
-      return type === "checkbox" || type === "radio" ? isReservedCheckedProp : isReservedValueProp;
-    case "select":
+  element: { localName: string; type?: string },
+): ElementReservedExtraProp {
+  if (ns !== HTML_NS) return "";
+  switch (element.localName) {
     case "textarea":
-      return isReservedValueProp;
+    case "select": {
+      return "value";
+    }
+    case "input": {
+      switch (element.type) {
+        case "radio":
+        case "checkbox": {
+          return "checked";
+        }
+        case "file":
+        case "hidden":
+        case "button":
+        case "submit":
+        case "reset":
+        case "image":
+          return "";
+        default: {
+          return "value";
+        }
+      }
+    }
     default:
-      return isFrameworkProp;
+      return "";
   }
 }

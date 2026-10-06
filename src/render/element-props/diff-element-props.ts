@@ -6,45 +6,55 @@
  * `undefined` means "not passed" for attrs, events and style keys: a key set to
  * `undefined` is the same as a missing key, on either side.
  */
-import type { ElementPatch, ElementProps, ElementRef } from "./types";
+import type { ElementPatch, ElementProps, ElementRef, ElementReservedExtraProp } from "./types";
 import { resolveEventProp } from "../delegation";
 import type { ElementEventHandler } from "../elements/events";
 import type { TagNamespace } from "../elements/namespaces";
 import { diffStyle } from "./style";
-import { isEventKey, propKeyTranslator, reservedPropsFor } from "./prop-key";
+import {
+  getReservedExtraProp,
+  isEventKey,
+  isReservedElementProp,
+  propKeyTranslator,
+} from "./prop-key";
 import { createPatch, propsRecord } from "./utils";
 
 /**
  * Diff the props of one element. The single entry point for the reconciler.
  *
- * `reservedPropsFor` decides, exactly as the initial mount does, whether the
+ * ` getReservedExtraProp` decides, exactly as the initial mount does, whether the
  * element controls `value` or `checked`. A controlled prop is left out of the
  * attribute diff and carried in `setControlled` instead.
  * @internal
  */
 export function diffElementProps(
   ns: TagNamespace,
-  tagName: string,
+  element: { localName: string; type?: string },
   prevProps: ElementProps,
   nextProps: ElementProps,
 ): ElementPatch | undefined {
   if (prevProps === nextProps) return undefined;
   const prevRecord = propsRecord(prevProps);
   const nextRecord = propsRecord(nextProps);
-  const isReserved = reservedPropsFor(ns, tagName, nextRecord["type"]);
+  const reservedProp = getReservedExtraProp(ns, element);
   // Removals first, then writes, so both land in one patch.
-  let patch = diffUnsetProps(ns, prevProps, nextProps, isReserved);
-  patch = diffSetProps(ns, prevProps, nextProps, isReserved, patch);
-  if (isReserved("checked")) {
-    const next = Boolean(nextRecord["checked"]);
-    if (next !== Boolean(prevRecord["checked"])) {
-      (patch ??= createPatch(ns)).setControlled = next;
-    }
-  } else if (isReserved("value")) {
-    const next = String(nextRecord["value"] ?? "");
-    if (next !== String(prevRecord["value"] ?? "")) {
-      (patch ??= createPatch(ns)).setControlled = next;
-    }
+  let patch = diffUnsetProps(ns, prevProps, nextProps, reservedProp);
+  patch = diffSetProps(ns, prevProps, nextProps, reservedProp, patch);
+  switch (reservedProp) {
+    case "":
+      break;
+    case "value":
+      const nextValue = String(nextRecord["value"] ?? "");
+      if (nextValue !== String(prevRecord["value"] ?? "")) {
+        (patch ??= createPatch(ns)).setControlled = nextValue;
+      }
+      break;
+    default:
+      const nextChecked = Boolean(nextRecord["checked"]);
+      if (nextChecked !== Boolean(prevRecord["checked"])) {
+        (patch ??= createPatch(ns)).setControlled = nextChecked;
+      }
+      break;
   }
   return patch;
 }
@@ -58,7 +68,7 @@ export function diffUnsetProps(
   ns: TagNamespace,
   prevProps: ElementProps,
   nextProps: ElementProps,
-  isReserved: (key: string) => boolean,
+  reservedProp: ElementReservedExtraProp,
 ): undefined | ElementPatch {
   let patch: ElementPatch | undefined;
   const ensure = (): ElementPatch => (patch ??= createPatch(ns));
@@ -66,7 +76,7 @@ export function diffUnsetProps(
   const prevRecord = propsRecord(prevProps);
   const nextRecord = propsRecord(nextProps);
   for (let key in prevRecord) {
-    if (isReserved(key)) continue;
+    if (key === reservedProp || isReservedElementProp(key)) continue;
     const prev = prevRecord[key];
     switch (prev) {
       case false:
@@ -102,7 +112,7 @@ export function diffSetProps(
   ns: TagNamespace,
   prevProps: ElementProps,
   nextProps: ElementProps,
-  isReserved: (key: string) => boolean,
+  reservedProp: ElementReservedExtraProp,
   patch: ElementPatch | undefined,
 ): ElementPatch | undefined {
   const ensure = (): ElementPatch => (patch ??= createPatch(ns));
@@ -110,7 +120,7 @@ export function diffSetProps(
   const prevRecord = propsRecord(prevProps);
   const nextRecord = propsRecord(nextProps);
   for (const key in nextRecord) {
-    if (isReserved(key)) continue;
+    if (key === reservedProp || isReservedElementProp(key)) continue;
     const next = nextRecord[key];
     const prev = prevRecord[key];
     if (Object.is(next, prev)) continue;

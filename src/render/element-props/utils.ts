@@ -1,5 +1,5 @@
 import type { ElementPatch, ElementProps } from "./types";
-import type { TagNamespace } from "../elements/namespaces";
+import { type TagNamespace } from "../elements/namespaces";
 
 /**
  * Key-by-key view of element props for the diff loops. Element prop types are

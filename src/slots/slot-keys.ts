@@ -22,13 +22,13 @@ function getElementSubKey(draft: Draft<ElementSlotType>) {
   if (draft.element !== "input") return "";
   const p = draft.props as ComponentProps<"input">;
   const type = p.type ?? "text";
-  switch (p.type ?? "text") {
+  switch (type) {
     case "checkbox":
-    case "radio": {
+    case "radio":
       return `${type}"${p.value ?? ""}"`;
-    }
+    default:
+      return type;
   }
-  return "";
 }
 
 const fragmentTypeKey = randomId();

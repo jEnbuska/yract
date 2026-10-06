@@ -67,8 +67,9 @@ export class Root {
     this.container.addEventListener(
       "beforeinput",
       function onBeforeInputCapture(e) {
-        block();
         const target = e.target as HTMLInputElement | HTMLTextAreaElement;
+        if (!valueMap.has(target)) return;
+        block();
         valueMap.set(target, target.value ?? "");
       },
       { capture: true },
@@ -79,6 +80,7 @@ export class Root {
     const { valueMap, selectionMap, scheduler } = this;
     this.container.addEventListener("input", function onChange(e) {
       const target = e.target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+      if (!valueMap.has(target)) return;
       const { type } = target;
       if (type === "radio") {
         restoreRadioGroup(target as HTMLInputElement, valueMap);
@@ -101,6 +103,7 @@ export class Root {
   setupSetSelectStoredValueOnMount() {
     const { valueMap } = this;
     function setSelectsInitialValue(select: HTMLSelectElement) {
+      if (!valueMap.has(select)) return;
       select.value = `${valueMap.get(select)}`;
     }
     const observer = new MutationObserver(function mutationCallback(mutations) {

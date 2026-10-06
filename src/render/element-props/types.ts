@@ -42,3 +42,5 @@ export type ElementRef<T extends AnyElement = AnyElement> = {
   get current(): undefined | T;
   identifier: string;
 };
+
+export type ElementReservedExtraProp = "value" | "checked" | "";

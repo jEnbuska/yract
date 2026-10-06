@@ -5,59 +5,79 @@ import {
   diffSetProps,
   diffUnsetProps,
 } from "../../render/element-props/diff-element-props";
-import { isReservedValueProp } from "../../render/element-props/prop-key";
 import { untyped } from "../utils/props";
 
 const REF_ATTR = "data-yract-element-ref-id";
 
-/** The removal loop alone, with `value` reserved like a text input. */
+/** The removal loop alone, for a text input. */
 const diffUnset = (prev: Record<string, unknown>, next: Record<string, unknown>) =>
-  diffUnsetProps(HTML_NS, untyped(prev), untyped(next), isReservedValueProp);
+  diffUnsetProps(HTML_NS, untyped(prev), untyped(next), "value");
 
-/** The write loop alone, with `value` reserved like a text input. */
+/** The write loop alone, for a text input. */
 const diffSet = (prev: Record<string, unknown>, next: Record<string, unknown>) =>
-  diffSetProps(HTML_NS, untyped(prev), untyped(next), isReservedValueProp, undefined);
+  diffSetProps(HTML_NS, untyped(prev), untyped(next), "value", undefined);
 
 describe("diffElementProps", () => {
   describe("no-op", () => {
     it("returns undefined for the same props object without walking it", () => {
       const p = { id: "a", onClick: () => {}, style: { color: "red" } };
-      expect(diffElementProps(HTML_NS, "div", p, p)).toBeUndefined();
+      expect(diffElementProps(HTML_NS, { localName: "div" }, p, p)).toBeUndefined();
     });
 
     it("returns undefined when every value is Object.is-equal", () => {
-      expect(diffElementProps(HTML_NS, "div", { id: "a" }, { id: "a" })).toBeUndefined();
-      expect(diffElementProps(HTML_NS, "div", {}, {})).toBeUndefined();
+      expect(
+        diffElementProps(HTML_NS, { localName: "div" }, { id: "a" }, { id: "a" }),
+      ).toBeUndefined();
+      expect(diffElementProps(HTML_NS, { localName: "div" }, {}, {})).toBeUndefined();
     });
 
     it("returns undefined when a key is undefined on one or both sides", () => {
-      expect(diffElementProps(HTML_NS, "div", {}, { title: undefined })).toBeUndefined();
       expect(
-        diffElementProps(HTML_NS, "div", { title: undefined }, { title: undefined }),
+        diffElementProps(HTML_NS, { localName: "div" }, {}, { title: undefined }),
       ).toBeUndefined();
       expect(
-        diffElementProps(HTML_NS, "div", { onClick: undefined }, { onClick: undefined }),
+        diffElementProps(HTML_NS, { localName: "div" }, { title: undefined }, { title: undefined }),
       ).toBeUndefined();
       expect(
-        diffElementProps(HTML_NS, "div", { ref: undefined }, { ref: undefined }),
+        diffElementProps(
+          HTML_NS,
+          { localName: "div" },
+          { onClick: undefined },
+          { onClick: undefined },
+        ),
+      ).toBeUndefined();
+      expect(
+        diffElementProps(HTML_NS, { localName: "div" }, { ref: undefined }, { ref: undefined }),
       ).toBeUndefined();
     });
   });
 
   describe("removals and writes together", () => {
     it("only removes a prop that becomes false, so the element does not keep it", () => {
-      expect(diffElementProps(HTML_NS, "div", { disabled: true }, { disabled: false })).toEqual({
+      expect(
+        diffElementProps(HTML_NS, { localName: "div" }, { disabled: true }, { disabled: false }),
+      ).toEqual({
         ns: HTML_NS,
         removeAttrs: ["disabled"],
       });
       expect(
-        diffElementProps(HTML_NS, "div", { className: "a" }, untyped({ className: false })),
+        diffElementProps(
+          HTML_NS,
+          { localName: "div" },
+          { className: "a" },
+          untyped({ className: false }),
+        ),
       ).toEqual({
         ns: HTML_NS,
         removeAttrs: ["class"],
       });
       expect(
-        diffElementProps(HTML_NS, "div", { htmlFor: "x" }, untyped({ htmlFor: false })),
+        diffElementProps(
+          HTML_NS,
+          { localName: "div" },
+          { htmlFor: "x" },
+          untyped({ htmlFor: false }),
+        ),
       ).toEqual({
         ns: HTML_NS,
         removeAttrs: ["for"],
@@ -66,7 +86,9 @@ describe("diffElementProps", () => {
 
     it("removes an attribute that becomes undefined exactly once", () => {
       // BUG: both diff loops push the key, so it is removed twice.
-      expect(diffElementProps(HTML_NS, "div", { title: "hi" }, { title: undefined })).toEqual({
+      expect(
+        diffElementProps(HTML_NS, { localName: "div" }, { title: "hi" }, { title: undefined }),
+      ).toEqual({
         ns: HTML_NS,
         removeAttrs: ["title"],
       });
@@ -76,7 +98,7 @@ describe("diffElementProps", () => {
       const nextHandler = () => {};
       const patch = diffElementProps(
         HTML_NS,
-        "div",
+        { localName: "div" },
         untyped({
           id: "old",
           title: "will-drop",
@@ -109,7 +131,7 @@ describe("diffElementProps", () => {
       expect(
         diffElementProps(
           HTML_NS,
-          "div",
+          { localName: "div" },
           {},
           untyped({ id: "a", onClick, style, ref: { identifier: "r" } }),
         ),
@@ -125,7 +147,9 @@ describe("diffElementProps", () => {
 
 describe("diffElementProps: controlled values by tag", () => {
   it("carries an input's value in setControlled, not setAttrs", () => {
-    expect(diffElementProps(HTML_NS, "input", { value: "a" }, { value: "b" })).toEqual({
+    expect(
+      diffElementProps(HTML_NS, { localName: "input" }, { value: "a" }, { value: "b" }),
+    ).toEqual({
       ns: HTML_NS,
       setControlled: "b",
     });
@@ -135,7 +159,7 @@ describe("diffElementProps: controlled values by tag", () => {
     expect(
       diffElementProps(
         HTML_NS,
-        "input",
+        { localName: "input", type: "checkbox" },
         { type: "checkbox", checked: false },
         { type: "checkbox", checked: true },
       ),
@@ -143,11 +167,15 @@ describe("diffElementProps: controlled values by tag", () => {
   });
 
   it("controls select and textarea values", () => {
-    expect(diffElementProps(HTML_NS, "select", { value: "a" }, { value: "b" })).toEqual({
+    expect(
+      diffElementProps(HTML_NS, { localName: "select" }, { value: "a" }, { value: "b" }),
+    ).toEqual({
       ns: HTML_NS,
       setControlled: "b",
     });
-    expect(diffElementProps(HTML_NS, "textarea", { value: "a" }, { value: "b" })).toEqual({
+    expect(
+      diffElementProps(HTML_NS, { localName: "textarea" }, { value: "a" }, { value: "b" }),
+    ).toEqual({
       ns: HTML_NS,
       setControlled: "b",
     });
@@ -155,17 +183,26 @@ describe("diffElementProps: controlled values by tag", () => {
 
   it("combines setControlled with other changes", () => {
     expect(
-      diffElementProps(HTML_NS, "input", { value: "a", max: "5" }, { value: "b", max: "9" }),
+      diffElementProps(
+        HTML_NS,
+        { localName: "input" },
+        { value: "a", max: "5" },
+        { value: "b", max: "9" },
+      ),
     ).toEqual({ ns: HTML_NS, setAttrs: { max: "9" }, setControlled: "b" });
   });
 
   it("returns undefined when an unchanged value is the only prop", () => {
-    expect(diffElementProps(HTML_NS, "input", { value: "a" }, { value: "a" })).toBeUndefined();
+    expect(
+      diffElementProps(HTML_NS, { localName: "input" }, { value: "a" }, { value: "a" }),
+    ).toBeUndefined();
   });
 
   it("writes value as an attribute on other elements (progress, meter, option, li)", () => {
     for (const tag of ["progress", "meter", "option", "li"]) {
-      expect(diffElementProps(HTML_NS, tag, untyped({ value: 1 }), untyped({ value: 2 }))).toEqual({
+      expect(
+        diffElementProps(HTML_NS, { localName: tag }, untyped({ value: 1 }), untyped({ value: 2 })),
+      ).toEqual({
         ns: HTML_NS,
         setAttrs: { value: "2" },
       });
@@ -177,7 +214,7 @@ describe("diffElementProps: controlled values by tag", () => {
       expect(
         diffElementProps(
           HTML_NS,
-          "input",
+          { localName: "input", type: "checkbox" },
           { type: "checkbox", value: "on", checked: true },
           { type: "checkbox", value: "yes", checked: true },
         ),
@@ -189,7 +226,7 @@ describe("diffElementProps: controlled values by tag", () => {
       expect(
         diffElementProps(
           HTML_NS,
-          "input",
+          { localName: "input", type: "checkbox" },
           { type: "text", value: "a" },
           { type: "checkbox", checked: true },
         ),
@@ -201,7 +238,7 @@ describe("diffElementProps: controlled values by tag", () => {
       expect(
         diffElementProps(
           HTML_NS,
-          "input",
+          { localName: "input" },
           { type: "checkbox", checked: true },
           { type: "text", value: "a" },
         ),
@@ -209,18 +246,20 @@ describe("diffElementProps: controlled values by tag", () => {
     });
 
     it("makes no patch when value goes from undefined to an empty string", () => {
-      expect(diffElementProps(HTML_NS, "input", {}, { value: "" })).toBeUndefined();
+      expect(diffElementProps(HTML_NS, { localName: "input" }, {}, { value: "" })).toBeUndefined();
     });
 
     it("numbers and their string form are the same controlled value", () => {
-      expect(diffElementProps(HTML_NS, "input", { value: 5 }, { value: "5" })).toBeUndefined();
+      expect(
+        diffElementProps(HTML_NS, { localName: "input" }, { value: 5 }, { value: "5" }),
+      ).toBeUndefined();
     });
 
     it("controls a select's value alongside its other attribute changes", () => {
       expect(
         diffElementProps(
           HTML_NS,
-          "select",
+          { localName: "select" },
           { value: "a", disabled: false },
           { value: "b", disabled: true },
         ),
@@ -229,7 +268,12 @@ describe("diffElementProps: controlled values by tag", () => {
 
     it("controls a textarea's value alongside its other attribute changes", () => {
       expect(
-        diffElementProps(HTML_NS, "textarea", { value: "a", rows: 2 }, { value: "b", rows: 4 }),
+        diffElementProps(
+          HTML_NS,
+          { localName: "textarea" },
+          { value: "a", rows: 2 },
+          { value: "b", rows: 4 },
+        ),
       ).toEqual({ ns: HTML_NS, setAttrs: { rows: "4" }, setControlled: "b" });
     });
 
@@ -237,7 +281,7 @@ describe("diffElementProps: controlled values by tag", () => {
       // Outside <foreignObject>, <input> inside <svg> is an unknown SVG element.
       const valuePatch = diffElementProps(
         SVG_NS,
-        "input",
+        { localName: "input" },
         untyped({ value: "a" }),
         untyped({ value: "b" }),
       );
@@ -245,7 +289,7 @@ describe("diffElementProps: controlled values by tag", () => {
       expect(
         diffElementProps(
           SVG_NS,
-          "input",
+          { localName: "input" },
           untyped({ type: "checkbox", checked: false }),
           untyped({ type: "checkbox", checked: true }),
         ),
@@ -255,7 +299,12 @@ describe("diffElementProps: controlled values by tag", () => {
     it("writes value as a plain attribute on non-form elements (SVG <g>)", () => {
       // Same root cause as the <progress>/<li> case above: value is reserved everywhere.
       expect(
-        diffElementProps(SVG_NS, "g", untyped({ value: "a" }), untyped({ value: "b" })),
+        diffElementProps(
+          SVG_NS,
+          { localName: "g" },
+          untyped({ value: "a" }),
+          untyped({ value: "b" }),
+        ),
       ).toEqual({ ns: SVG_NS, setAttrs: { value: "b" } });
     });
   });
@@ -386,7 +435,7 @@ describe("diffUnsetProps", () => {
         SVG_NS,
         untyped({ strokeWidth: 2, viewBox: "0 0 1 1", href: "#a" }),
         {},
-        isReservedValueProp,
+        "value",
       ),
     ).toEqual({ ns: SVG_NS, removeAttrs: ["stroke-width", "viewBox", "href"] });
   });
@@ -584,7 +633,7 @@ describe("diffSetProps", () => {
   });
 
   it("adds to the patch it is given", () => {
-    const patch = diffSetProps(HTML_NS, {}, { id: "a" }, isReservedValueProp, {
+    const patch = diffSetProps(HTML_NS, {}, { id: "a" }, "value", {
       ns: HTML_NS,
       removeAttrs: ["title"],
     });
@@ -612,7 +661,7 @@ describe("diffSetProps", () => {
           MATHML_NS,
           {},
           untyped({ className: "m", displaystyle: "true" }),
-          isReservedValueProp,
+          "value",
           undefined,
         ),
       ).toEqual({ ns: MATHML_NS, setAttrs: { class: "m", displaystyle: "true" } });
@@ -630,7 +679,7 @@ describe("diffSetProps", () => {
             className: "c",
             "aria-label": "x",
           }),
-          isReservedValueProp,
+          "value",
           undefined,
         ),
       ).toEqual({

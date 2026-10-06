@@ -5,7 +5,7 @@
  */
 import type { AnyElement } from "../elements/namespaces";
 import { nodeNameSpace } from "../elements/namespaces";
-import { reservedPropsFor } from "./prop-key";
+import { getReservedExtraProp } from "./prop-key";
 import { propsRecord } from "./utils";
 import { registerElementEvent, unRegisterElementEvent } from "../elements/events";
 import type { ElementPatch, ElementProps } from "./types";
@@ -22,15 +22,23 @@ import { diffSetProps } from "./diff-element-props";
  */
 export function applyElementInitialProps(element: AnyElement, props: ElementProps): void {
   const record = propsRecord(props);
-  const isReserved = reservedPropsFor(nodeNameSpace(element), element.localName, record["type"]);
-  const patch = diffSetProps(nodeNameSpace(element), {}, props, isReserved, undefined);
+  const type = record["type"] as string | undefined;
+  const reservedProp = getReservedExtraProp(nodeNameSpace(element), {
+    localName: element.localName,
+    type,
+  });
+  const patch = diffSetProps(nodeNameSpace(element), {}, props, reservedProp, undefined);
   if (patch) updateElementProps(element, patch);
-  // Controlled values are DOM properties, written after the attributes they are clamped against.
-  if (isReserved("value") && "value" in record) {
-    (element as HTMLInputElement).value = `${record["value"] ?? ""}`;
-  }
-  if (isReserved("checked") && "checked" in record) {
-    (element as HTMLInputElement).checked = Boolean(record["checked"]);
+  switch (reservedProp) {
+    case "":
+      break;
+    case "value":
+      (element as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement).value =
+        `${record["value"] ?? ""}`;
+      break;
+    default:
+      (element as HTMLInputElement).checked = Boolean(record["checked"]);
+      break;
   }
 }
 

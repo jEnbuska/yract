@@ -7,7 +7,6 @@
  * the listener closes over a mutable `wrapper` and only `wrapper.current` moves.
  */
 import { getOrInsert, getOrInsertComputed } from "../../general";
-import { resolveEventProp } from "../delegation";
 import type { AnyElement } from "./namespaces";
 
 /**
@@ -60,10 +59,9 @@ function ensureListener(el: AnyElement, domEvent: string, wrapper: ListenerWrapp
 }
 
 /** @internal */
-export function unRegisterElementEvent(el: AnyElement, propKey: string): void {
+export function unRegisterElementEvent(el: AnyElement, domEvent: string): void {
   const map = getOrInsertComputed(elementEventMaps, el, () => new Map<string, ListenerWrapper>());
-  const wrapper = getOrInsert(map, propKey, { current: undefined, initialized: false });
-  const { domEvent } = resolveEventProp(propKey);
+  const wrapper = getOrInsert(map, domEvent, { current: undefined, initialized: false });
   wrapper.current = undefined;
   ensureListener(el, domEvent, wrapper);
 }

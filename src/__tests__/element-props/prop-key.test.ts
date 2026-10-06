@@ -1,13 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { HTML_NS, MATHML_NS, SVG_NS } from "../../render/elements/namespaces";
 import {
+  getReservedExtraProp,
   isEventKey,
-  isFrameworkProp,
-  isReservedCheckedProp,
-  isReservedValueProp,
   propKeyTranslator,
   REF_ATTR,
-  reservedPropsFor,
 } from "../../render/element-props/prop-key";
 
 describe("propKeyTranslator", () => {
@@ -83,43 +80,31 @@ describe("isEventKey", () => {
   });
 });
 
-describe("reservedPropsFor", () => {
+describe("getReservedExtraProp", () => {
   it("reserves value on HTML text inputs, select and textarea", () => {
-    expect(reservedPropsFor(HTML_NS, "input", "text")).toBe(isReservedValueProp);
-    expect(reservedPropsFor(HTML_NS, "input", undefined)).toBe(isReservedValueProp);
-    expect(reservedPropsFor(HTML_NS, "select", undefined)).toBe(isReservedValueProp);
-    expect(reservedPropsFor(HTML_NS, "textarea", undefined)).toBe(isReservedValueProp);
+    for (const [localName, type] of [
+      ["input", "text"],
+      ["input", undefined],
+      ["select"],
+      ["textarea"],
+    ] as const) {
+      expect(getReservedExtraProp(HTML_NS, { localName, type })).toBe("value");
+    }
   });
 
   it("reserves checked on HTML checkboxes and radios", () => {
-    expect(reservedPropsFor(HTML_NS, "input", "checkbox")).toBe(isReservedCheckedProp);
-    expect(reservedPropsFor(HTML_NS, "input", "radio")).toBe(isReservedCheckedProp);
+    expect(getReservedExtraProp(HTML_NS, { localName: "input", type: "checkbox" })).toBe("checked");
+    expect(getReservedExtraProp(HTML_NS, { localName: "input", type: "radio" })).toBe("checked");
   });
 
-  it("reserves only framework props everywhere else", () => {
-    for (const tag of ["progress", "meter", "option", "li", "button", "div"]) {
-      expect(reservedPropsFor(HTML_NS, tag, undefined)).toBe(isFrameworkProp);
+  it("reserves only key, deps and children everywhere else", () => {
+    for (const localName of ["progress", "meter", "option", "li", "button", "div"]) {
+      expect(getReservedExtraProp(HTML_NS, { localName })).toBe("");
     }
   });
 
   it("never controls values outside HTML, even for an element named input", () => {
-    expect(reservedPropsFor(SVG_NS, "input", "text")).toBe(isFrameworkProp);
-    expect(reservedPropsFor(MATHML_NS, "input", "checkbox")).toBe(isFrameworkProp);
-  });
-});
-
-describe("reserved-prop predicates", () => {
-  it("framework props are key, deps and children", () => {
-    for (const key of ["key", "deps", "children"]) expect(isFrameworkProp(key)).toBe(true);
-    for (const key of ["value", "checked", "id"]) expect(isFrameworkProp(key)).toBe(false);
-  });
-
-  it("the value and checked variants add exactly their controlled prop", () => {
-    expect(isReservedValueProp("value")).toBe(true);
-    expect(isReservedValueProp("checked")).toBe(false);
-    expect(isReservedCheckedProp("checked")).toBe(true);
-    expect(isReservedCheckedProp("value")).toBe(false);
-    expect(isReservedValueProp("key")).toBe(true);
-    expect(isReservedCheckedProp("deps")).toBe(true);
+    expect(getReservedExtraProp(SVG_NS, { localName: "input" })).toBe("");
+    expect(getReservedExtraProp(MATHML_NS, { localName: "input" })).toBe("");
   });
 });

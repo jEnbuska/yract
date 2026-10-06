@@ -1,4 +1,4 @@
-import type { Child, Children, ComponentProps } from "../jsx";
+import type { Child, Children } from "../jsx";
 import type { ComponentSlotType, ContextSlotType, Slot, SlotType } from "../slots/slot";
 import { extendIntentNodes, extendIntentWithInstance } from "../slots/slot";
 import {
@@ -31,6 +31,8 @@ import type { Scheduler } from "../scheduler/Scheduler";
 import { toElementSlot, toFragmentSlot, toTextSlot } from "../slots/utils";
 import { createFiber } from "../instances/utils";
 import { diffElementProps } from "../render/element-props/diff-element-props";
+
+import { getReservedExtraProp } from "../render/element-props/prop-key";
 
 type ReconcileFiber = RequiredBy<Fiber, "uiActions">;
 function prepareFiber(fiber: Fiber): asserts fiber is ReconcileFiber {
@@ -150,7 +152,7 @@ function mountIntent(
       stagingDom.appendChild(headNode);
       ns = nodeNameSpace(headNode);
       intent.slots = mount(children, fiber, headNode, headNode, path, ns, ctx);
-      storeFormElementInitialValue(headNode, props, fiber.scheduler);
+      storeFormElementInitialValue(ns, headNode, props, fiber.scheduler);
       return;
     }
     case fragmentSlotType: {
@@ -194,7 +196,7 @@ function buildIntentToSlot(
       ns = nodeNameSpace(headNode);
       intent.slots = mount(children, fiber, headNode, headNode, path, ns, ctx);
       const { props } = intent;
-      storeFormElementInitialValue(headNode, props, fiber.scheduler);
+      storeFormElementInitialValue(ns, headNode, props, fiber.scheduler);
       fiber.uiActions.push(prepareInsert(parentDom, headNode, beforeNode));
       return;
     }
@@ -234,10 +236,10 @@ function updateSlot<T extends SlotType>(
       return;
     }
     case elementSlotType: {
-      const { headNode, element, children, path, slots, prevProps, props } = slot;
+      const { headNode, children, path, slots, prevProps, props } = slot;
       const ns = nodeNameSpace(headNode);
       slot.slots = reconcile(fiber, children, headNode, path, slots, ns, null, ctx);
-      const patch = diffElementProps(ns, element, prevProps, props);
+      const patch = diffElementProps(ns, headNode, prevProps, props);
       if (patch) fiber.uiActions.push(prepareUpdate(slot, patch));
       return;
     }
@@ -253,33 +255,20 @@ function updateSlot<T extends SlotType>(
 }
 
 function storeFormElementInitialValue(
+  ns: TagNamespace,
   element: AnyElement,
   props: Record<string, unknown>,
   scheduler: Scheduler,
 ) {
-  switch (element.localName) {
-    case "textarea":
-    case "select": {
-      const p = props as ComponentProps<"textarea" | "select">;
-      const value = `${p.value ?? ""}`;
-      scheduler.registerPropsValue(element, value);
+  switch (getReservedExtraProp(ns, element)) {
+    case "":
       break;
-    }
-    case "input": {
-      const p = props as ComponentProps<"input">;
-      const input = element as HTMLInputElement;
-      switch (input.type) {
-        case "radio":
-        case "checkbox": {
-          scheduler.registerPropsValue(element, Boolean(p.checked));
-          break;
-        }
-        default: {
-          scheduler.registerPropsValue(element, `${p.value ?? ""}`);
-          break;
-        }
-      }
-    }
+    case "value":
+      scheduler.registerPropsValue(element, `${(props as { value?: string }).value ?? ""}`);
+      break;
+    default:
+      scheduler.registerPropsValue(element, Boolean((props as { checked?: boolean }).checked));
+      break;
   }
 }
 
