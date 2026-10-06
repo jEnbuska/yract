@@ -22,7 +22,7 @@ import { createPatch, propsRecord } from "./utils";
 /**
  * Diff the props of one element. The single entry point for the reconciler.
  *
- * ` getReservedExtraProp` decides, exactly as the initial mount does, whether the
+ * getReservedExtraProp` decides, exactly as the initial mount does, whether the
  * element controls `value` or `checked`. A controlled prop is left out of the
  * attribute diff and carried in `setControlled` instead.
  * @internal

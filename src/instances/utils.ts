@@ -70,11 +70,11 @@ export function chunkInserts(uiActions: UIAction[] | undefined): undefined | UIA
 /** @internal */
 export function foldSubtreeIntoStaging(fiber: Fiber): void {
   const { instances } = fiber;
-  if (!instances) return;
-  for (const child of instances.values()) {
-    if (child.isDeferred() !== fiber.isDeferred()) continue; // Commits in the other group.
-    foldSubtreeIntoStaging(child);
-    foldIntoStaging(child);
+  if(instances) {
+    for (const child of instances.values()) {
+      if (child.isDeferred() !== fiber.isDeferred()) continue; // Commits in the other group.
+      foldSubtreeIntoStaging(child);
+    }
   }
   foldIntoStaging(fiber);
 }

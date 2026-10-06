@@ -28,13 +28,15 @@ const formatter = new Intl.DateTimeFormat("fi", {
   second: "2-digit",
 });
 
-function sortRows(rows: PersonRow[] | undefined, sortDir: SortDir) {
+function sortRows(rows: PersonRow[] | undefined, sortDir: SortDir, sortProperty: "name" | "city") {
   return rows?.toSorted((a, b) => {
     let cmp: number;
-    if (a.name === b.name) {
+    const aValue = a[sortProperty];
+    const bValue = b[sortProperty];
+    if (aValue == bValue) {
       cmp = Number(a.id) - Number(b.id);
     } else {
-      cmp = a.name.localeCompare(b.name);
+      cmp = aValue.localeCompare(bValue);
     }
     return sortDir === "ascending" ? cmp : -cmp;
   });
@@ -49,7 +51,7 @@ export function* PersonTable({ rows, deferring, Defer }: PersonTableProps) {
   const [sortProperty, setSortProperty] = yield* useState<"name" | "city">("name");
   const [sortDir, setSortDir] = yield* useState<SortDir>("ascending");
   const sortLabel = sortDir === "ascending" ? " ▲" : sortDir === "descending" ? " ▼" : "-";
-  const sortedRows = yield* useMemo(sortRows, [rows, sortDir]);
+  const sortedRows = yield* useMemo(sortRows, [rows, sortDir, sortProperty]);
 
   const updateSortByName = yield* useStable(() => {
     void setSortProperty("name");

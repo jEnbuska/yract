@@ -12,11 +12,7 @@ function* MountInner({ children }: PropsWithChildren) {
   return children as Child;
 }
 
-/**
- * Two component levels between the root and the tree under test. A leaf
- * component directly under a root currently renders nothing (see the pinned
- * `it.fails` in smoke.test.tsx), which would mask what these tests check.
- */
+/** Wraps the tree under test in two component levels, like a typical app. */
 function* MountHost({ children }: PropsWithChildren) {
   return <MountInner>{children}</MountInner>;
 }

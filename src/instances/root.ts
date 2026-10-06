@@ -172,7 +172,6 @@ class RootInstance extends ComponentFiber {
     this.parentDom.appendChild(this.headNode);
     this.parentDom.appendChild(this.tailNode);
     this.scheduler.scheduleRender(this);
-    this.scheduler.schedulePrepareChunk(this);
     this.scheduler.scheduleCommit(this);
   }
   render() {
