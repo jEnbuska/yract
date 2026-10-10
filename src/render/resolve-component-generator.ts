@@ -2,7 +2,7 @@ import type { Child, ComponentGenerator } from "yract";
 import type { ComponentFiber } from "../instances/component-fiber";
 import { processHook, setupSkippedHookCleanups } from "../hooks/process-hook";
 import { getRerender } from "../capabilities/rerender";
-import { $$CONTEXT, $$RERENDER, $$RETURN } from "../capabilities/constants";
+import { $$CONTEXT, $$DEFERRED, $$RERENDER, $$RETURN } from "../capabilities/constants";
 
 /** @internal */
 export function resolveComponentGenerator(
@@ -11,10 +11,6 @@ export function resolveComponentGenerator(
 ): Child {
   let step = gen.next();
   let hookIndex = 0;
-  if (step.done) {
-    setupSkippedHookCleanups(instance, hookIndex);
-    return step.value;
-  }
   while (!step.done) {
     const descriptor = step.value;
     switch (descriptor.type) {
@@ -30,6 +26,10 @@ export function resolveComponentGenerator(
       case $$RETURN: {
         setupSkippedHookCleanups(instance, hookIndex);
         return descriptor.child;
+      }
+      case $$DEFERRED: {
+        step = gen.next(instance.deferred);
+        break;
       }
       default: {
         const result = processHook(descriptor, hookIndex, instance);

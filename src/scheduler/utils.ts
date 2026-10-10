@@ -2,16 +2,19 @@ import type { Fiber, FieldSelectionMap, FieldValueMap } from "../instances/types
 import { stack } from "../instances/utils";
 import { createResolvable } from "../create-resolvable";
 import { applyDomAction } from "../ui-actions/utils";
-import { effectResolver } from "../hooks/effect";
 import { unmountHookCleanup } from "../hooks/process-hook";
 import type { DeferredFiberGroup } from "./DeferredFiberGroup";
 import type { SyncFiberGroup } from "./SyncFiberGroup";
+import { $EFFECT } from "../hooks/constants";
+import { effectResolver } from "../hooks/effect";
 
 /** @internal */
-export function renderFiber(fiber: Fiber, renderIteration: number) {
+export function renderFiber(fiber: Fiber, renderIteration: number, deferred: boolean) {
   try {
     fiber.confidentIteration = renderIteration;
+    fiber.deferred = deferred;
     fiber.render();
+    fiber.deferred = false;
   } catch (cause) {
     throw new Error(
       `Failed to render component ${fiber.component.name} at:${"\n"}${stack(fiber)}`,
@@ -55,11 +58,12 @@ export function handlePostCommit(
     const queue = queues[i]!;
     for (let j = 0; j < queue.length; j++) {
       const fiber = queue[j]!;
-      if (!commitGroup.has(fiber)) continue;
       fiber.unmounted ||= fiber.isUnmounted(renderIteration);
       if (!fiber.unmounted) {
-        fiber.hookStates?.forEach(effectResolver);
-        fiber.postCommitReasons?.clear();
+        if (!fiber.hookStates) continue;
+        for (const hookState of fiber.hookStates) {
+          if (hookState.type === $EFFECT) effectResolver(hookState);
+        }
         continue;
       }
       fiber.hookStates?.forEach(unmountHookCleanup);

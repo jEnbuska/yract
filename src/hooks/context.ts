@@ -1,9 +1,10 @@
 import type { Context } from "../context";
 import type { ComponentFiber } from "../instances/component-fiber";
-import type { ContextHookDescriptor } from "./types";
-import { createContextReason } from "../reasons";
+import type { ContextHookDescriptor } from "./hook-descriptors";
 import { depsChanged } from "../general";
 import { $CONTEXT } from "./constants";
+
+import type { ContextHookState } from "./hook-states";
 
 const defaultSelector = (value: unknown): unknown[] => [value];
 
@@ -41,24 +42,6 @@ export function* useContext<T, D extends unknown[], R>(
   return value as T | R;
 }
 
-/** @internal */
-export interface ContextHookState<T = unknown, D = T> {
-  type: typeof $CONTEXT;
-  /** Unique symbol this hook uses when scheduling/unscheduling the instance. */
-  reason: symbol;
-  ctx: Context<T>;
-  depsSelector: (ctx: unknown) => unknown[];
-  transform?: (state: T, ...args: unknown[]) => D;
-  /** Selected deps at the time of the most recent successful render. */
-  lastRenderedDepsSelected: unknown[];
-  /** Selected deps observed by the subscribe callback since the last render. */
-  currentSelected: unknown[];
-  lastTransformResult?: unknown;
-  unsubscribe?: () => void;
-  version: number;
-  callback?: () => void;
-}
-
 /**
  * Build or refresh a ContextHookState for one `context` call.
  *
@@ -74,7 +57,7 @@ export interface ContextHookState<T = unknown, D = T> {
  * @internal
  */
 export function processContext(
-  instance: ComponentFiber,
+  fiber: ComponentFiber,
   descriptor: ContextHookDescriptor,
   prev: ContextHookState | undefined,
 ): ContextHookState {
@@ -93,35 +76,29 @@ export function processContext(
     prev.transform = descriptor.transform;
     return prev;
   }
-  const handle = instance.ctx.get(descriptor.ctx.id);
+  const { scheduler } = fiber;
+  const handle = fiber.ctx.get(descriptor.ctx.id);
   const state: ContextHookState = {
     type: $CONTEXT,
     version: handle?.version ?? -1,
-    reason: createContextReason(),
     ctx: descriptor.ctx,
     depsSelector: selector,
     transform: descriptor.transform,
     lastRenderedDepsSelected: [],
     currentSelected: [],
     callback: () => {
-      const current = state.depsSelector(handle!.ref.current);
-      if (!depsChanged(state.lastRenderedDepsSelected, current)) {
-        instance.cancelRender(state.reason);
-      } else {
-        state.currentSelected = current;
-        instance.scheduleRender(state.reason);
-      }
+      state.currentSelected = state.depsSelector(handle!.ref.current);
+      scheduler.scheduleRender(fiber, handle?.fiber?.deferred);
     },
   };
 
   if (!handle) return state;
-
   const initialSelected = state.depsSelector(handle.ref.current);
   state.lastRenderedDepsSelected = initialSelected;
   state.currentSelected = initialSelected;
   if (state.transform) {
     state.lastTransformResult = state.transform(
-      instance.ctx.get(descriptor.ctx.id),
+      fiber.ctx.get(descriptor.ctx.id),
       ...initialSelected,
     );
   } else {

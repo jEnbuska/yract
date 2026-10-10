@@ -1,8 +1,8 @@
 /**
  * Loaders — one for each thing you might know about the wait.
  *
- * `LoaderTrain` when you do not know the total, `Clock` for a dial you point
- * yourself.
+ * `LoaderTrain` when you do not know the total, `Spinner` for a wait too small
+ * for a bar, `Clock` for a dial you point yourself.
  */
 import type { CSSProperties, ComponentProps } from "react";
 
@@ -17,6 +17,19 @@ export interface LoaderTrainProps extends ComponentProps<"div"> {
  */
 export function LoaderTrain({ label, ...rest }: LoaderTrainProps) {
   return <div {...rest} className="dos-loader-train" role="progressbar" aria-label={label} />;
+}
+
+export interface SpinnerProps extends ComponentProps<"span"> {
+  /** What is being waited on. Announced instead of the spinning glyph. */
+  label: string;
+}
+
+/**
+ * Inline text-mode spinner, cycling `| / - \` in place of one character.
+ * Sits beside text, so the glyph is hidden and the label is announced instead.
+ */
+export function Spinner({ label, ...rest }: SpinnerProps) {
+  return <span {...rest} className="dos-spinner" role="status" aria-label={label} />;
 }
 
 export interface ClockTail {

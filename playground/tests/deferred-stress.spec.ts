@@ -75,13 +75,11 @@ async function pickDepartment(page: Page, department: string) {
 }
 
 test.describe("Deferred table under stress", () => {
-  test.slow();
-
   // BUG (intermittent, Chromium): keystrokes typed while a filter render is still
   // pending are lost ("alice berlin" → "a berlin"). The input restore writes the
   // last *committed* value back, so the next keystroke lands on stale text.
   // `fixme` rather than `fail` because it does not reproduce on every run.
-  test.fixme("typing faster than the table renders ends on the final query", async ({ page }) => {
+  test("typing faster than the table renders ends on the final query", async ({ page }) => {
     const errors = await goToDemo(page);
     const search = page.getByPlaceholder("Name, city, department, id...");
     await search.pressSequentially("alice berl", { delay: 5 });
@@ -95,7 +93,7 @@ test.describe("Deferred table under stress", () => {
   });
 
   // BUG (intermittent): same lost-keystroke race as above.
-  test.fixme("typing while the rows are still loading", async ({ page }) => {
+  test("typing while the rows are still loading", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto("/");
@@ -114,9 +112,11 @@ test.describe("Deferred table under stress", () => {
       await slider.fill(count);
       await slider.dispatchEvent("click");
     }
-    await expect.poll(() => dataRowCount(page), { timeout: READY }).toBe(800);
+    // Loads are async and only the last one counts: first wait until the 800
+    // rows are stored (the label's total), then until they are rendered.
+    await expect.poll(async () => (await readMatches(page))?.total, { timeout: READY }).toBe(800);
     await expectConsistent(page);
-    expect((await readMatches(page))?.total).toBe(800);
+    expect(await dataRowCount(page)).toBe(800);
     expect(errors).toEqual([]);
   });
 

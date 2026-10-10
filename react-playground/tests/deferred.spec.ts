@@ -29,8 +29,6 @@ function readRows(page: Page) {
 }
 
 test.describe("Deferred table (React)", () => {
-  test.slow();
-
   test("suspends, then mounts every row", async ({ page }) => {
     await goToDemo(page);
     const rows = await readRows(page);

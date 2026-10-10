@@ -13,11 +13,8 @@ export class DeferredLifecycleGroup {
   readonly postCommitGroup = new DeferredFiberGroup(-1);
   protected renderClock: RenderClock;
 
-  private readonly shouldExit: () => boolean;
-
-  constructor(renderClock: RenderClock, shouldExit: () => boolean) {
+  constructor(renderClock: RenderClock) {
     this.renderClock = renderClock;
-    this.shouldExit = shouldExit;
   }
 
   scheduleRender(fiber: Fiber) {
@@ -63,10 +60,8 @@ export class DeferredLifecycleGroup {
         const fiber = rendersGroup.pop();
         fiber.unmounted ||= fiber?.isUnmounted(renderClock.renderIteration);
         if (fiber.unmounted) continue;
-        renderFiber(fiber, renderClock.renderIteration);
-        if (!renderClock.shouldThrottle()) continue;
+        renderFiber(fiber, renderClock.renderIteration, true);
         await renderClock.throttle();
-        if (this.shouldExit()) return;
       }
       rendersGroup.clear();
     } finally {

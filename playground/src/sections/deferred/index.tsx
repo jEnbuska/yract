@@ -8,7 +8,6 @@ import { PersonCount } from "./-components/PersonCount";
 import { PersonHighlight } from "./-components/PersonHighlight";
 import { PersonCityOnly } from "./-components/PersonCityOnly";
 import { PersonTableContext } from "./-components/PersonTable.shared";
-import LagSpinner from "./-components/LagSpinner";
 import {
   filterRowsByCity,
   filterRowsByDepartment,
@@ -16,10 +15,10 @@ import {
   toPersonTableContext,
 } from "./-components/utils/misc";
 import { PersonDepartmentRadioGroup } from "./-components/PersonDepartmentRadioGroup";
+import LagSpinner from "./-components/LagSpinner";
 
 export function* DeferredDemo() {
   const [search, setSearch] = yield* useState("");
-  const resolvable = yield* useRef<PromiseWithResolvers<void> | undefined>(undefined);
   const [count, setCount] = yield* useState(6000);
   const [department, setDepartment] = yield* useState("");
   const controllerRef = yield* useRef(new AbortController());
@@ -28,11 +27,10 @@ export function* DeferredDemo() {
     controllerRef.current.abort();
     void setCount(n);
     const { signal } = (controllerRef.current = new AbortController());
-    const { resolve } = (resolvable.current = Promise.withResolvers());
     // A newer count aborts this load; its rejection is expected, not an error.
     const rows = await getPersonRows(n, signal).catch(() => undefined);
     if (!rows || signal.aborted) return;
-    return setRows(rows).then(resolve);
+    return setRows(rows);
   });
 
   const [highlight, setHighlight] = yield* useState<string>(
@@ -55,29 +53,26 @@ export function* DeferredDemo() {
 
   const filtered = yield* useMemo(filterRowsByDepartment, [filteredByCity, department]);
 
+  const [deferredRows, isDeferring] = yield* useDefer(filtered, [filtered]);
   const updatePerson = yield* useStable(async (person: PersonRow) => {
     const index = rows!.findIndex((row) => row.id === person.id);
     if (index === -1) return;
     void setRows([...rows!.slice(0, index), person, ...rows!.slice(index + 1)]);
   });
+
   const settings = yield* useMemo(toPersonTableContext, [updatePerson, highlight]);
-
-  const [Defer, deferring] = yield* useDefer();
-
   return (
     <div className="dos-split">
       <Window>
         <WindowBar title="Defer Table" aside="/deferred" />
         <WindowBody>
           <h2>Deferred Table ({count} rows)</h2>
-          <PersonCount count={count} updateCount={updateCount} loading={deferring || !rows} />
+          <PersonCount count={count} updateCount={updateCount} loading={!rows} />
           <PersonFiltering
             value={search}
             setValue={setSearch}
             matches={
-              rows
-                ? `${deferring ? "?" : filtered!.length}/${rows.length}`
-                : `${search ? "?" : count}/${count}`
+              rows ? `${filtered!.length}/${rows.length}` : `${search ? "?" : count}/${count}`
             }
           />
           <div>
@@ -94,7 +89,7 @@ export function* DeferredDemo() {
             rows={filteredByCity}
           />
           <PersonTableContext value={settings}>
-            <PersonTable rows={filtered} deferring={deferring} Defer={Defer} />
+            <PersonTable rows={deferredRows} isDeferring={isDeferring} />
           </PersonTableContext>
         </WindowBody>
       </Window>

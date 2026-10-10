@@ -13,9 +13,9 @@ export function toPersonTableContext(
   return { updatePerson, highlight };
 }
 
-export function filterRowsBySearch(rows: PersonRow[] = [], query: string) {
+export function filterRowsBySearch(rows: PersonRow[] | undefined, query: string) {
   query = query.trim();
-  if (!query) return rows;
+  if (!query || !rows) return rows;
   const lower = query
     .toLowerCase()
     .split(" ")
@@ -27,13 +27,17 @@ export function filterRowsBySearch(rows: PersonRow[] = [], query: string) {
   });
 }
 
-export function filterRowsByCity(rows: PersonRow[] = [], city: string, onlyMatches: boolean) {
-  if (city && onlyMatches) return rows.filter((row) => row.city === city);
+export function filterRowsByCity(
+  rows: PersonRow[] | undefined,
+  city: string,
+  onlyMatches: boolean,
+) {
+  if (city && onlyMatches) return rows?.filter((row) => row.city === city);
   return rows;
 }
 
-export function filterRowsByDepartment(rows: PersonRow[] = [], department: string) {
-  if (department) return rows.filter((row) => row.department === department);
+export function filterRowsByDepartment(rows: PersonRow[] | undefined, department: string) {
+  if (department) return rows?.filter((row) => row.department === department);
   return rows;
 }
 

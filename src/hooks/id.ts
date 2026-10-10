@@ -1,6 +1,6 @@
-import type { IdHookState } from "../render/types";
-import { type IdHookDescriptor } from "./types";
+import { type IdHookDescriptor } from "./hook-descriptors";
 import { $ID } from "./constants";
+import type { IdHookState } from "./hook-states";
 
 let idCounter = 0;
 

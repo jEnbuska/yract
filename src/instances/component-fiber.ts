@@ -1,18 +1,16 @@
-import { resolveContext } from "../context";
 import type { Component } from "../jsx";
-import type { ContextMap, HookState } from "../render/types";
+import type { ContextMap } from "../render/types";
 import { mountFiber, reconcilerFiber } from "../reconciler/reconciler";
-import { PROPS_REASON } from "../reasons";
 import type { ComponentSlotType, ContextSlotType, Slot } from "../slots/slot";
 import type { TagNamespace } from "../render/elements/namespaces";
 import type { DependencyList, DraftBy } from "../general-types";
 import { depsChanged, shallowEqual, stripFrameworkProps } from "../general";
-import { DeferContext } from "../hooks/defer";
 import { resolveComponentGenerator } from "../render/resolve-component-generator";
 import type { UIAction } from "../ui-actions/types";
 import type { Fiber } from "./types";
 import type { Scheduler } from "../scheduler/Scheduler";
 import { chunkInserts, foldSubtreeIntoStaging } from "./utils";
+import type { HookState } from "../hooks/hook-states";
 
 /** @internal */
 export class ComponentFiber<TProps extends Record<string, unknown> = Record<string, any>> {
@@ -27,15 +25,13 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
   ctx: ContextMap;
   readonly scheduler: Scheduler;
   instances?: Map<string, Fiber> = undefined;
+  deferred: boolean = false;
   prevInstances?: Map<string, Fiber> = undefined;
   hookStates?: HookState[] = undefined;
-  renderReasons?: Set<symbol> = undefined;
-  resolveReasons?: Set<symbol> = undefined;
-  postCommitReasons?: Set<symbol> = undefined;
   slot?: Slot = undefined;
   pendingSlot?: Slot = undefined;
   protected props: TProps;
-  protected propsPrepared = false;
+  protected preparedProps: TProps | undefined = undefined;
   readonly headNode: Comment;
   readonly tailNode: Comment;
   deps?: DependencyList;
@@ -64,65 +60,25 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     this.confidentIteration = scheduler.renderIteration;
   }
 
-  isDeferred() {
-    return resolveContext(this.ctx, DeferContext);
-  }
-
-  scheduleRender(reason: symbol): void {
-    (this.renderReasons ??= new Set<symbol>()).add(reason);
-    this.scheduler.scheduleRender(this);
-  }
-
-  cancelRender(reason: symbol): void {
-    const { renderReasons } = this;
-    if (!renderReasons?.delete(reason)) return;
-    if (!renderReasons.size) {
-      this.scheduler.cancelRender(this);
-    }
-  }
-
-  scheduleStateResolve(reason: symbol): void {
-    if (this.resolveReasons?.has(reason)) return;
-    (this.resolveReasons ??= new Set()).add(reason);
-    this.scheduler.scheduleStateResolve(this);
-  }
-
-  cancelStateResolve(reason: symbol): void {
-    const { resolveReasons } = this;
-    resolveReasons?.delete(reason);
-    if (resolveReasons?.size === 0) {
-      this.scheduler.cancelStateResolve(this);
-    }
-  }
-
-  schedulePostCommit(reason: symbol): void {
-    if (this.postCommitReasons?.has(reason)) return;
-    (this.postCommitReasons ??= new Set()).add(reason);
-    this.scheduler.schedulePostCommit(this);
-  }
-
   render() {
-    const { scheduler } = this;
-    if (!this.propsPrepared) {
-      this.props = stripFrameworkProps<any>(this.props);
-      this.propsPrepared = true;
-    }
-    const generator = this.component(this.props);
+    const { scheduler, deferred } = this;
+    const props = (this.preparedProps = stripFrameworkProps<any>(this.props));
+    const generator = this.component(props);
     const child = resolveComponentGenerator(generator, this);
     if (!this.slot) {
       // Not mounted yet
       this.pendingSlot = mountFiber(this, child);
       if (this.parent?.slot) {
         // Parent is mounted
-        scheduler.schedulePrepareChunk(this.parent);
+        scheduler.schedulePrepareChunk(this.parent, deferred /* TODO .. or parent.deferred?*/);
       }
     } else {
       // Is mounted (re-render)
       this.pendingSlot = reconcilerFiber(this, child);
       if (this.uiActions?.length) {
-        scheduler.scheduleCommit(this);
+        scheduler.scheduleCommit(this, deferred);
       } else {
-        scheduler.cancelCommit(this);
+        scheduler.cancelCommit(this, deferred);
       }
     }
     const { prevInstances } = this;
@@ -131,14 +87,13 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
       for (const child of prevInstances.values()) {
         child.unmounted = true;
         if (!this.slot && !this.pendingSlot) {
-          scheduler.cancelRender(child);
+          scheduler.cancelRender(child, deferred);
           continue;
         }
-        scheduler.ensureUnmount(child);
+        scheduler.ensureUnmount(child, deferred);
       }
     }
     this.prevInstances = undefined;
-    this.renderReasons?.clear();
   }
 
   /** Build the new child components subtree of screen, before commit phase.
@@ -149,7 +104,6 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     if (!instances) return;
     for (const child of instances.values()) {
       if (child.slot) continue; // Mounted: its content is live.
-      if (child.isDeferred() !== this.isDeferred()) continue; // Commits in the other group.
       foldSubtreeIntoStaging(child);
     }
   }
@@ -171,15 +125,15 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
       DraftBy<Slot<ComponentSlotType | ContextSlotType>, "instance" | "prevProps">,
       "type"
     >,
-  ): void {
+  ): boolean {
     this.confidentIteration = this.scheduler.renderIteration;
     const { deps } = intent.props;
-    if (!depsChanged(this.deps, deps)) return;
+    if (!depsChanged(this.deps, deps)) return false;
     this.deps = deps;
     const { props } = intent;
-    if (shallowEqual(this.props, props)) return;
+    if (shallowEqual(this.props, props)) return false;
     this.props = props as TProps;
-    this.propsPrepared = false;
-    this.scheduleRender(PROPS_REASON);
+    this.preparedProps = undefined;
+    return true;
   }
 }

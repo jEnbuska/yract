@@ -22,7 +22,7 @@ export function* PersonFiltering({ value, setValue, matches }: OwnProps) {
           value={value}
           name="filter"
           onInput={(e) => {
-            setValue(e.currentTarget.value);
+            setValue(e.currentTarget.value.toLowerCase().replace(/\d/g, ""));
           }}
           placeholder={"Name, city, department, id..."}
         />

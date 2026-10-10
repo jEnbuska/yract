@@ -5,9 +5,8 @@ import type { ContextMap } from "../render/types";
 import type { TagNamespace } from "../render/elements/namespaces";
 import type { ContextProperties } from "../context";
 import { depsChanged } from "../general";
-import { PROPS_REASON } from "../reasons";
-import type { ContextHookState } from "../hooks/context";
 import type { Fiber } from "./types";
+import type { ContextHookState } from "../hooks/hook-states";
 
 /** @internal */
 export class ContextFiber extends ComponentFiber<{ value: unknown }> {
@@ -36,11 +35,11 @@ export class ContextFiber extends ComponentFiber<{ value: unknown }> {
       depth: (parent?.depth ?? -1) + 1,
       id: context.id,
       Provider: context.Provider,
+      fiber: this,
     };
     const extended = new Map(ctx);
     extended.set(context.id, this.context);
     this.ctx = extended;
-    this.propsPrepared = false;
   }
 
   override render() {
@@ -55,11 +54,12 @@ export class ContextFiber extends ComponentFiber<{ value: unknown }> {
 
   override setProps(
     intent: Omit<DraftBy<Slot<ContextSlotType>, "instance" | "prevProps">, "type">,
-  ): void {
+  ): boolean {
     const { deps } = intent.props;
-    if (!depsChanged(this.deps, deps)) return;
+    if (!depsChanged(this.deps, deps)) return false;
     this.deps = deps;
     this.props = intent.props;
-    this.scheduleRender(PROPS_REASON);
+    this.preparedProps = undefined;
+    return true;
   }
 }

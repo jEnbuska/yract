@@ -1,8 +1,8 @@
-import type { StableHookState } from "../render/types";
-import { type StableHookDescriptor } from "./types";
+import { type StableHookDescriptor } from "./hook-descriptors";
 
 import { $STABLE } from "./constants";
 import type { AnyFn, PartialBy } from "../general-types";
+import type { StableHookState } from "./hook-states";
 
 /**
  * Stable-identity function hook.

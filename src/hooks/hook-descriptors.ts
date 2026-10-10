@@ -2,13 +2,14 @@ import type { Context } from "../context";
 import type { DependencyList } from "yract";
 import type {
   $CONTEXT,
+  $DEFERRED,
   $EFFECT,
+  $ELEMENT_REF,
   $ID,
   $MEMO,
   $REF,
   $STABLE,
   $STATE,
-  $ELEMENT_REF,
 } from "./constants";
 import type { AnyFn } from "../general-types";
 
@@ -66,6 +67,13 @@ export interface ContextHookDescriptor {
 }
 
 /** @internal */
+export interface DeferredHookDescriptor<T = unknown> {
+  type: typeof $DEFERRED;
+  value: T;
+  deps?: DependencyList;
+}
+
+/** @internal */
 export type HookDescriptor =
   | StateHookDescriptor
   | RefHookDescriptor
@@ -74,4 +82,5 @@ export type HookDescriptor =
   | MemoHookDescriptor
   | StableHookDescriptor
   | EffectHookDescriptor
-  | ContextHookDescriptor;
+  | ContextHookDescriptor
+  | DeferredHookDescriptor;

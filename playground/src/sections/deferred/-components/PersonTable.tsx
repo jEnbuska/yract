@@ -1,13 +1,5 @@
 import type { PersonRow } from "../../../types";
-import {
-  type Component,
-  type PropsWithChildren,
-  useContext,
-  useMemo,
-  useRef,
-  useStable,
-  useState,
-} from "yract";
+import { useContext, useMemo, useRef, useStable, useState } from "yract";
 import {
   LoaderTrain,
   Select,
@@ -44,10 +36,9 @@ function sortRows(rows: PersonRow[] | undefined, sortDir: SortDir, sortProperty:
 
 type PersonTableProps = {
   rows: PersonRow[] | undefined;
-  Defer: Component<PropsWithChildren>;
-  deferring: boolean;
+  isDeferring: boolean;
 };
-export function* PersonTable({ rows, deferring, Defer }: PersonTableProps) {
+export function* PersonTable({ rows, isDeferring }: PersonTableProps) {
   const [sortProperty, setSortProperty] = yield* useState<"name" | "city">("name");
   const [sortDir, setSortDir] = yield* useState<SortDir>("ascending");
   const sortLabel = sortDir === "ascending" ? " ▲" : sortDir === "descending" ? " ▼" : "-";
@@ -63,13 +54,15 @@ export function* PersonTable({ rows, deferring, Defer }: PersonTableProps) {
     if (sortProperty === "name") void setSortDir("ascending");
     else void setSortDir(sortDir === "ascending" ? "descending" : "ascending");
   });
+
   return (
     <Table
       caption="People by name, department and city"
       columns="1fr 1fr 1fr 1fr 1fr 1fr"
       rowHeight="18.5px"
       data-testid="Defer-table"
-      style={{ maxHeight: "500px", overflowY: "auto", opacity: deferring ? 0.5 : 1 }}
+      data-deferring={isDeferring}
+      style={{ maxHeight: "500px", overflowY: "auto", opacity: isDeferring ? 0.5 : 1 }}
     >
       <TableHead sticky>
         <TableRow>
@@ -92,13 +85,11 @@ export function* PersonTable({ rows, deferring, Defer }: PersonTableProps) {
           <TableHeadCell align="center">Re-renders</TableHeadCell>
         </TableRow>
       </TableHead>
-      <Defer>
-        {!sortedRows ? (
-          <LoaderTrain label={"Deferred rendering…"} />
-        ) : (
-          <PersonTableBody rows={sortedRows} />
-        )}
-      </Defer>
+      {!sortedRows ? (
+        <LoaderTrain label={"Deferred rendering…"} />
+      ) : (
+        <PersonTableBody rows={sortedRows} />
+      )}
     </Table>
   );
 }
@@ -111,12 +102,10 @@ function* PersonTableBody({ rows }: PersonTableBodyProps) {
   const renders = yield* useRef(0);
   renders.current++;
   const updatedAt = new Date();
-
   return (
     <TableBody>
       <TableRow style={{ fontWeight: "bold" }}>
-        <TableCell>{"Table body"}</TableCell>
-        <TableCell>{"-"}</TableCell>
+        <TableCell>{rows.length} rows</TableCell>
         <TableCell>{"-"}</TableCell>
         <TableCell align="center">
           {formatter.format(mounted.current)},<i>{mounted.current.getMilliseconds()}</i>
@@ -124,10 +113,10 @@ function* PersonTableBody({ rows }: PersonTableBodyProps) {
         <TableCell align="center">
           {formatter.format(updatedAt)},<i>{updatedAt.getMilliseconds()}</i>
         </TableCell>
+        <TableCell align="center">-</TableCell>
         <TableCell align="center">{renders.current}</TableCell>
       </TableRow>
-
-      {rows!.map((row) => (
+      {rows.map((row) => (
         <PersonTableRow key={row.id} row={row} deps={[row]} />
       ))}
     </TableBody>

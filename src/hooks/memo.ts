@@ -1,8 +1,8 @@
-import type { MemoHookState } from "../render/types";
-import type { MemoHookDescriptor } from "./types";
+import type { MemoHookDescriptor } from "./hook-descriptors";
 import { depsChanged } from "../general";
 import { $MEMO } from "./constants";
 import type { DependencyList } from "../general-types";
+import type { MemoHookState } from "./hook-states";
 
 /**
  * Memoized value hook. Re-computes only when deps change.

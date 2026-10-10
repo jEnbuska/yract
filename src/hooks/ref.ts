@@ -1,6 +1,6 @@
-import type { RefHookState } from "../render/types";
-import { type RefHookDescriptor } from "./types";
+import { type RefHookDescriptor } from "./hook-descriptors";
 import { $REF } from "./constants";
+import type { RefHookState } from "./hook-states";
 
 /**
  * A mutable ref object whose `.current` persists across re-renders.

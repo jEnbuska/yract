@@ -1,5 +1,5 @@
 import type { Child } from "./jsx";
-import type { HookDescriptor } from "./hooks/types";
+import type { HookDescriptor } from "./hooks/hook-descriptors";
 import type { CapabilityDescriptor } from "./capabilities/types";
 
 /** @internal */

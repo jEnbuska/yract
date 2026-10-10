@@ -1,5 +1,6 @@
 import { Field, FieldDescription, FieldLabel, Range } from "../../../dos";
 import { useStable, useState } from "yract";
+import { Spinner } from "../../../dos/Loader";
 
 type OwnProps = {
   count: number;
@@ -7,10 +8,13 @@ type OwnProps = {
   loading: boolean;
 };
 
-export function* PersonCount({ count, updateCount, loading }: OwnProps) {
+export function* PersonCount({ count, updateCount }: OwnProps) {
   const [state, setState] = yield* useState(count, [count]);
-  const onClick = yield* useStable(() => {
-    void updateCount(state);
+  const [loading, setLoading] = yield* useState(false);
+  const onClick = yield* useStable(async () => {
+    void setLoading(true);
+    await updateCount(state);
+    void setLoading(false);
   });
   return (
     <Field>
@@ -25,7 +29,7 @@ export function* PersonCount({ count, updateCount, loading }: OwnProps) {
         onClick={onClick}
       />
       <FieldDescription>
-        {loading ? "Loading" : "Idle"} <b>({state})</b>
+        <b>({state})</b> {loading && <Spinner label={"Loading rows"} />}
       </FieldDescription>
     </Field>
   );

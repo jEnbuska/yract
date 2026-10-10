@@ -13,7 +13,6 @@
 7. [Elements and events](#elements-and-events)
 8. [Controlled form elements](#controlled-form-elements)
 9. [Types](#types)
-10. [Known limitations](#known-limitations)
 
 ---
 
@@ -251,6 +250,8 @@ There are no uncontrolled variants: `defaultValue` and `defaultChecked` are not 
 
 This holds for typing, paste, delete, autofill and password managers (which send `input` without `beforeinput`), range drags, `<select>` picks, and label clicks. For radio buttons the whole group is restored, including the option the browser unchecked when another was clicked. A `<select>` keeps its value even when its `<option>`s are rendered by a child component.
 
+When a handler rejects a keystroke in the middle of the text, the caret moves to the end: writing the rendered value back (`input.value = …`) does that in every browser, as it does in React. When the handler changes the value instead (for example uppercasing it), the caret stays where the user left it.
+
 ---
 
 ## Types
@@ -267,14 +268,3 @@ This holds for typing, paste, delete, autofill and password managers (which send
 | `RefObject<T>`       | `{ current: T }`                                         |
 | `ComponentGenerator` | The generator a component returns                        |
 | `DependencyList`     | `readonly unknown[]`                                     |
-
----
-
-## Known limitations
-
-These are pinned by `it.fails` / `test.fail` tests and will flip when fixed:
-
-- A component with no child components, rendered directly under a root (`render(<Leaf />, el)`), renders nothing. Wrap it in another component.
-- Removing an `on*` handler (setting it to `undefined`) does not detach it.
-- `className={false}` after a set class leaves the class in place.
-- When a keystroke in the middle of a controlled input is rejected, the caret moves to the end.

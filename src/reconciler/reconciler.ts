@@ -225,8 +225,11 @@ function updateSlot<T extends SlotType>(
     case contextSlotType:
     case componentSlotType:
       const { instance, path } = slot;
-      fiber.prevInstances?.delete(path);
-      instance.setProps(slot);
+      const { prevInstances, scheduler, deferred } = fiber;
+      prevInstances?.delete(path);
+      if (instance.setProps(slot)) {
+        scheduler.scheduleRender(instance, deferred);
+      }
       (fiber.instances ??= new Map<string, Fiber>()).set(path, instance);
       return;
     case textSlotType: {
@@ -285,12 +288,15 @@ function handleMountSlot(
     instance.ctx = ctx;
     instance.parentDom = parentDom;
     extendIntentWithInstance(intent, instance);
-    fiber.prevInstances?.delete(path);
-    instance.setProps(intent);
+    const { prevInstances, scheduler, deferred } = fiber;
+    prevInstances?.delete(path);
+    if (instance.setProps(intent)) {
+      scheduler.scheduleRender(instance, deferred);
+    }
   } else {
     instance = createFiber(extendIntentNodes(intent), ctx, fiber, parentDom, ns);
     intent.instance = instance;
-    instance.scheduler.scheduleRender(instance);
+    instance.scheduler.scheduleRender(instance, fiber.deferred);
   }
   (fiber.instances ??= new Map<string, Fiber>()).set(path, instance);
   return intent as Slot<ComponentSlotType>;

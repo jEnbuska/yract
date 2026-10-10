@@ -1,11 +1,10 @@
 import { createResolvable } from "../create-resolvable";
-import type { HookState, StateHookState } from "../render/types";
-import { type StateHookDescriptor } from "./types";
-import { createStateReason } from "../reasons";
+import { type StateHookDescriptor } from "./hook-descriptors";
 import { depsChanged } from "../general";
 import type { DependencyList, PartialBy } from "../general-types";
 import { $STATE } from "./constants";
 import type { Fiber } from "../instances/types";
+import type { SetState, StateHookState } from "./hook-states";
 
 /**
  * Persistent state hook.
@@ -20,29 +19,20 @@ import type { Fiber } from "../instances/types";
 export function useState<T>(
   initialValue: T | (() => T),
   deps?: DependencyList,
-): Generator<StateHookDescriptor<T>, [T, (value: T | ((prev: T) => T)) => Promise<void>]>;
+): Generator<StateHookDescriptor<T>, [T, SetState<T>]>;
 export function useState<T>(
-  initialValue?: T | (() => T),
+  initialValue?: undefined,
   deps?: DependencyList,
-): Generator<
-  StateHookDescriptor<T | undefined>,
-  [
-    T | undefined,
-    (value: T | undefined | ((prev: T | undefined) => T | undefined)) => Promise<void>,
-  ]
->;
+): Generator<StateHookDescriptor<T | undefined>, [T | undefined, SetState<T>]>;
 export function* useState(
-  initialValue: any | (() => any),
+  initialValue: unknown | (() => unknown),
   deps: DependencyList = [],
-): Generator<
-  StateHookDescriptor<any>,
-  [any, (value: any | ((prev: any) => any)) => Promise<void>]
-> {
-  const { value, setState }: StateHookState<any> = yield {
+): Generator<StateHookDescriptor, [unknown, SetState]> {
+  const { value, setState }: StateHookState = yield {
     type: $STATE,
     initialValue,
     deps,
-  } satisfies StateHookDescriptor<any>;
+  } satisfies StateHookDescriptor;
   return [value, setState] as const;
 }
 
@@ -57,7 +47,6 @@ export function processState(
     const state = {
       type: $STATE,
       value,
-      identifier: createStateReason(),
       pendingValue: value,
       deps: descriptor.deps,
       setState: undefined,
@@ -84,20 +73,16 @@ function resolveValue<T>(initialValue: T | (() => T)): T {
 
 const cache = new WeakMap<Omit<StateHookState, "setState">, (newValue: unknown) => Promise<void>>();
 /** @internal */
-function createStateSetter(
-  fiber: Fiber,
-  state: Omit<StateHookState, "setState">,
-): (newValue: unknown) => Promise<void> {
+function createStateSetter(fiber: Fiber, state: Omit<StateHookState, "setState">): SetState {
+  const { scheduler } = fiber;
   const cached = cache.get(state);
   if (cached) return cached;
-  return (newValue: unknown): Promise<void> => {
+  return (newValue): Promise<void> => {
     const nextValue = resolveNextValue(newValue, state.pendingValue);
     // No change — cancel any pending rerender and resolve immediately.
     if (nextValue === state.value) {
       state.pendingValue = state.value;
       state.pendingResolve = undefined;
-      fiber.cancelRender(state.identifier);
-      fiber.cancelStateResolve(state.identifier);
       return Promise.resolve();
     }
 
@@ -115,8 +100,8 @@ function createStateSetter(
     state.pendingValue = nextValue;
     const { promise, resolve } = createResolvable();
     state.pendingResolve = resolve;
-    fiber.scheduleRender(state.identifier);
-    fiber.scheduleStateResolve(state.identifier);
+    scheduler.scheduleRender(fiber, false);
+    scheduler.scheduleStateResolve(fiber);
     return promise;
   };
 }
@@ -126,8 +111,7 @@ function resolveNextValue<T>(value: T | ((prev: T) => T), currentPendingValue: T
 }
 
 /** @internal */
-export function stateResolver(state: HookState) {
-  if (state.type !== $STATE) return;
+export function stateResolver(state: StateHookState) {
   state.pendingResolve?.();
   state.pendingResolve = undefined;
 }

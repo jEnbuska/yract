@@ -14,3 +14,5 @@ export const $STABLE = "$STABLE" as const;
 export const $EFFECT = "$EFFECT" as const;
 /** @internal */
 export const $CONTEXT = "$CONTEXT" as const;
+/** @internal */
+export const $DEFERRED = "$DEFERRED" as const;

@@ -46,8 +46,6 @@ export class SyncLifecycleGroup {
     this.rendersGroup.cancel(fiber);
   }
 
-  /** Called on component render and it detects it's child component unmounted  **/
-
   ensureUnmount(fiber: Fiber) {
     fiber.unmounted = true;
     this.rendersGroup.delete(fiber);
@@ -64,7 +62,7 @@ export class SyncLifecycleGroup {
         let fiber = fibers[j]!;
         if (!rendersGroup.has(fiber)) continue;
         if ((fiber.unmounted ||= fiber?.isUnmounted(renderIteration))) continue;
-        renderFiber(fiber, renderIteration);
+        renderFiber(fiber, renderIteration, false);
       }
     }
     rendersGroup.clear();

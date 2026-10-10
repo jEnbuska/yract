@@ -1,4 +1,3 @@
-import { createResolvable } from "../create-resolvable";
 import { stateResolver } from "../hooks/state";
 import { DeferredLifecycleGroup } from "./DeferredLifecycleGroup";
 import { SyncLifecycleGroup } from "./SyncLifecycleGroup";
@@ -6,28 +5,26 @@ import type { Fiber, FieldSelectionMap, FieldValueMap } from "../instances/types
 import { RenderClock } from "./RenderClock";
 import { SyncFiberGroup } from "./SyncFiberGroup";
 import type { AnyElement } from "../render/elements/namespaces";
+import { $DEFERRED, $STATE } from "../hooks/constants";
+import { deferredResolver } from "../hooks/defer";
 
 /** @internal */
 export class Scheduler {
   renderIteration = 0;
   private readonly syncGroup: SyncLifecycleGroup;
   private readonly deferredGroup: DeferredLifecycleGroup;
-  private renderClock = new RenderClock(20);
-  private renderTrigger = createResolvable<boolean>();
+  private readonly renderClock: RenderClock;
+
   private blocked = false;
-  private resolved = false;
   private selectionMap: FieldSelectionMap;
   private valueMap: FieldValueMap;
 
   constructor(selectionMap: FieldSelectionMap, valueMap: FieldValueMap) {
     this.selectionMap = selectionMap;
     this.valueMap = valueMap;
+    this.renderClock = new RenderClock(20);
     this.syncGroup = new SyncLifecycleGroup(this.renderClock);
-    this.deferredGroup = new DeferredLifecycleGroup(
-      this.renderClock,
-      this.syncGroup.hasRenderQueue,
-    );
-    void this.renderTrigger.promise.then(this.run);
+    this.deferredGroup = new DeferredLifecycleGroup(this.renderClock);
   }
 
   private getGroup(deferred: boolean) {
@@ -35,7 +32,7 @@ export class Scheduler {
     return this.syncGroup;
   }
 
-  private resolveGroups = new SyncFiberGroup();
+  private stateResolveGroups = new SyncFiberGroup();
 
   block = () => {
     this.blocked = true;
@@ -43,84 +40,94 @@ export class Scheduler {
 
   unBlock = () => {
     this.blocked = false;
-    if (this.resolved) {
-      this.renderTrigger.resolve(true);
-      this.resolved = false;
-    }
+    this.runSync();
   };
 
-  scheduleRender(fiber: Fiber): void {
-    this.getGroup(fiber.isDeferred()).scheduleRender(fiber);
-    if (!this.blocked) {
-      return this.renderTrigger.resolve(true);
-    }
-    this.resolved = true;
+  scheduleRender(fiber: Fiber, deferred = fiber.deferred): void {
+    this.getGroup(deferred).scheduleRender(fiber);
+    if (this.blocked) return;
+    this.runSync();
   }
 
-  cancelRender(fiber: Fiber): void {
-    this.getGroup(fiber.isDeferred()).cancelRender(fiber);
+  cancelRender(fiber: Fiber, deferred: boolean): void {
+    this.getGroup(deferred).cancelRender(fiber);
   }
 
-  schedulePostCommit(fiber: Fiber): void {
-    this.getGroup(fiber.isDeferred()).schedulePostCommit(fiber);
+  schedulePostCommit(fiber: Fiber, deferred = fiber.deferred): void {
+    this.getGroup(deferred).schedulePostCommit(fiber);
   }
 
   scheduleStateResolve(fiber: Fiber): void {
-    this.resolveGroups.add(fiber);
+    this.stateResolveGroups.add(fiber);
   }
 
-  cancelStateResolve(fiber: Fiber): void {
-    this.resolveGroups.cancel(fiber);
+  schedulePrepareChunk(fiber: Fiber, deferred: boolean): void {
+    this.getGroup(deferred).schedulePrepareChunk(fiber);
   }
 
-  schedulePrepareChunk(fiber: Fiber): void {
-    this.getGroup(fiber.isDeferred()).schedulePrepareChunk(fiber);
+  ensureUnmount(fiber: Fiber, deferred: boolean): void {
+    this.getGroup(deferred).ensureUnmount(fiber);
   }
 
-  ensureUnmount(fiber: Fiber): void {
-    this.getGroup(fiber.isDeferred()).ensureUnmount(fiber);
+  scheduleCommit(fiber: Fiber, deferred: boolean): void {
+    this.getGroup(deferred).scheduleCommit(fiber);
   }
 
-  scheduleCommit(fiber: Fiber): void {
-    this.getGroup(fiber.isDeferred()).scheduleCommit(fiber);
+  cancelCommit(fiber: Fiber, deferred: boolean): void {
+    this.getGroup(deferred).cancelCommit(fiber);
   }
 
-  cancelCommit(fiber: Fiber): void {
-    this.getGroup(fiber.isDeferred()).cancelCommit(fiber);
-  }
-
-  private run = async (): Promise<void> => {
-    const { syncGroup, deferredGroup, renderClock, valueMap, selectionMap } = this;
-    while (await this.renderTrigger.promise) {
-      while (syncGroup.hasRenderQueue() || deferredGroup.hasRenderQueue()) {
-        while (syncGroup.hasRenderQueue()) {
-          renderClock.renderIteration++;
-          syncGroup.render();
-          syncGroup.commit(valueMap, selectionMap);
-          syncGroup.postCommit();
-        }
-        if (!deferredGroup.hasRenderQueue()) break;
-        await renderClock.throttle();
-        while (!syncGroup.hasRenderQueue() && deferredGroup.hasRenderQueue()) {
-          await deferredGroup.render();
-        }
-      }
-      deferredGroup.commit(valueMap, selectionMap);
-      const { resolveGroups } = this;
-      this.resolveGroups = new SyncFiberGroup();
-      deferredGroup.postCommit();
-      const { renderIteration } = this.renderClock;
-      for (const fiber of resolveGroups) {
-        if (fiber.isUnmounted(renderIteration)) continue;
-        fiber.hookStates?.forEach(stateResolver);
-        fiber.resolveReasons?.clear();
-      }
-      if (syncGroup.hasRenderQueue() || deferredGroup.hasRenderQueue()) {
-        continue;
-      }
-      this.renderTrigger = createResolvable();
+  private syncRunning = false;
+  private runSync = (): void => {
+    if (this.syncRunning) return;
+    this.renderClock.reset();
+    this.syncRunning = true;
+    const { syncGroup, renderClock, valueMap, selectionMap } = this;
+    while (syncGroup.hasRenderQueue()) {
+      renderClock.renderIteration++;
+      syncGroup.render();
+      syncGroup.commit(valueMap, selectionMap);
+      syncGroup.postCommit();
     }
+    this.syncRunning = false;
+    void this.runDeferred();
   };
+
+  private deferredRunning = false;
+  private runDeferred = async (): Promise<void> => {
+    if (this.deferredRunning) return;
+    this.deferredRunning = true;
+    const { deferredGroup, valueMap, selectionMap } = this;
+    while (deferredGroup.hasRenderQueue()) {
+      await deferredGroup.render();
+    }
+    deferredGroup.commit(valueMap, selectionMap);
+    const { stateResolveGroups } = this;
+    this.stateResolveGroups = new SyncFiberGroup();
+    deferredGroup.postCommit();
+    this.resolveStates(stateResolveGroups);
+    this.deferredRunning = false;
+  };
+
+  private resolveStates(resolveGroups: SyncFiberGroup) {
+    const { renderIteration } = this.renderClock;
+    for (const fiber of resolveGroups) {
+      if (fiber.isUnmounted(renderIteration)) continue;
+      const { hookStates } = fiber;
+      if (!hookStates) continue;
+      for (let i = 0; i < hookStates.length; i++) {
+        const hookState = hookStates[i]!;
+        switch (hookState.type) {
+          case $STATE:
+            stateResolver(hookState);
+            break;
+          case $DEFERRED:
+            deferredResolver(hookState);
+            break;
+        }
+      }
+    }
+  }
 
   /** Method for reconciler to register values given to controlled form element's */
   public registerPropsValue(el: AnyElement, value: boolean | string) {

@@ -1018,9 +1018,14 @@
 }
 
 .dos-spinner {
+  /* One character cell of the surrounding text, whatever its font and size. */
   display: inline-block;
+  font: inherit;
+  width: 1ch;
+  height: 1em;
+  line-height: 1;
+  text-align: center;
   color: var(--dos-hi-cyan);
-  width: 0.6em;
 }
 .dos-spinner::after {
   content: "|";

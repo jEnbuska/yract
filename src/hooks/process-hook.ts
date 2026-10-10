@@ -1,8 +1,17 @@
-import type { HookState } from "../render/types";
 import type { ComponentFiber } from "../instances/component-fiber";
 import { HookRuleError } from "./HookRuleError";
-import type { HookDescriptor } from "./types";
-import { $CONTEXT, $EFFECT, $ID, $MEMO, $REF, $STABLE, $STATE, $ELEMENT_REF } from "./constants";
+import type { HookDescriptor } from "./hook-descriptors";
+import {
+  $CONTEXT,
+  $EFFECT,
+  $ID,
+  $MEMO,
+  $REF,
+  $STABLE,
+  $STATE,
+  $ELEMENT_REF,
+  $DEFERRED,
+} from "./constants";
 import { processState } from "./state";
 import { processRef } from "./ref";
 import { processElementRef } from "./elementRef";
@@ -11,6 +20,8 @@ import { processMemo } from "./memo";
 import { processStable } from "./stable";
 import { processEffect } from "./effect";
 import { getContextValue, processContext } from "./context";
+import { processDeferredValue } from "./defer";
+import type { HookState } from "./hook-states";
 
 function getTypedPrev<K extends HookState["type"]>(
   hookStates: HookState[],
@@ -91,6 +102,12 @@ export function processHook(
       hookStates[hookIndex] = state;
       return state;
     }
+    case $DEFERRED: {
+      const prev = getTypedPrev(hookStates, hookIndex, $DEFERRED, instance);
+      const state = processDeferredValue(descriptor, prev, instance);
+      hookStates[hookIndex] = state;
+      return state;
+    }
     default: {
       const _exhaustive: never = descriptor;
       throw new Error(
@@ -100,10 +117,9 @@ export function processHook(
   }
 }
 
-const CLEANUP_SYMBOL = Symbol("CLEANUP");
 /** @internal */
-export function setupSkippedHookCleanups(instance: ComponentFiber, hookIndex: number) {
-  const { hookStates } = instance;
+export function setupSkippedHookCleanups(fiber: ComponentFiber, hookIndex: number) {
+  const { hookStates, scheduler } = fiber;
   if (!hookStates || hookIndex >= hookStates.length) return;
   for (let i = hookIndex; i < hookStates.length; i++) {
     const hook = hookStates[i]!;
@@ -117,7 +133,7 @@ export function setupSkippedHookCleanups(instance: ComponentFiber, hookIndex: nu
         break;
     }
   }
-  instance.schedulePostCommit(CLEANUP_SYMBOL);
+  scheduler.schedulePostCommit(fiber);
   const controller = new AbortController();
   hookStates.push({
     controller,
@@ -125,7 +141,6 @@ export function setupSkippedHookCleanups(instance: ComponentFiber, hookIndex: nu
     type: $EFFECT,
     fn: () => {},
     deps: [],
-    identifier: CLEANUP_SYMBOL,
   });
   controller.signal.onabort = () => {
     hookStates.splice(hookIndex);
@@ -141,5 +156,9 @@ export function unmountHookCleanup(state: HookState) {
     case $EFFECT:
       state.controller?.abort();
       break;
+    case $STATE: {
+      state.pendingResolve = undefined;
+      break;
+    }
   }
 }

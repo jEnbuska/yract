@@ -1,10 +1,10 @@
-import type { EffectHookState, HookState } from "../render/types";
-import type { EffectCallback } from "./types";
-import { type EffectHookDescriptor } from "./types";
+import type { EffectCallback } from "./hook-descriptors";
+import { type EffectHookDescriptor } from "./hook-descriptors";
 import type { ComponentFiber } from "../instances/component-fiber";
 import { depsChanged } from "../general";
 import type { DependencyList } from "../general-types";
 import { $EFFECT } from "./constants";
+import type { EffectHookState } from "./hook-states";
 
 /**
  * Side-effect hook. Runs `fn` after DOM updates, re-runs when deps change.
@@ -20,33 +20,31 @@ export function* useEffect(
 
 /** @internal */
 export function processEffect(
-  instance: ComponentFiber,
+  fiber: ComponentFiber,
   descriptor: EffectHookDescriptor,
   state: EffectHookState | undefined,
 ): EffectHookState {
+  const { scheduler } = fiber;
   if (!state) {
-    const identifier = Symbol($EFFECT);
-    instance.schedulePostCommit(identifier);
+    scheduler.schedulePostCommit(fiber);
     // First run — no controller yet; afterRender will create one and run fn.
     return {
       type: $EFFECT,
       deps: descriptor.deps,
       fn: descriptor.fn,
-      identifier,
     };
   }
   if (depsChanged(state.deps, descriptor.deps)) {
     state.dirty = true;
     state.deps = descriptor.deps;
     state.fn = descriptor.fn;
-    instance.schedulePostCommit(state.identifier);
+    scheduler.schedulePostCommit(fiber);
   }
   return state;
 }
 
 /** @internal */
-export function effectResolver(state: HookState) {
-  if (state.type !== $EFFECT) return;
+export function effectResolver(state: EffectHookState) {
   if (!state.controller) {
     const controller = new AbortController();
     state.controller = controller;

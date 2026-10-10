@@ -1,10 +1,9 @@
-import type { ElementRefHookState } from "../render/types";
-
 import { $ELEMENT_REF } from "./constants";
-import type { ElementRefHookDescription } from "./types";
+import type { ElementRefHookDescription } from "./hook-descriptors";
 import type { AnyElement } from "../render/elements/namespaces";
 import type { ElementRef } from "../render/element-props/types";
 import { REF_ATTR } from "../render/element-props/prop-key";
+import type { ElementRefHookState } from "./hook-states";
 
 export function* useElementRef<T extends AnyElement>(): Generator<
   ElementRefHookDescription,

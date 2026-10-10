@@ -44,10 +44,11 @@ test.describe("controlled text inputs", () => {
     await expect(input).toHaveValue("abc");
   });
 
-  test("the caret stays put when a keystroke in the middle is rejected", async ({ page }) => {
-    // BUG: restoring the value moves the caret to the end; the saved selection is
-    // only re-applied when the value prop changes, and here it does not.
-    test.fail();
+  test("a rejected keystroke in the middle moves the caret to the end", async ({ page }) => {
+    // Expected, and the same as React: putting the rendered value back
+    // (`input.value = …`) moves the caret to the end. The saved caret is only
+    // re-applied when the value prop changes, and a rejected keystroke does not
+    // change it.
     await open(page);
     const input = page.getByTestId("text-digitless");
     await input.pressSequentially("abcd");
@@ -58,7 +59,7 @@ test.describe("controlled text inputs", () => {
     await expect(input).toHaveValue("abcd");
     await input.press("x");
     await settle(page);
-    await expect(input).toHaveValue("abxcd");
+    await expect(input).toHaveValue("abcdx");
   });
 
   test("an ignoring handler keeps its value through typing, paste and delete", async ({ page }) => {

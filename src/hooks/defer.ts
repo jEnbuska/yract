@@ -1,135 +1,51 @@
-import type { DraftBy, RenderGenerator } from "../general-types";
-import { useState } from "./state";
-import type { Component, PropsWithChildren } from "../jsx";
-import { Fragment, jsx } from "../jsx-runtime";
-import { useStable } from "./stable";
-import type { ContextProperties } from "../context";
-import { createContext, resolveContext } from "../context";
-import { ComponentFiber } from "../instances/component-fiber";
-import { createResolvable } from "../create-resolvable";
-import type { ComponentSlotType, Slot } from "../slots/slot";
-import type { ContextMap } from "../render/types";
-import type { TagNamespace } from "../render/elements/namespaces";
-import { MOUNT_REASON } from "../reasons";
-import { useEffect } from "./effect";
-import { useRef } from "./ref";
-import { $EFFECT } from "./constants";
-import { type Fiber } from "../instances/types";
+import { $DEFERRED } from "./constants";
+import type { DeferredHookDescriptor } from "./hook-descriptors";
+import type { Fiber } from "../instances/types";
+import type { DeferredHookState } from "./hook-states";
+import type { DependencyList } from "../general-types";
+import { depsChanged } from "../general";
+import { withDeferred } from "../capabilities/deferred";
+import type { DeferredAcquirementDescriptor } from "../capabilities/types";
 
-export function* useDefer(
-  config: {
-    disabled?: boolean;
-  } = {},
-): RenderGenerator<[Component<PropsWithChildren>, boolean]> {
-  const [isDeferring, setDeferring] = yield* useState(false);
-  const { disabled } = config;
+export function* useDefer<T>(
+  value: T,
+  deps?: DependencyList,
+): Generator<DeferredAcquirementDescriptor | DeferredHookDescriptor<T>, [T, boolean]> {
+  const result: DeferredHookState<T> = yield { type: $DEFERRED, value, deps } as const;
+  const deferred = yield* withDeferred();
   return [
-    yield* useStable(function* Deferred({ children }: PropsWithChildren) {
-      const mounted = yield* useRef(false);
-      yield* useEffect(() => {
-        mounted.current = true;
-      });
-      return jsx(Defer, {
-        children,
-        disabled,
-        mounted: mounted.current,
-        setDeferring,
-      });
-    }),
-    isDeferring,
+    deferred ? result.deferredValue : result.value,
+    !deferred && !Object.is(result.value, result.deferredValue),
   ];
 }
 
-const staticId = "defer";
-
-/** @internal */
-export const DeferContext = createContext<boolean>(false, "Defer");
-DeferContext.id = staticId;
-
-type DeferProps = {
-  setDeferring: (deferring: boolean) => unknown;
-  mounted: boolean;
-  disabled?: boolean;
-};
-
-class DeferFiber extends ComponentFiber<DeferProps> {
-  readonly context: ContextProperties<boolean>;
-  private controller: AbortController | undefined;
-  private channel = new MessageChannel();
-
-  private async notifyDeferring(deferring: boolean): Promise<void> {
-    this.controller?.abort();
-    const controller = (this.controller = new AbortController());
-    const { promise, resolve } = createResolvable<unknown>();
-    const { port1, port2 } = this.channel;
-    port1.onmessage = resolve;
-    port2.postMessage(null);
-    await promise;
-    if (controller.signal.aborted) return;
-    this.props.setDeferring(deferring);
-  }
-
-  constructor(
-    intent: DraftBy<Slot<ComponentSlotType>, "instance" | "prevProps">,
-    parentCtx: ContextMap,
-    parent: Fiber,
-    parentDom: Node,
-    ns: TagNamespace,
-  ) {
-    const context: ContextProperties<boolean> = {
-      name: DeferContext.name,
-      Provider: DeferContext.Provider,
-      version: 0,
-      ref: {
-        current: false,
-      },
-      subscribe: () => {
-        return () => {};
-      },
-      depth: (parent?.depth ?? -1) + 1,
-      id: staticId,
+export function processDeferredValue(
+  descriptor: DeferredHookDescriptor,
+  state: DeferredHookState | undefined,
+  fiber: Fiber,
+): DeferredHookState {
+  if (!state) {
+    return {
+      type: $DEFERRED,
+      deferredValue: descriptor.value,
+      value: descriptor.value,
+      deps: descriptor.deps,
     };
-    const extended = new Map(parentCtx);
-
-    extended.set(staticId, context as any);
-    super(intent, extended, parent, parent.scheduler, parentDom, ns);
-    this.context = context;
+  }
+  if (Object.is(state.value, descriptor.value)) return state;
+  if (depsChanged(state.deps, descriptor.deps)) {
+    state.deferredValue = descriptor.value;
+    state.deps = descriptor.deps;
   }
 
-  override render() {
-    const deferred = (this.context.ref.current = this.props.disabled ? false : this.isDeferred());
-    super.render();
-    if (deferred) this.prepareAfterDeferredRender();
-    void this.notifyDeferring(deferred);
+  const { scheduler, deferred } = fiber;
+  if (!deferred) {
+    scheduler.scheduleRender(fiber, true);
+    scheduler.scheduleStateResolve(fiber);
   }
-
-  private prepareAfterDeferredRender() {
-    this.schedulePostCommit(MOUNT_REASON);
-    this.hookStates = [
-      {
-        type: $EFFECT,
-        deps: [],
-        fn: () => {
-          this.context.ref.current = false;
-          void this.notifyDeferring(false);
-          this.hookStates = [];
-        },
-        identifier: Symbol($EFFECT),
-        dirty: true,
-      },
-    ];
-  }
-
-  override isDeferred(): boolean {
-    if (this.props.mounted && !this.props.disabled) return true;
-    return resolveContext(this.parent?.ctx, DeferContext);
-  }
+  return state;
 }
 
-/** @internal */
-export const Defer = Object.assign(
-  function* Defer({ children }: PropsWithChildren) {
-    return jsx(Fragment, { children });
-  },
-  { Fiber: DeferFiber },
-);
+export function deferredResolver(state: DeferredHookState) {
+  state.value = state.deferredValue;
+}

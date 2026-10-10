@@ -17,10 +17,10 @@ export class RenderClock {
     port1.onmessage = resolve;
     port2.postMessage(null);
     await promise;
-    this.#workYieldDeadline = Date.now() + this.#chunkMs;
+    this.reset();
   }
 
-  shouldThrottle(): boolean {
-    return Date.now() >= this.#workYieldDeadline;
+  reset() {
+    this.#workYieldDeadline = Date.now() + this.#chunkMs;
   }
 }

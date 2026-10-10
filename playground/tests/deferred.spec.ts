@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { READY, dataRowCount, goToDemo, readRows, settled } from "./helpers";
+import { READY, dataRowCount, goToDemoWithRows, readRows, settled } from "./helpers";
 
 /** Pick a city and wait until the table highlights exactly that city's rows. */
 async function highlight(page: Page, city: string) {
@@ -18,35 +18,33 @@ async function highlight(page: Page, city: string) {
 }
 
 test.describe("Deferred table", () => {
-  test.slow();
-
   test("mounts every row exactly once", async ({ page }) => {
-    const errors = await goToDemo(page);
+    const errors = await goToDemoWithRows(page);
     const rows = await readRows(page);
-    expect(rows.length).toBeGreaterThan(1000);
+    expect(rows.length).toBe(6000);
     expect(rows.every((r) => r.renders === 1)).toBe(true);
     expect(rows.some((r) => r.highlighted)).toBe(false);
     expect(errors).toEqual([]);
   });
 
   test("lowering the person count removes rows from the table", async ({ page }) => {
-    await goToDemo(page);
+    await goToDemoWithRows(page);
     const before = await dataRowCount(page);
 
     // fill() sets the value and fires `input`; the demo commits on `click`,
     // which a real drag produces on mouse-up. dispatchEvent avoids a synthetic
     // click landing on the track and moving the thumb somewhere else.
     const slider = page.getByTestId("count-range");
-    await slider.fill("1200");
+    await slider.fill("300");
     await slider.dispatchEvent("click");
 
     await expect.poll(() => dataRowCount(page), { timeout: READY }).toBeLessThan(before);
     await settled(page);
-    expect(await dataRowCount(page)).toBe(1200);
+    expect(await dataRowCount(page)).toBe(300);
   });
 
   test("highlighting a city rerenders only that city's rows", async ({ page }) => {
-    await goToDemo(page);
+    await goToDemoWithRows(page);
     const before = await readRows(page);
 
     await highlight(page, "Berlin");
@@ -63,7 +61,7 @@ test.describe("Deferred table", () => {
   });
 
   test("switching city rerenders only the rows that gained or lost it", async ({ page }) => {
-    await goToDemo(page);
+    await goToDemoWithRows(page);
     await highlight(page, "Berlin");
     const before = await readRows(page);
 

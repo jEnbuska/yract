@@ -23,7 +23,7 @@ export type RowsState = {
   loading: boolean;
 };
 
-export const INITIAL_COUNT = 30_000;
+export const INITIAL_COUNT = 6000;
 let controller = new AbortController();
 
 const listeners = new Set<() => void>();

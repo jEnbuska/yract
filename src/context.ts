@@ -4,7 +4,8 @@ import { randomId } from "./general";
 import { jsx } from "./jsx-runtime";
 import type { ContextMap } from "./render/types";
 import type { ComponentGenerator } from "./general-types";
-import type { ContextHookState } from "./hooks/context";
+import type { Fiber } from "./instances/types";
+import type { ContextHookState } from "./hooks/hook-states";
 
 export interface ContextProps<T = unknown> {
   key?: string;
@@ -25,6 +26,7 @@ export type ContextProperties<T> = {
   depth: number;
   id: string;
   Provider: Component<ContextProps<T>>;
+  fiber: Fiber;
 };
 
 function getDefaultValue<T>(defaultValue: (() => T) | T): T {
