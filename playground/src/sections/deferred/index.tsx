@@ -35,7 +35,7 @@ export function* DeferredDemo() {
       try {
         const rows = await getPersonRows(count, signal);
         setRows(rows);
-      } catch (_err: any) {
+      } catch {
         console.log("Aborted: count changed ");
       }
     },

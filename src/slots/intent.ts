@@ -230,7 +230,6 @@ export function childrenToIntents(
     const intent = childToIntent(child, index, parentPath);
     intents.set(intent.key, intent);
   }
-
   return intents;
 }
 

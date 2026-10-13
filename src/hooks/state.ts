@@ -73,12 +73,10 @@ function createStateSetter(fiber: Fiber, state: Omit<StateHookState, "setState">
   if (cached) return cached;
   return (newValue): void => {
     const nextValue = resolveNextValue(newValue, state.value);
-    // No change — cancel any pending rerender and resolve immediately.
-    if (nextValue === state.value) {
-      return;
-    }
+    // No change: nothing to rerender.
+    if (nextValue === state.value) return;
     state.value = nextValue;
-    scheduler.scheduleRender(fiber, false);
+    scheduler.scheduleRender(fiber);
   };
 }
 
