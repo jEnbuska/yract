@@ -39,16 +39,8 @@ export class Scheduler {
     this.#lifecycleGroup.schedulePrepareChunk(fiber);
   }
 
-  ensureUnmount(fiber: Fiber): void {
-    this.#lifecycleGroup.ensureUnmount(fiber);
-  }
-
   scheduleCommit(fiber: Fiber): void {
     this.#lifecycleGroup.scheduleCommit(fiber);
-  }
-
-  cancelCommit(fiber: Fiber): void {
-    this.#lifecycleGroup.cancelCommit(fiber);
   }
 
   #running = false;

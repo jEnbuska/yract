@@ -43,7 +43,7 @@ type ReconcileFiber = RequiredBy<Fiber, "uiActions">;
 function prepareFiber(fiber: Fiber): asserts fiber is ReconcileFiber {
   const { instances } = fiber;
   // When even we hit an instance when walking the tree we remove the instance from the 'unmountedInstances' and it will be moved to nextInstances
-  fiber.prevInstances = instances?.size ? new Map(instances) : undefined;
+  fiber.unmountedInstances = instances?.size ? new Map(instances) : undefined;
   fiber.instances = undefined;
   fiber.uiActions = [];
 }
@@ -228,8 +228,8 @@ function updateSlot<T extends SlotType>(
     case contextSlotType:
     case componentSlotType:
       const { instance, path } = slot;
-      const { prevInstances, scheduler } = fiber;
-      prevInstances?.delete(path);
+      const { unmountedInstances, scheduler } = fiber;
+      unmountedInstances?.delete(path);
       if (instance.setProps(slot)) {
         scheduler.scheduleRender(instance);
       }
@@ -286,13 +286,13 @@ function handleMountSlot(
   ctx: ContextMap,
 ) {
   const { path } = intent;
-  let instance = fiber.prevInstances?.get(path);
+  let instance = fiber.unmountedInstances?.get(path);
   if (instance) {
     instance.ctx = ctx;
     instance.parentDom = parentDom;
     extendIntentWithInstance(intent, instance);
-    const { prevInstances, scheduler } = fiber;
-    prevInstances?.delete(path);
+    const { unmountedInstances, scheduler } = fiber;
+    unmountedInstances?.delete(path);
     if (instance.setProps(intent)) {
       scheduler.scheduleRender(instance);
     }

@@ -13,8 +13,8 @@ import type { HookState } from "../hooks/hook-states";
 import type { ComponentSlotType, ContextSlotType, Slot } from "../slots/types";
 
 export class ComponentFiber<TProps extends Record<string, unknown> = Record<string, any>> {
-  public readonly ns: TagNamespace;
-  public confidentIteration: number;
+  readonly ns: TagNamespace;
+  confidentIteration: number;
   unmounted: boolean | undefined = undefined;
   readonly component: Component<any>;
   readonly depth: number;
@@ -24,7 +24,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
   ctx: ContextMap;
   readonly scheduler: Scheduler;
   instances?: Map<string, Fiber> = undefined;
-  prevInstances?: Map<string, Fiber> = undefined;
+  unmountedInstances?: Map<string, Fiber> = undefined;
   hookStates?: HookState[] = undefined;
   slot?: Slot = undefined;
   pendingSlot?: Slot = undefined;
@@ -75,20 +75,14 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
       this.pendingSlot = reconcilerFiber(this, child);
       if (this.uiActions?.length) {
         scheduler.scheduleCommit(this);
-      } else {
-        scheduler.cancelCommit(this);
       }
     }
-    const { prevInstances } = this;
+    const { unmountedInstances } = this;
 
-    if (prevInstances?.size) {
-      for (const child of prevInstances.values()) {
-        child.unmounted = true;
-        if (!this.slot && !this.pendingSlot) continue;
-        scheduler.ensureUnmount(child);
-      }
+    if (unmountedInstances?.size) {
+      for (const child of unmountedInstances.values()) child.unmounted = true;
     }
-    this.prevInstances = undefined;
+    this.unmountedInstances = undefined;
   }
 
   /** Build the new child components subtree of screen, before commit phase.
@@ -103,7 +97,8 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     }
   }
 
-  isUnmounted(renderIteration: number): boolean {
+  isUnmounted(): boolean {
+    const {renderIteration} = this.scheduler
     if (this.unmounted) return true;
     if (this.confidentIteration === renderIteration) return false;
     let parent = this.parent;
@@ -112,6 +107,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
       if (parent.confidentIteration === renderIteration) return false;
       parent = parent.parent;
     }
+    this.confidentIteration = renderIteration;
     return false;
   }
 

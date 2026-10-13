@@ -12,10 +12,6 @@ export class FiberLifecycleGroup {
   readonly commitWork = new FiberWork();
   readonly postCommitWork = new FiberWork();
 
-  hasRenderQueue = () => {
-    return !this.renderWork.isEmpty();
-  };
-
   /** --- Scheduling ---**/
   scheduleRender(fiber: Fiber) {
     this.renderWork.add(fiber);
@@ -30,29 +26,16 @@ export class FiberLifecycleGroup {
     this.postCommitWork.add(fiber);
   }
 
-  cancelCommit(fiber: Fiber) {
-    this.commitWork.delete(fiber);
-  }
-
-  /** --- Scheduling cancellations ---**/
-  ensureUnmount(fiber: Fiber) {
-    fiber.unmounted = true;
-    this.renderWork.delete(fiber);
-    this.postCommitWork.cancel(fiber);
-  }
-
   /** Run component renders */
-  render(renderIteration: number) {
+  render() {
     const { renderWork } = this;
     const { queues } = renderWork;
     for (let i = 0; i < queues.length; i++) {
       const fibers = queues[i]!;
       for (let j = fibers.length - 1; j >= 0; j--) {
         let fiber = fibers[j]!;
-        if (!renderWork.has(fiber)) continue;
-        if ((fiber.unmounted ||= fiber?.isUnmounted(renderIteration))) continue;
+        if ((fiber.unmounted ||= fiber?.isUnmounted())) continue;
         try {
-          fiber.confidentIteration = renderIteration;
           fiber.render();
         } catch (cause) {
           throw new Error(
@@ -73,7 +56,6 @@ export class FiberLifecycleGroup {
       const fibers = queues[i]!;
       for (let j = fibers.length - 1; j >= 0; j--) {
         let fiber = fibers[j]!;
-        if (!prepareChunkWork.has(fiber)) continue;
         fiber.prepareChunk();
       }
     }
@@ -89,7 +71,6 @@ export class FiberLifecycleGroup {
       const queue = queues[i]!;
       for (let j = 0; j < queue.length; j++) {
         const fiber = queue[j]!;
-        if (!commitWork.has(fiber)) continue;
         const { uiActions } = fiber;
         if (!uiActions) throw new Error("No ui actions to apply");
         for (let i = 0; i < uiActions.length; i++) {
@@ -108,14 +89,14 @@ export class FiberLifecycleGroup {
    * - Effect function callbacks for newly mounted components.
    * - Effect cleanup and function callbacks for previously mounted components with deps changed.
    * - Context subscription abortions and effect cleanups for unmounted components */
-  postCommit(renderIteration: number) {
+  postCommit() {
     const { postCommitWork } = this;
     const { queues } = postCommitWork;
     for (let i = queues.length - 1; i >= 0; i--) {
       const queue = queues[i]!;
       for (let j = 0; j < queue.length; j++) {
         const fiber = queue[j]!;
-        fiber.unmounted ||= fiber.isUnmounted(renderIteration);
+        fiber.unmounted ||= fiber.isUnmounted();
         if (!fiber.unmounted) {
           if (!fiber.hookStates) continue;
           for (const hookState of fiber.hookStates) {
