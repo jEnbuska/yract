@@ -3,7 +3,7 @@ import { Field, FieldDescription, FieldLabel, TextInput } from "../../../dos";
 type OwnProps = {
   value: string;
   setValue(value: string): unknown;
-  matches: `${number}/${number}`;
+  matches: string;
 };
 
 export function PersonFiltering({ value, setValue, matches }: OwnProps) {
@@ -20,10 +20,13 @@ export function PersonFiltering({ value, setValue, matches }: OwnProps) {
         <FieldLabel>Search persons</FieldLabel>
         <TextInput
           value={value}
-          onInput={(event) => setValue?.(event.currentTarget.value)}
+          name="filter"
+          onChange={(e) => {
+            setValue(e.currentTarget.value.toLowerCase().replace(/\d/g, ""));
+          }}
           placeholder={"Name, city, department, id..."}
         />
-        <FieldDescription>{matches} matches</FieldDescription>
+        <FieldDescription>{matches ? `${matches} matches` : ""}</FieldDescription>
       </Field>
     </div>
   );

@@ -9,6 +9,7 @@ git clone https://github.com/jEnbuska/yract.git
 cd yract
 npm ci
 npm ci --prefix playground
+npm ci --prefix react-playground   # only for the React comparison demo
 ```
 
 ## Commands
@@ -54,19 +55,19 @@ If any step fails, fix it and run the sequence again.
 
 ## Project structure
 
-| Path                | Description                                            |
-| :------------------ | :----------------------------------------------------- |
-| `src/index.ts`      | Public API                                             |
-| `src/hooks/`        | Hooks, one file each                                   |
-| `src/capabilities/` | `withReturn`, `withRerender`, `withContext`            |
-| `src/instances/`    | Fibers and `Root` (incl. controlled-input restore)     |
-| `src/reconciler/`   | Diffing new output against the previous slots          |
-| `src/scheduler/`    | Render/commit scheduling — see `docs/scheduler.md`     |
-| `src/ui-actions/`   | Recorded DOM operations and their commit-time appliers |
-| `src/render/`       | Entry points, element props and events                 |
-| `playground/`       | Demo app, test fixtures and Playwright tests           |
-| `react-playground/` | The same demo in React, for comparison                 |
-| `docs/`             | API reference and internals                            |
+| Path                | Description                                                                |
+| :------------------ | :------------------------------------------------------------------------- |
+| `src/index.ts`      | Public API                                                                 |
+| `src/hooks/`        | Hooks, one file each                                                       |
+| `src/capabilities/` | `withReturn`, `withRerender`, `withContext`, `withDeferred`                |
+| `src/instances/`    | Fibers and `Root` (incl. controlled-input restore)                         |
+| `src/reconciler/`   | Diffing new output against the previous slots                              |
+| `src/scheduler/`    | Render/commit scheduling — see `docs/scheduler.md`                         |
+| `src/ui-actions/`   | Recorded DOM operations and their commit-time appliers                     |
+| `src/render/`       | Entry points, element props and events                                     |
+| `playground/`       | Demo app, test fixtures and Playwright tests                               |
+| `react-playground/` | The same demo in React, for comparison; keep it in step with `playground/` |
+| `docs/`             | API reference and internals                                                |
 
 Code that is exported only for use inside `src/` carries an `@internal` tag.
 

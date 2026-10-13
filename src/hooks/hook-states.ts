@@ -1,6 +1,5 @@
 import type {
   $CONTEXT,
-  $DEFERRED,
   $EFFECT,
   $ELEMENT_REF,
   $ID,
@@ -14,7 +13,7 @@ import type { AnyElement } from "../render/elements/namespaces";
 import type { ElementRef } from "../render/element-props/types";
 import type { EffectCallback } from "./hook-descriptors";
 
-export type SetState<T = unknown> = (value: ((prevValue: T) => T) | T) => Promise<void>;
+export type SetState<T = unknown> = (value: ((prevValue: T) => T) | T) => void;
 
 /** @internal */
 export interface StateHookState<T = unknown> {
@@ -22,8 +21,6 @@ export interface StateHookState<T = unknown> {
   value: T;
   setState: SetState<T>;
   deps: DependencyList;
-  pendingValue: unknown;
-  pendingResolve?: () => unknown;
 }
 
 /** @internal */
@@ -61,17 +58,10 @@ export interface StableHookState<T extends (...args: any[]) => any = (...args: a
 /** @internal */
 export interface EffectHookState {
   type: typeof $EFFECT;
-  deps: DependencyList;
+  deps?: DependencyList;
   fn: EffectCallback;
   controller?: AbortController;
   dirty?: boolean;
-}
-
-export interface DeferredHookState<T = unknown> {
-  type: typeof $DEFERRED;
-  value: T;
-  deferredValue: T;
-  deps?: DependencyList;
 }
 
 /** @internal */
@@ -100,5 +90,4 @@ export type HookState =
   | StableHookState
   | EffectHookState
   | ContextHookState
-  | ElementRefHookState
-  | DeferredHookState;
+  | ElementRefHookState;

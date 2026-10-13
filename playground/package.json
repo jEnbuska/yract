@@ -20,8 +20,5 @@
     "typescript": "^7.0.2",
     "vite": "^8.0.8",
     "vitest": "^4.1.11"
-  },
-  "dependencies": {
-    "@jenbuska/yielded": "^2.1.0"
   }
 }

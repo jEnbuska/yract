@@ -1,63 +1,85 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
+import { READY, dataRowCount, goToDemoWithRows, readRows, settled } from "./helpers";
 
-/** The table mounts every row, so give it room. */
-const READY = 120_000;
-
-async function goToDemo(page: Page) {
-  await page.goto("/");
-  await page.waitForSelector('[data-testid="Defer-table"]', { timeout: READY });
+/** Pick a city and wait until the table highlights exactly that city's rows. */
+async function highlight(page: Page, city: string) {
+  await page.getByTestId("highlight-select").selectOption(city);
   await expect
-    .poll(() => page.locator('[data-testid="Defer-table"] [role="row"]').count(), {
-      timeout: READY,
-    })
-    .toBeGreaterThan(1000);
+    .poll(
+      async () => {
+        const highlighted = (await readRows(page)).filter((r) => r.highlighted);
+        return highlighted.length > 0 && highlighted.every((r) => r.city === city);
+      },
+      { timeout: READY },
+    )
+    .toBe(true);
+  await settled(page);
 }
 
-function readRows(page: Page) {
-  return page.evaluate(() =>
-    [...document.querySelectorAll('[data-testid="Defer-table"] [role="row"]')]
-      .slice(2) // header row + the "Table body" summary row
-      .map((row) => {
-        const cells = row.querySelectorAll('[role="cell"]');
-        return {
-          city: cells[2]?.textContent ?? "",
-          highlighted: row.getAttribute("data-highlighted") === "true",
-        };
-      }),
-  );
-}
-
-test.describe("Deferred table (React)", () => {
-  test("suspends, then mounts every row", async ({ page }) => {
-    await goToDemo(page);
+test.describe("Deferred table", () => {
+  test("mounts every row exactly once", async ({ page }) => {
+    const errors = await goToDemoWithRows(page);
     const rows = await readRows(page);
-    expect(rows.length).toBeGreaterThan(1000);
+    expect(rows.length).toBe(6000);
+    expect(rows.every((r) => r.renders === 1)).toBe(true);
     expect(rows.some((r) => r.highlighted)).toBe(false);
+    expect(errors).toEqual([]);
   });
 
-  test("highlighting a city marks exactly that city's rows", async ({ page }) => {
-    await goToDemo(page);
-    await page.getByTestId("highlight-select").selectOption("Berlin");
-    await expect(page.getByTestId("highlight-matches")).not.toBeEmpty();
+  test("lowering the person count removes rows from the table", async ({ page }) => {
+    await goToDemoWithRows(page);
+    const before = await dataRowCount(page);
 
-    const rows = await readRows(page);
-    const highlighted = rows.filter((r) => r.highlighted);
-    expect(highlighted.length).toBeGreaterThan(0);
+    // fill() sets the value and fires `input`; the demo commits on `click`,
+    // which a real drag produces on mouse-up. dispatchEvent avoids a synthetic
+    // click landing on the track and moving the thumb somewhere else.
+    const slider = page.getByTestId("count-range");
+    await slider.fill("300");
+    await slider.dispatchEvent("click");
+
+    await expect.poll(() => dataRowCount(page), { timeout: READY }).toBeLessThan(before);
+    await settled(page);
+    expect(await dataRowCount(page)).toBe(300);
+  });
+
+  test("highlighting a city rerenders only that city's rows", async ({ page }) => {
+    // LIMITATION: React context has no selector, so every row rerenders when the
+    // highlight changes. yract narrows it to the rows whose answer flipped. See README.md.
+    test.fail();
+    await goToDemoWithRows(page);
+    const before = await readRows(page);
+
+    await highlight(page, "Berlin");
+    const after = await readRows(page);
+
+    const highlighted = after.filter((r) => r.highlighted);
+    const rerendered = after.filter((r, i) => r.renders !== before[i]!.renders);
+
+    // Every highlighted row is a Berlin row, and nothing else moved.
     expect(highlighted.every((r) => r.city === "Berlin")).toBe(true);
-    expect(highlighted.length).toBeLessThan(rows.length);
+    expect(rerendered.length).toBe(highlighted.length);
+    // The context is shared by every row, so this is the selector doing the work.
+    expect(after.length - rerendered.length).toBeGreaterThan(rerendered.length);
   });
 
-  test("switching city moves the highlight", async ({ page }) => {
-    await goToDemo(page);
-    await page.getByTestId("highlight-select").selectOption("Berlin");
-    await expect(page.getByTestId("highlight-matches")).not.toBeEmpty();
-    await page.getByTestId("highlight-select").selectOption("Tokyo");
-    await expect(page.getByTestId("highlight-matches")).not.toBeEmpty();
+  test("switching city rerenders only the rows that gained or lost it", async ({ page }) => {
+    // LIMITATION: React context has no selector, so every row rerenders when the
+    // highlight changes. yract narrows it to the rows whose answer flipped. See README.md.
+    test.fail();
+    await goToDemoWithRows(page);
+    await highlight(page, "Berlin");
+    const before = await readRows(page);
 
-    const rows = await readRows(page);
-    const highlighted = rows.filter((r) => r.highlighted);
-    expect(highlighted.length).toBeGreaterThan(0);
-    expect(highlighted.every((r) => r.city === "Tokyo")).toBe(true);
+    await highlight(page, "Tokyo");
+    const after = await readRows(page);
+
+    const lost = after.filter((r, i) => before[i]!.highlighted && !r.highlighted).length;
+    const gained = after.filter((r, i) => !before[i]!.highlighted && r.highlighted).length;
+    const rerendered = after.filter((r, i) => r.renders !== before[i]!.renders).length;
+
+    expect(lost).toBeGreaterThan(0);
+    expect(gained).toBeGreaterThan(0);
+    expect(rerendered).toBe(lost + gained);
   });
 });

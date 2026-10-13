@@ -1,4 +1,4 @@
-export { type Context, type ContextProps, createContext, resolveContext } from "./context";
+export { type Context, type ContextProps } from "./contexts/types";
 
 export {
   useContext,
@@ -8,7 +8,6 @@ export {
   useRef,
   useStable,
   useState,
-  useDefer,
   useElementRef,
   type RefObject,
 } from "./hooks";
@@ -28,3 +27,5 @@ export { Root } from "./instances/root";
 
 export type { ComponentGenerator } from "./general-types";
 export type { DependencyList } from "./general-types";
+export { createContext } from "./contexts/create-context";
+export { resolveContext } from "./contexts/resolve-context";

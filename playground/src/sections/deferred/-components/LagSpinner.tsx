@@ -329,7 +329,7 @@ function* LagChart({ stamps, now }: { stamps: readonly number[]; now: number }) 
     const observer = new ResizeObserver(([entry]) => {
       const rect = entry?.contentRect;
       if (!rect || rect.width <= 0 || rect.height <= 0) return;
-      void setSize({ width: rect.width, height: rect.height });
+      setSize({ width: rect.width, height: rect.height });
     });
     observer.observe(box);
     return () => observer.disconnect();
@@ -504,7 +504,7 @@ export default function* LagSpinner() {
 
   yield* useEffect(() => {
     let handle = requestAnimationFrame(function animate() {
-      void setStamps((current) => {
+      setStamps((current) => {
         const now = Date.now();
         const next = [...current, now];
         // Keep one turn of the slowest ring; older stamps would lap it.

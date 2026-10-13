@@ -1,136 +1,75 @@
-import { stateResolver } from "../hooks/state";
-import { DeferredLifecycleGroup } from "./DeferredLifecycleGroup";
-import { SyncLifecycleGroup } from "./SyncLifecycleGroup";
+import { FiberLifecycleGroup } from "./FiberLifecycleGroup";
 import type { Fiber, FieldSelectionMap, FieldValueMap } from "../instances/types";
-import { RenderClock } from "./RenderClock";
-import { SyncFiberGroup } from "./SyncFiberGroup";
 import type { AnyElement } from "../render/elements/namespaces";
-import { $DEFERRED, $STATE } from "../hooks/constants";
-import { deferredResolver } from "../hooks/defer";
 
 /** @internal */
 export class Scheduler {
+  readonly #lifecycleGroup: FiberLifecycleGroup;
+  readonly #selectionMap: FieldSelectionMap;
+  readonly #valueMap: FieldValueMap;
   renderIteration = 0;
-  private readonly syncGroup: SyncLifecycleGroup;
-  private readonly deferredGroup: DeferredLifecycleGroup;
-  private readonly renderClock: RenderClock;
 
-  private blocked = false;
-  private selectionMap: FieldSelectionMap;
-  private valueMap: FieldValueMap;
+  #blocked = false;
 
   constructor(selectionMap: FieldSelectionMap, valueMap: FieldValueMap) {
-    this.selectionMap = selectionMap;
-    this.valueMap = valueMap;
-    this.renderClock = new RenderClock(20);
-    this.syncGroup = new SyncLifecycleGroup(this.renderClock);
-    this.deferredGroup = new DeferredLifecycleGroup(this.renderClock);
+    this.#selectionMap = selectionMap;
+    this.#valueMap = valueMap;
+    this.#lifecycleGroup = new FiberLifecycleGroup();
   }
-
-  private getGroup(deferred: boolean) {
-    if (deferred) return this.deferredGroup;
-    return this.syncGroup;
-  }
-
-  private stateResolveGroups = new SyncFiberGroup();
 
   block = () => {
-    this.blocked = true;
+    this.#blocked = true;
   };
 
   unBlock = () => {
-    this.blocked = false;
-    this.runSync();
+    this.#blocked = false;
+    if (this.#running) return;
+    queueMicrotask(this.#run);
   };
 
-  scheduleRender(fiber: Fiber, deferred = fiber.deferred): void {
-    this.getGroup(deferred).scheduleRender(fiber);
-    if (this.blocked) return;
-    this.runSync();
+  scheduleRender(fiber: Fiber): void {
+    this.#lifecycleGroup.scheduleRender(fiber);
+    if (!this.#blocked && !this.#running) queueMicrotask(this.#run);
   }
 
-  cancelRender(fiber: Fiber, deferred: boolean): void {
-    this.getGroup(deferred).cancelRender(fiber);
+  schedulePostCommit(fiber: Fiber): void {
+    this.#lifecycleGroup.schedulePostCommit(fiber);
   }
 
-  schedulePostCommit(fiber: Fiber, deferred = fiber.deferred): void {
-    this.getGroup(deferred).schedulePostCommit(fiber);
+  schedulePrepareChunk(fiber: Fiber): void {
+    this.#lifecycleGroup.schedulePrepareChunk(fiber);
   }
 
-  scheduleStateResolve(fiber: Fiber): void {
-    this.stateResolveGroups.add(fiber);
+  ensureUnmount(fiber: Fiber): void {
+    this.#lifecycleGroup.ensureUnmount(fiber);
   }
 
-  schedulePrepareChunk(fiber: Fiber, deferred: boolean): void {
-    this.getGroup(deferred).schedulePrepareChunk(fiber);
+  scheduleCommit(fiber: Fiber): void {
+    this.#lifecycleGroup.scheduleCommit(fiber);
   }
 
-  ensureUnmount(fiber: Fiber, deferred: boolean): void {
-    this.getGroup(deferred).ensureUnmount(fiber);
+  cancelCommit(fiber: Fiber): void {
+    this.#lifecycleGroup.cancelCommit(fiber);
   }
 
-  scheduleCommit(fiber: Fiber, deferred: boolean): void {
-    this.getGroup(deferred).scheduleCommit(fiber);
-  }
-
-  cancelCommit(fiber: Fiber, deferred: boolean): void {
-    this.getGroup(deferred).cancelCommit(fiber);
-  }
-
-  private syncRunning = false;
-  private runSync = (): void => {
-    if (this.syncRunning) return;
-    this.renderClock.reset();
-    this.syncRunning = true;
-    const { syncGroup, renderClock, valueMap, selectionMap } = this;
-    while (syncGroup.hasRenderQueue()) {
-      renderClock.renderIteration++;
-      syncGroup.render();
-      syncGroup.commit(valueMap, selectionMap);
-      syncGroup.postCommit();
+  #running = false;
+  #run = async (): Promise<void> => {
+    if (this.#running) return;
+    this.#running = true;
+    const work = this.#lifecycleGroup;
+    try {
+      work.postCommit(this.renderIteration);
+      this.renderIteration++;
+      work.render(this.renderIteration);
+      work.commit(this.#valueMap, this.#selectionMap);
+      work.postCommit(this.renderIteration);
+    } finally {
+      this.#running = false;
     }
-    this.syncRunning = false;
-    void this.runDeferred();
   };
-
-  private deferredRunning = false;
-  private runDeferred = async (): Promise<void> => {
-    if (this.deferredRunning) return;
-    this.deferredRunning = true;
-    const { deferredGroup, valueMap, selectionMap } = this;
-    while (deferredGroup.hasRenderQueue()) {
-      await deferredGroup.render();
-    }
-    deferredGroup.commit(valueMap, selectionMap);
-    const { stateResolveGroups } = this;
-    this.stateResolveGroups = new SyncFiberGroup();
-    deferredGroup.postCommit();
-    this.resolveStates(stateResolveGroups);
-    this.deferredRunning = false;
-  };
-
-  private resolveStates(resolveGroups: SyncFiberGroup) {
-    const { renderIteration } = this.renderClock;
-    for (const fiber of resolveGroups) {
-      if (fiber.isUnmounted(renderIteration)) continue;
-      const { hookStates } = fiber;
-      if (!hookStates) continue;
-      for (let i = 0; i < hookStates.length; i++) {
-        const hookState = hookStates[i]!;
-        switch (hookState.type) {
-          case $STATE:
-            stateResolver(hookState);
-            break;
-          case $DEFERRED:
-            deferredResolver(hookState);
-            break;
-        }
-      }
-    }
-  }
 
   /** Method for reconciler to register values given to controlled form element's */
   public registerPropsValue(el: AnyElement, value: boolean | string) {
-    this.valueMap.set(el, value);
+    this.#valueMap.set(el, value);
   }
 }

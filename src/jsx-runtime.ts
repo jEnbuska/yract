@@ -1,6 +1,6 @@
 import type { Child, Children, Component, FrameworkProps, PropsWithChildren } from "./jsx";
 import { Fragment } from "./jsx";
-import type { Context, ContextProps } from "./context";
+import type { Context, ContextProps } from "./contexts/types";
 import type { Draft } from "./slots/draft";
 import { asComponentDraft, asContextDraft, asElementDraft, asFragmentDraft } from "./slots/draft";
 import { getIntentChildren } from "./slots/intent";

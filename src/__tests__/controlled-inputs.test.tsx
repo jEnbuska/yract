@@ -15,9 +15,7 @@ describe("text input", () => {
   it("follows state when the handler accepts the input", async () => {
     function* Name() {
       const [text, setText] = yield* useState("");
-      return (
-        <input data-testid="f" value={text} onInput={(e) => void setText(e.currentTarget.value)} />
-      );
+      return <input data-testid="f" value={text} onInput={(e) => setText(e.currentTarget.value)} />;
     }
     const c = await mount(<Name />);
     const el = byTestId<HTMLInputElement>(c, "f");
@@ -33,7 +31,7 @@ describe("text input", () => {
         <input
           data-testid="f"
           value={text}
-          onInput={(e) => void setText(e.currentTarget.value.replace(/\d/g, ""))}
+          onInput={(e) => setText(e.currentTarget.value.replace(/\d/g, ""))}
         />
       );
     }
@@ -64,9 +62,7 @@ describe("text input", () => {
   it("accepts an autofilled value when the handler stores it", async () => {
     function* Email() {
       const [text, setText] = yield* useState("");
-      return (
-        <input data-testid="f" value={text} onInput={(e) => void setText(e.currentTarget.value)} />
-      );
+      return <input data-testid="f" value={text} onInput={(e) => setText(e.currentTarget.value)} />;
     }
     const c = await mount(<Email />);
     const el = byTestId<HTMLInputElement>(c, "f");
@@ -95,7 +91,7 @@ describe("text input", () => {
         <input
           data-testid="f"
           value={text}
-          onInput={(e) => void setText(e.currentTarget.value.toUpperCase())}
+          onInput={(e) => setText(e.currentTarget.value.toUpperCase())}
         />
       );
     }
@@ -121,8 +117,8 @@ describe("text input", () => {
               data-testid="f"
               value=""
               onInput={() => {
-                void setShown(false);
-                void setAfter(1);
+                setShown(false);
+                setAfter(1);
               }}
             />
           ) : null}
@@ -151,11 +147,7 @@ describe("textarea", () => {
     function* Notes() {
       const [text, setText] = yield* useState("");
       return (
-        <textarea
-          data-testid="t"
-          value={text}
-          onInput={(e) => void setText(e.currentTarget.value)}
-        />
+        <textarea data-testid="t" value={text} onInput={(e) => setText(e.currentTarget.value)} />
       );
     }
     const c = await mount(<Notes />);
@@ -202,7 +194,7 @@ describe("select", () => {
     function* Picker() {
       const [value, setValue] = yield* useState("a");
       return (
-        <select data-testid="s" value={value} onInput={(e) => void setValue(e.currentTarget.value)}>
+        <select data-testid="s" value={value} onInput={(e) => setValue(e.currentTarget.value)}>
           <Options />
         </select>
       );
@@ -236,7 +228,7 @@ describe("range", () => {
           min="0"
           max="100"
           value={String(value)}
-          onInput={(e) => void setValue(Number(e.currentTarget.value))}
+          onInput={(e) => setValue(Number(e.currentTarget.value))}
         />
       );
     }
@@ -275,7 +267,7 @@ describe("checkbox", () => {
           data-testid="b"
           type="checkbox"
           checked={on}
-          onClick={(e) => void setOn(e.currentTarget.checked)}
+          onClick={(e) => setOn(e.currentTarget.checked)}
         />
       );
     }

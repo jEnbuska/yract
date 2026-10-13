@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { NO_HIGHLIGHT } from "./PersonTable.shared";
-import { CITIES } from "../../../global-state";
+import { CITIES } from "./utils/row-store";
 import type { PersonRow } from "../../../types";
 import { countRowsPerCity } from "./utils/misc";
 

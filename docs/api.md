@@ -8,7 +8,7 @@
 2. [Rendering](#rendering)
 3. [Hooks](#hooks)
 4. [Capabilities](#capabilities)
-5. [Context](#context)
+5. [Types](#context)
 6. [Framework props](#framework-props)
 7. [Elements and events](#elements-and-events)
 8. [Controlled form elements](#controlled-form-elements)
@@ -110,7 +110,7 @@ Returns a function with a permanent identity that always calls the latest `fn`. 
 
 ### `useContext(ctx, selector?, transform?)`
 
-See [Context](#context).
+See [Types](#context).
 
 ### `useElementRef()`
 
@@ -140,6 +140,16 @@ return (
 - `deferring` is `true` while a deferred update is pending.
 - `config.disabled` turns deferral off.
 
+### `useDeferredValue(value, deps?)`
+
+```tsx
+const [deferredRows, deferring] = yield * useDeferredValue(filteredRows, [filteredRows]);
+return <HugeTable rows={deferredRows} faded={deferring} />;
+```
+
+- Returns `[value, deferring]`. When `value` changes, the urgent render keeps returning the **previous** value with `deferring: true`; the component then renders again at low priority with the new value, and that render commits once all deferred work has caught up.
+- `deps`: the deferred render only picks up a new `value` when `deps` change. Without `deps`, every new `value` is picked up.
+
 ---
 
 ## Capabilities
@@ -151,6 +161,7 @@ Hook-like helpers that take **no hook slot**, so they may be called conditionall
 | `withReturn(child)` | Ends the render immediately with `child`, skipping the rest of the body |
 | `withRerender()`    | A stable callback that rerenders the component                          |
 | `withContext(ctx)`  | The context's current value, without subscribing to changes             |
+| `withDeferred()`    | `true` while the component is rendering in a deferred pass              |
 
 ```tsx
 function* Gate(props: { open: boolean }) {
@@ -162,7 +173,7 @@ function* Gate(props: { open: boolean }) {
 
 ---
 
-## Context
+## Types
 
 ### `createContext(defaultValue, name?)`
 

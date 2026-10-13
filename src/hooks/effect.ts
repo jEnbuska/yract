@@ -13,7 +13,7 @@ import type { EffectHookState } from "./hook-states";
  */
 export function* useEffect(
   fn: EffectCallback,
-  deps: DependencyList = [],
+  deps?: DependencyList,
 ): Generator<EffectHookDescriptor, void> {
   yield { type: $EFFECT, fn, deps } satisfies EffectHookDescriptor;
 }

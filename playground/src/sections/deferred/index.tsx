@@ -1,7 +1,7 @@
-import { useDefer, useEffect, useMemo, useRef, useStable, useState } from "yract";
+import { useEffect, useMemo, useStable, useState } from "yract";
 import { Window, WindowBar, WindowBody } from "../../dos";
 import { getPersonRows } from "./-components/utils/row-store";
-import { PersonTable } from "./-components/PersonTable";
+import PersonTable from "./-components/PersonTable";
 import type { PersonRow } from "../../types";
 import { PersonFiltering } from "./-components/PersonFiltering";
 import { PersonCount } from "./-components/PersonCount";
@@ -21,18 +21,7 @@ export function* DeferredDemo() {
   const [search, setSearch] = yield* useState("");
   const [count, setCount] = yield* useState(6000);
   const [department, setDepartment] = yield* useState("");
-  const controllerRef = yield* useRef(new AbortController());
-  const updateCount = yield* useStable(async (n: number) => {
-    if (n === count) return;
-    controllerRef.current.abort();
-    void setCount(n);
-    const { signal } = (controllerRef.current = new AbortController());
-    // A newer count aborts this load; its rejection is expected, not an error.
-    const rows = await getPersonRows(n, signal).catch(() => undefined);
-    if (!rows || signal.aborted) return;
-    return setRows(rows);
-  });
-
+  const [rows, setRows] = yield* useState<PersonRow[] | undefined>();
   const [highlight, setHighlight] = yield* useState<string>(
     () => localStorage.getItem("highlight") ?? "",
   );
@@ -41,11 +30,17 @@ export function* DeferredDemo() {
   }, [highlight]);
 
   const [cityOnly, setCityOnly] = yield* useState(false);
-  const [rows, setRows] = yield* useState<PersonRow[] | undefined>();
-  yield* useEffect((signal) => {
-    signal.onabort = () => controllerRef.current.abort();
-    void getPersonRows(count, controllerRef.current.signal).then(setRows);
-  }, []);
+  yield* useEffect(
+    async (signal) => {
+      try {
+        const rows = await getPersonRows(count, signal);
+        setRows(rows);
+      } catch (_err: any) {
+        console.log("Aborted: count changed ");
+      }
+    },
+    [count],
+  );
 
   const filteredBySearch = yield* useMemo(filterRowsBySearch, [rows, search]);
 
@@ -53,11 +48,10 @@ export function* DeferredDemo() {
 
   const filtered = yield* useMemo(filterRowsByDepartment, [filteredByCity, department]);
 
-  const [deferredRows, isDeferring] = yield* useDefer(filtered, [filtered]);
   const updatePerson = yield* useStable(async (person: PersonRow) => {
     const index = rows!.findIndex((row) => row.id === person.id);
     if (index === -1) return;
-    void setRows([...rows!.slice(0, index), person, ...rows!.slice(index + 1)]);
+    setRows([...rows!.slice(0, index), person, ...rows!.slice(index + 1)]);
   });
 
   const settings = yield* useMemo(toPersonTableContext, [updatePerson, highlight]);
@@ -67,7 +61,7 @@ export function* DeferredDemo() {
         <WindowBar title="Defer Table" aside="/deferred" />
         <WindowBody>
           <h2>Deferred Table ({count} rows)</h2>
-          <PersonCount count={count} updateCount={updateCount} loading={!rows} />
+          <PersonCount count={count} setCount={setCount} loading={!rows} />
           <PersonFiltering
             value={search}
             setValue={setSearch}
@@ -89,7 +83,7 @@ export function* DeferredDemo() {
             rows={filteredByCity}
           />
           <PersonTableContext value={settings}>
-            <PersonTable rows={deferredRows} isDeferring={isDeferring} />
+            <PersonTable rows={filtered} />
           </PersonTableContext>
         </WindowBody>
       </Window>

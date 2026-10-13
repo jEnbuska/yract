@@ -14,7 +14,7 @@ beforeEach(() => {
 
 /** Mount `view(initial)`; `update(next)` rerenders with new state and waits for the commit. */
 async function renderWith<S>(initial: S, view: (state: S) => Child) {
-  let setState!: (next: S) => Promise<void>;
+  let setState!: (next: S) => void;
   function* Host() {
     const [state, set] = yield* useState<S>(() => initial);
     setState = set;
@@ -24,7 +24,7 @@ async function renderWith<S>(initial: S, view: (state: S) => Child) {
   return {
     container,
     async update(next: S) {
-      void setState(next);
+      setState(next);
       await flush();
     },
   };
@@ -233,7 +233,7 @@ describe("events", () => {
 describe("ref", () => {
   it("tags the element while the ref is passed and untags it when dropped", async () => {
     let current: () => Element | undefined = () => undefined;
-    let setAttached!: (on: boolean) => Promise<void>;
+    let setAttached!: (on: boolean) => void;
     function* WithRef() {
       const ref = yield* useElementRef<HTMLDivElement>();
       const [attached, set] = yield* useState(true);
@@ -244,7 +244,7 @@ describe("ref", () => {
     const container = await mount(<WithRef />);
     const el = byTestId(container, "t");
     expect(current()).toBe(el);
-    void setAttached(false);
+    setAttached(false);
     await flush();
     expect(current()).toBeUndefined();
     expect(el.hasAttribute("data-yract-element-ref-id")).toBe(false);

@@ -15,8 +15,8 @@
  * a wrong value makes the scrollbar jump as rows are rendered.
  *
  * `caption` is required: a table with no caption gives a screen reader nothing
- * to announce when the user lands on it. Pass `visuallyHidden` when the design
- * has no room for it.
+ * to announce when the user lands on it. It is visually hidden by default;
+ * pass `visuallyHiddenCaption={false}` to show it.
  */
 import type { Children, ComponentProps } from "yract";
 import { useId } from "yract";

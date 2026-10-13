@@ -17,7 +17,8 @@ import { useId } from "../hooks/id";
 import { useStable } from "../hooks/stable";
 import { useContext } from "../hooks/context";
 import { useMemo } from "../hooks/memo";
-import { createContext } from "../context";
+
+import { createContext } from "yract";
 
 type Expect<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : never;
@@ -32,7 +33,7 @@ function* useComposite<T extends HTMLElement>() {
   const { label } = yield* useContext(Ctx);
   const [n, setN] = yield* useState(0);
   const doubled = yield* useMemo((x) => x * 2, [n]);
-  const onPoke = yield* useStable(() => void setN((c) => c + 1));
+  const onPoke = yield* useStable(() => setN((c) => c + 1));
 
   yield* useEffect(() => {
     box.current = doubled;

@@ -1,6 +1,6 @@
 import type { AnyElement } from "../render/elements/namespaces";
 import type { Children, Component } from "../jsx";
-import type { Context } from "../context";
+import type { Context } from "../contexts/types";
 import type { Intent } from "./intent";
 import type { DependencyList, DraftBy } from "../general-types";
 import type { Fiber } from "../instances/types";

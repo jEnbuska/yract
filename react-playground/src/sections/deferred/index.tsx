@@ -1,90 +1,96 @@
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Window, WindowBar, WindowBody } from "../../dos";
+import { getPersonRows } from "./-components/utils/row-store";
 import { PersonTable } from "./-components/PersonTable";
+import type { PersonRow } from "../../types";
 import { PersonFiltering } from "./-components/PersonFiltering";
 import { PersonCount } from "./-components/PersonCount";
 import { PersonHighlight } from "./-components/PersonHighlight";
 import { PersonCityOnly } from "./-components/PersonCityOnly";
-import { PersonDepartmentRadioGroup } from "./-components/PersonDepartmentRadioGroup";
-import {
-  NO_HIGHLIGHT,
-  PersonTableContext,
-  type PersonTableSettings,
-  type UpdatePerson,
-} from "./-components/PersonTable.shared";
-import { INITIAL_COUNT, rowsStore } from "./-components/utils/rows-store";
-import LagSpinner from "./-components/LagSpinner";
+import { PersonTableContext } from "./-components/PersonTable.shared";
 import {
   filterRowsByCity,
   filterRowsByDepartment,
   filterRowsBySearch,
+  toPersonTableContext,
 } from "./-components/utils/misc";
-
-/**
- * Memoised so the provider hands down the same object while nothing it carries
- * has changed. A fresh literal on every render would rerender every row on
- * every keystroke, on top of the rerenders the highlight already causes.
- */
-function toSettings(updatePerson: UpdatePerson, highlight: string): PersonTableSettings {
-  return { updatePerson, highlight };
-}
+import { PersonDepartmentRadioGroup } from "./-components/PersonDepartmentRadioGroup";
+import LagSpinner from "./-components/LagSpinner";
 
 export function DeferredDemo() {
   const [search, setSearch] = useState("");
-  const [highlight, setHighlight] = useState<string>(() => localStorage.getItem("highlight") ?? "");
-  const [count, setCount] = useState(INITIAL_COUNT);
-  const [cityOnly, setCityOnly] = useState(false);
+  const [count, setCount] = useState(6000);
   const [department, setDepartment] = useState("");
-
-  useEffect(() => {
-    localStorage.setItem("highlight", highlight);
-  }, [highlight]);
-
-  const { promise, rows, loading } = useSyncExternalStore(
-    rowsStore.subscribe,
-    rowsStore.getSnapshot,
-  );
-
+  const controllerRef = useRef(new AbortController());
+  const [rows, setRows] = useState<PersonRow[] | undefined>();
   const updateCount = useCallback(
-    (next: number) => {
-      if (next === count) return;
-      setCount(next);
-      rowsStore.setCount(next);
+    async (n: number) => {
+      if (n === count) return;
+      controllerRef.current.abort();
+      setCount(n);
+      const { signal } = (controllerRef.current = new AbortController());
+      // A newer count aborts this load; its rejection is expected, not an error.
+      const loaded = await getPersonRows(n, signal).catch(() => undefined);
+      if (!loaded || signal.aborted) return;
+      setRows(loaded);
     },
     [count],
   );
 
-  const updatePerson = useCallback<UpdatePerson>((person) => {
-    rowsStore.updatePerson(person);
+  const [highlight, setHighlight] = useState<string>(() => localStorage.getItem("highlight") ?? "");
+  useEffect(() => {
+    localStorage.setItem("highlight", highlight);
+  }, [highlight]);
+
+  const [cityOnly, setCityOnly] = useState(false);
+  useEffect(() => {
+    void getPersonRows(count, controllerRef.current.signal)
+      .then(setRows)
+      .catch(() => undefined);
+    return () => controllerRef.current.abort();
+    // Loads once on mount, as in the yract demo; later counts go through `updateCount`.
   }, []);
 
-  // For the controls' counts and labels only. The table filters the rows it resolves.
   const filteredBySearch = useMemo(() => filterRowsBySearch(rows, search), [rows, search]);
+
   const filteredByCity = useMemo(
     () => filterRowsByCity(filteredBySearch, highlight, cityOnly),
     [filteredBySearch, highlight, cityOnly],
   );
+
   const filtered = useMemo(
     () => filterRowsByDepartment(filteredByCity, department),
     [filteredByCity, department],
   );
-  const settings = useMemo(() => toSettings(updatePerson, highlight), [updatePerson, highlight]);
 
+  // The counterpart of `useDefer(filtered, [filtered])`.
+  const deferredRows = useDeferredValue(filtered);
+  const isDeferring = deferredRows !== filtered;
+  const updatePerson = useCallback((person: PersonRow) => {
+    setRows((current) => {
+      const index = current?.findIndex((row) => row.id === person.id) ?? -1;
+      if (!current || index === -1) return current;
+      return [...current.slice(0, index), person, ...current.slice(index + 1)];
+    });
+  }, []);
+
+  const settings = useMemo(
+    () => toPersonTableContext(updatePerson, highlight),
+    [updatePerson, highlight],
+  );
   return (
     <div className="dos-split">
       <Window>
-        <WindowBar title="React Defer Table" aside="/deferred" />
+        <WindowBar title="Defer Table" aside="/deferred" />
         <WindowBody>
-          <h2>Deferred Table ({rows?.length ?? 0} rows)</h2>
-          <p>
-            The same demo as the yract playground, built with React 19, the React Compiler, Suspense
-            and <code>useDeferredValue</code>. The table fades while deferred.
-          </p>
-          <PersonCount count={count} setCount={updateCount} loading={loading} disabled={!rows} />
+          <h2>Deferred Table ({count} rows)</h2>
+          <PersonCount count={count} updateCount={updateCount} loading={!rows} />
           <PersonFiltering
             value={search}
             setValue={setSearch}
-            matches={`${filtered.length}/${rows?.length ?? 0}`}
+            matches={
+              rows ? `${filtered!.length}/${rows.length}` : `${search ? "?" : count}/${count}`
+            }
           />
           <div>
             <PersonHighlight
@@ -100,12 +106,7 @@ export function DeferredDemo() {
             rows={filteredByCity}
           />
           <PersonTableContext value={settings}>
-            <PersonTable
-              rows={promise}
-              search={search}
-              city={cityOnly ? highlight : NO_HIGHLIGHT}
-              department={department}
-            />
+            <PersonTable rows={deferredRows} isDeferring={isDeferring} />
           </PersonTableContext>
         </WindowBody>
       </Window>

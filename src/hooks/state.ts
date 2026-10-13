@@ -1,4 +1,3 @@
-import { createResolvable } from "../create-resolvable";
 import { type StateHookDescriptor } from "./hook-descriptors";
 import { depsChanged } from "../general";
 import type { DependencyList, PartialBy } from "../general-types";
@@ -47,7 +46,6 @@ export function processState(
     const state = {
       type: $STATE,
       value,
-      pendingValue: value,
       deps: descriptor.deps,
       setState: undefined,
     } satisfies PartialBy<StateHookState, "setState"> as any as StateHookState;
@@ -56,14 +54,10 @@ export function processState(
   }
 
   if (depsChanged(prev.deps, descriptor.deps)) {
-    const value = resolveValue(descriptor.initialValue);
-    prev.value = value;
-    prev.pendingValue = value;
-    prev.pendingResolve = undefined;
+    prev.value = resolveValue(descriptor.initialValue);
     prev.deps = descriptor.deps;
     return prev;
   }
-  prev.value = prev.pendingValue;
   return prev;
 }
 
@@ -71,47 +65,23 @@ function resolveValue<T>(initialValue: T | (() => T)): T {
   return typeof initialValue === "function" ? (initialValue as () => T)() : initialValue;
 }
 
-const cache = new WeakMap<Omit<StateHookState, "setState">, (newValue: unknown) => Promise<void>>();
+const cache = new WeakMap<Omit<StateHookState, "setState">, (newValue: unknown) => void>();
 /** @internal */
 function createStateSetter(fiber: Fiber, state: Omit<StateHookState, "setState">): SetState {
   const { scheduler } = fiber;
   const cached = cache.get(state);
   if (cached) return cached;
-  return (newValue): Promise<void> => {
-    const nextValue = resolveNextValue(newValue, state.pendingValue);
+  return (newValue): void => {
+    const nextValue = resolveNextValue(newValue, state.value);
     // No change — cancel any pending rerender and resolve immediately.
     if (nextValue === state.value) {
-      state.pendingValue = state.value;
-      state.pendingResolve = undefined;
-      return Promise.resolve();
+      return;
     }
-
-    // Same value already pending — don't reschedule, but return a new
-    // promise that resolves when the already-scheduled rerender completes.
-    if (nextValue === state.pendingValue) {
-      const { promise, resolve } = createResolvable();
-      state.pendingResolve = resolve;
-      return promise;
-    }
-
-    // New value — abandon any previous pending promise (it will never
-    // resolve), schedule a rerender, and return a new promise that
-    // resolves when the rerender completes.
-    state.pendingValue = nextValue;
-    const { promise, resolve } = createResolvable();
-    state.pendingResolve = resolve;
+    state.value = nextValue;
     scheduler.scheduleRender(fiber, false);
-    scheduler.scheduleStateResolve(fiber);
-    return promise;
   };
 }
 
-function resolveNextValue<T>(value: T | ((prev: T) => T), currentPendingValue: T): T {
-  return typeof value === "function" ? (value as (prev: T) => T)(currentPendingValue) : value;
-}
-
-/** @internal */
-export function stateResolver(state: StateHookState) {
-  state.pendingResolve?.();
-  state.pendingResolve = undefined;
+function resolveNextValue<T>(value: T | ((currentValue: T) => T), currentValue: T): T {
+  return typeof value === "function" ? (value as (currentValue: T) => T)(currentValue) : value;
 }

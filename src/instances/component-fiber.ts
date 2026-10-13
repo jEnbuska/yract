@@ -25,7 +25,6 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
   ctx: ContextMap;
   readonly scheduler: Scheduler;
   instances?: Map<string, Fiber> = undefined;
-  deferred: boolean = false;
   prevInstances?: Map<string, Fiber> = undefined;
   hookStates?: HookState[] = undefined;
   slot?: Slot = undefined;
@@ -61,7 +60,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
   }
 
   render() {
-    const { scheduler, deferred } = this;
+    const { scheduler } = this;
     const props = (this.preparedProps = stripFrameworkProps<any>(this.props));
     const generator = this.component(props);
     const child = resolveComponentGenerator(generator, this);
@@ -70,15 +69,15 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
       this.pendingSlot = mountFiber(this, child);
       if (this.parent?.slot) {
         // Parent is mounted
-        scheduler.schedulePrepareChunk(this.parent, deferred /* TODO .. or parent.deferred?*/);
+        scheduler.schedulePrepareChunk(this.parent);
       }
     } else {
       // Is mounted (re-render)
       this.pendingSlot = reconcilerFiber(this, child);
       if (this.uiActions?.length) {
-        scheduler.scheduleCommit(this, deferred);
+        scheduler.scheduleCommit(this);
       } else {
-        scheduler.cancelCommit(this, deferred);
+        scheduler.cancelCommit(this);
       }
     }
     const { prevInstances } = this;
@@ -86,11 +85,8 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     if (prevInstances?.size) {
       for (const child of prevInstances.values()) {
         child.unmounted = true;
-        if (!this.slot && !this.pendingSlot) {
-          scheduler.cancelRender(child, deferred);
-          continue;
-        }
-        scheduler.ensureUnmount(child, deferred);
+        if (!this.slot && !this.pendingSlot) continue;
+        scheduler.ensureUnmount(child);
       }
     }
     this.prevInstances = undefined;

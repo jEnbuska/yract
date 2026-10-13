@@ -3,7 +3,6 @@
  *
  * Every other component reads its palette and font from the `.dos` custom
  * properties declared here, so a DOS interface must live inside one of these.
- * `Stage` is a patch of bare screen for chrome that sits outside a window.
  *
  * Props extend the element each component returns, so anything the DOM accepts
  * passes straight through. `...rest` is spread first, so the props the kit owns

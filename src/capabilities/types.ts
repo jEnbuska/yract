@@ -1,4 +1,4 @@
-import type { $$CONTEXT, $$DEFERRED, $$RERENDER, $$RETURN } from "./constants";
+import type { $$CONTEXT, $$RERENDER, $$RETURN } from "./constants";
 import type { Child, Context } from "yract";
 
 /** @internal */
@@ -19,13 +19,7 @@ export interface ContextAcquirementDescriptor {
 }
 
 /** @internal */
-export interface DeferredAcquirementDescriptor {
-  type: typeof $$DEFERRED;
-}
-
-/** @internal */
 export type CapabilityDescriptor =
   | ReturnAcquirementDescriptor
   | RerenderAcquirementDescriptor
-  | ContextAcquirementDescriptor
-  | DeferredAcquirementDescriptor;
+  | ContextAcquirementDescriptor;

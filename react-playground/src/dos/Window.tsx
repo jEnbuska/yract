@@ -1,5 +1,8 @@
 /**
  * Window — the raised panel with a title bar, plus the recessed body inside it.
+ *
+ * The section is named by its `WindowBar` title: `Window` generates the id and
+ * the bar picks it up from context.
  */
 import { createContext, use, useId } from "react";
 import type { ComponentProps, ReactNode } from "react";

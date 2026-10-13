@@ -1,4 +1,4 @@
-import type { Context } from "./context";
+import type { Context } from "./contexts/types";
 import type { IntrinsicElements as IntrinsicElementsDef } from "./jsx-types";
 import type { ComponentGenerator, DependencyList } from "./general-types";
 import type { Draft } from "./slots/draft";

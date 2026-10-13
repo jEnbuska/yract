@@ -633,7 +633,9 @@
 .dos-error::before {
   content: "! " / "";
 }
-
+.dos-select {
+  appearance: base-select;
+}
 .dos-input,
 .dos-select,
 .dos-textarea {

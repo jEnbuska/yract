@@ -139,5 +139,3 @@ export function* Clock({ tails, tailWidth = 0.02, size = "4rem", style, ...rest 
     </span>
   );
 }
-
-/** Blinking block, for a prompt awaiting input. Decorative. */

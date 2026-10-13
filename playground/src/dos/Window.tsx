@@ -1,9 +1,8 @@
 /**
- * Window — the raised panel with a title bar, plus the two recessed surfaces
- * that live inside it.
+ * Window — the raised panel with a title bar, plus the recessed body inside it.
  *
- * Pass `labelledBy` an id you also give the title, so the section is named for
- * assistive tech without inventing a heading the design does not show.
+ * The section is named by its `WindowBar` title: `Window` generates the id and
+ * the bar picks it up from context.
  */
 import type { Children, ComponentProps, PropsWithChildren } from "yract";
 import { createContext, useContext, useId, useRef } from "yract";

@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { DeferredFiberGroup } from "../scheduler/DeferredFiberGroup";
 import type { Fiber } from "../instances/types";
 
 /**

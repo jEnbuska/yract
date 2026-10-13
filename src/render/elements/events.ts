@@ -39,7 +39,7 @@ export function registerElementEvent(
  *   1. Have `resolveEventProp` strip the suffix and return the flag, then pass
  *      it as `addEventListener`'s third argument here — that is what picks the
  *      phase, and nothing else does.
- *   2. Add `on${Capitalize<K>}Capture` to `EventHandlers` in `jsx-types.ts`.
+ *   2. Add `on${Capitalize<K>}Capture` to `EventHandlers` in `jsx-hook-descriptors.ts`.
  *   3. If listeners ever start being detached rather than having `current`
  *      nulled, `removeEventListener` needs the same flag — a mismatch makes
  *      removal silently fail.

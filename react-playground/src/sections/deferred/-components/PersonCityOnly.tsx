@@ -26,7 +26,7 @@ export function PersonCityOnly({ cityOnly, setCityOnly, highlight }: OwnProps) {
         name="onlyHighlights"
         label="Show only highlighted"
         data-testid="city-only-checkbox"
-        onChange={(e) => setCityOnly(e.target.checked)}
+        onChange={(e) => setCityOnly(e.currentTarget.checked)}
       />
     </Field>
   );

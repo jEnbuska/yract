@@ -29,9 +29,6 @@ export type ComponentGenerator<
 > = Generator<TYield, TReturn, unknown>;
 
 /** @internal */
-export type RenderGenerator<T> = Generator<HookDescriptor | CapabilityDescriptor, T>;
-
-/** @internal */
 export type PartialBy<T extends Record<PropertyKey, any>, K extends keyof T> = Omit<T, K> & {
   [key in K]?: NonNullable<T[K]>;
 };

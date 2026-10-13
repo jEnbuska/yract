@@ -3,7 +3,7 @@ import type { DraftBy } from "../general-types";
 import type { ContextSlotType, Slot } from "../slots/slot";
 import type { ContextMap } from "../render/types";
 import type { TagNamespace } from "../render/elements/namespaces";
-import type { ContextProperties } from "../context";
+import type { ContextProperties } from "../contexts/types";
 import { depsChanged } from "../general";
 import type { Fiber } from "./types";
 import type { ContextHookState } from "../hooks/hook-states";

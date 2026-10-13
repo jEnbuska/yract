@@ -8,7 +8,7 @@ describe("element events", () => {
     function* Counter() {
       const [count, setCount] = yield* useState(0);
       return (
-        <button data-testid="b" onClick={() => void setCount(count + 1)}>
+        <button data-testid="b" onClick={() => setCount(count + 1)}>
           {count}
         </button>
       );

@@ -71,7 +71,9 @@ export function chunkInserts(uiActions: UIAction[] | undefined): undefined | UIA
 export function foldSubtreeIntoStaging(fiber: Fiber): void {
   const { instances } = fiber;
   if (instances) {
-    for (const child of instances.values()) foldSubtreeIntoStaging(child);
+    for (const child of instances.values()) {
+      foldSubtreeIntoStaging(child);
+    }
   }
   foldIntoStaging(fiber);
 }

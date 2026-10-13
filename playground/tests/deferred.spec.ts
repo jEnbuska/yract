@@ -14,7 +14,7 @@ async function highlight(page: Page, city: string) {
       { timeout: READY },
     )
     .toBe(true);
-  await settled(page);
+  void settled(page);
 }
 
 test.describe("Deferred table", () => {

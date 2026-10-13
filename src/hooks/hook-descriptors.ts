@@ -1,8 +1,7 @@
-import type { Context } from "../context";
+import type { Context } from "../contexts/types";
 import type { DependencyList } from "yract";
 import type {
   $CONTEXT,
-  $DEFERRED,
   $EFFECT,
   $ELEMENT_REF,
   $ID,
@@ -55,7 +54,7 @@ export type EffectCallback = (signal: AbortSignal) => void | Promise<void> | (()
 export interface EffectHookDescriptor {
   type: typeof $EFFECT;
   fn: EffectCallback;
-  deps: DependencyList;
+  deps?: DependencyList;
 }
 
 /** @internal */
@@ -67,13 +66,6 @@ export interface ContextHookDescriptor {
 }
 
 /** @internal */
-export interface DeferredHookDescriptor<T = unknown> {
-  type: typeof $DEFERRED;
-  value: T;
-  deps?: DependencyList;
-}
-
-/** @internal */
 export type HookDescriptor =
   | StateHookDescriptor
   | RefHookDescriptor
@@ -82,5 +74,4 @@ export type HookDescriptor =
   | MemoHookDescriptor
   | StableHookDescriptor
   | EffectHookDescriptor
-  | ContextHookDescriptor
-  | DeferredHookDescriptor;
+  | ContextHookDescriptor;

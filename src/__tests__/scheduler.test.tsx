@@ -48,14 +48,14 @@ describe("scheduler", () => {
   });
 
   it("resolves the setter's promise once the update is committed", async () => {
-    let set!: (n: number) => Promise<void>;
+    let set!: (n: number) => void;
     function* Counter() {
       const [n, s] = yield* useState(0);
       set = s;
       return <b data-testid="n">{n}</b>;
     }
     const c = await mount(<Counter />);
-    await set(3);
+    set(3);
     expect(byTestId(c, "n").textContent).toBe("3");
   });
 });

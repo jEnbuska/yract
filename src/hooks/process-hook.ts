@@ -1,17 +1,7 @@
 import type { ComponentFiber } from "../instances/component-fiber";
 import { HookRuleError } from "./HookRuleError";
 import type { HookDescriptor } from "./hook-descriptors";
-import {
-  $CONTEXT,
-  $EFFECT,
-  $ID,
-  $MEMO,
-  $REF,
-  $STABLE,
-  $STATE,
-  $ELEMENT_REF,
-  $DEFERRED,
-} from "./constants";
+import { $CONTEXT, $EFFECT, $ID, $MEMO, $REF, $STABLE, $STATE, $ELEMENT_REF } from "./constants";
 import { processState } from "./state";
 import { processRef } from "./ref";
 import { processElementRef } from "./elementRef";
@@ -20,7 +10,6 @@ import { processMemo } from "./memo";
 import { processStable } from "./stable";
 import { processEffect } from "./effect";
 import { getContextValue, processContext } from "./context";
-import { processDeferredValue } from "./defer";
 import type { HookState } from "./hook-states";
 
 function getTypedPrev<K extends HookState["type"]>(
@@ -102,12 +91,6 @@ export function processHook(
       hookStates[hookIndex] = state;
       return state;
     }
-    case $DEFERRED: {
-      const prev = getTypedPrev(hookStates, hookIndex, $DEFERRED, instance);
-      const state = processDeferredValue(descriptor, prev, instance);
-      hookStates[hookIndex] = state;
-      return state;
-    }
     default: {
       const _exhaustive: never = descriptor;
       throw new Error(
@@ -156,9 +139,5 @@ export function unmountHookCleanup(state: HookState) {
     case $EFFECT:
       state.controller?.abort();
       break;
-    case $STATE: {
-      state.pendingResolve = undefined;
-      break;
-    }
   }
 }

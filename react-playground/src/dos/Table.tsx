@@ -9,6 +9,14 @@
  * `columns` is required: unlike `<table>`, a grid cannot size its own columns
  * from cell content, so the track list is declared once on the table and every
  * row inherits it through the `--dos-table-cols` custom property.
+ *
+ * Pass `rowHeight` to opt body rows into `content-visibility: auto`. It feeds
+ * `contain-intrinsic-size`, so give the height a real row measures at —
+ * a wrong value makes the scrollbar jump as rows are rendered.
+ *
+ * `caption` is required: a table with no caption gives a screen reader nothing
+ * to announce when the user lands on it. It is visually hidden by default;
+ * pass `visuallyHiddenCaption={false}` to show it.
  */
 import { useId } from "react";
 import type { CSSProperties, ComponentProps, ReactNode } from "react";

@@ -17,12 +17,12 @@ function* Text() {
       <input
         data-testid="text-accept"
         value={accepted}
-        onInput={(e) => void setAccepted(e.currentTarget.value)}
+        onInput={(e) => setAccepted(e.currentTarget.value)}
       />
       <input
         data-testid="text-digitless"
         value={digitless}
-        onInput={(e) => void setDigitless(e.currentTarget.value.replace(/\d/g, ""))}
+        onInput={(e) => setDigitless(e.currentTarget.value.replace(/\d/g, ""))}
       />
       <input data-testid="text-fixed" value="fixed" onInput={() => {}} />
       <textarea data-testid="textarea-fixed" value="fixed" onInput={() => {}} />
@@ -50,7 +50,7 @@ function* Selects() {
       <select
         data-testid="select-accept"
         value={value}
-        onInput={(e) => void setValue(e.currentTarget.value)}
+        onInput={(e) => setValue(e.currentTarget.value)}
       >
         <Options />
       </select>
@@ -78,7 +78,7 @@ function* Checkboxes() {
           data-testid="checkbox-accept"
           type="checkbox"
           checked={on}
-          onClick={(e) => void setOn(e.currentTarget.checked)}
+          onClick={(e) => setOn(e.currentTarget.checked)}
         />
         Accept
       </label>

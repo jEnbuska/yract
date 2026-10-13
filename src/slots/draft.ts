@@ -3,7 +3,7 @@ import type { ElementProps } from "../render/element-props/types";
 import type { DraftBy } from "../general-types";
 import type { Intent } from "./intent";
 import type { Children, Component, FrameworkProps } from "../jsx";
-import type { Context } from "../context";
+import type { Context } from "../contexts/types";
 import { componentSlotType, contextSlotType, elementSlotType, fragmentSlotType } from "./slot";
 
 type DraftSlotType = ComponentSlotType | ContextSlotType | FragmentSlotType | ElementSlotType;

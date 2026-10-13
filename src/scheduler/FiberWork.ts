@@ -1,7 +1,7 @@
 import type { Fiber } from "../instances/types";
 
 /** @internal */
-export class SyncFiberGroup {
+export class FiberWork {
   #members = new Set<Fiber>();
   #cancelled = new Set<Fiber>();
   readonly queues: Fiber[][] = [];
@@ -38,18 +38,6 @@ export class SyncFiberGroup {
       queues.push([]);
     }
     queues[depth]!.push(fiber);
-  }
-  *[Symbol.iterator]() {
-    const { queues } = this;
-    const members = this.#members;
-    for (let i = 0; i < queues.length; i++) {
-      const fibers = queues[i]!;
-      for (let j = 0; j < fibers.length; j++) {
-        const fiber = fibers[j]!;
-        if (!members.has(fiber)) continue;
-        yield fiber;
-      }
-    }
   }
 
   cancel(fiber: Fiber) {

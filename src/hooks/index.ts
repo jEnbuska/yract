@@ -6,4 +6,3 @@ export { useRef, type RefObject } from "./ref";
 export { useElementRef } from "./elementRef";
 export { useStable } from "./stable";
 export { useState } from "./state";
-export { useDefer } from "./defer";

@@ -36,23 +36,22 @@ function sortRows(rows: PersonRow[] | undefined, sortDir: SortDir, sortProperty:
 
 type PersonTableProps = {
   rows: PersonRow[] | undefined;
-  isDeferring: boolean;
 };
-export function* PersonTable({ rows, isDeferring }: PersonTableProps) {
+
+export default function* PersonTable({ rows }: PersonTableProps) {
   const [sortProperty, setSortProperty] = yield* useState<"name" | "city">("name");
   const [sortDir, setSortDir] = yield* useState<SortDir>("ascending");
   const sortLabel = sortDir === "ascending" ? " ▲" : sortDir === "descending" ? " ▼" : "-";
   const sortedRows = yield* useMemo(sortRows, [rows, sortDir, sortProperty]);
-
   const updateSortByName = yield* useStable(() => {
-    void setSortProperty("name");
-    if (sortProperty === "city") void setSortDir("ascending");
-    else void setSortDir(sortDir === "ascending" ? "descending" : "ascending");
+    setSortProperty("name");
+    if (sortProperty === "city") setSortDir("ascending");
+    else setSortDir(sortDir === "ascending" ? "descending" : "ascending");
   });
   const updateSortByCity = yield* useStable(() => {
-    void setSortProperty("city");
-    if (sortProperty === "name") void setSortDir("ascending");
-    else void setSortDir(sortDir === "ascending" ? "descending" : "ascending");
+    setSortProperty("city");
+    if (sortProperty === "name") setSortDir("ascending");
+    else setSortDir(sortDir === "ascending" ? "descending" : "ascending");
   });
 
   return (
@@ -61,8 +60,7 @@ export function* PersonTable({ rows, isDeferring }: PersonTableProps) {
       columns="1fr 1fr 1fr 1fr 1fr 1fr"
       rowHeight="18.5px"
       data-testid="Defer-table"
-      data-deferring={isDeferring}
-      style={{ maxHeight: "500px", overflowY: "auto", opacity: isDeferring ? 0.5 : 1 }}
+      style={{ maxHeight: "500px", overflowY: "auto" }}
     >
       <TableHead sticky>
         <TableRow>

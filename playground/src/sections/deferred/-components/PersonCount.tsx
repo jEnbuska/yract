@@ -1,20 +1,16 @@
-import { Field, FieldDescription, FieldLabel, Range } from "../../../dos";
+import { Field, FieldDescription, FieldLabel, Range, Spinner } from "../../../dos";
 import { useStable, useState } from "yract";
-import { Spinner } from "../../../dos/Loader";
 
 type OwnProps = {
   count: number;
-  updateCount(count: number): Promise<void>;
+  setCount(count: number): void;
   loading: boolean;
 };
 
-export function* PersonCount({ count, updateCount }: OwnProps) {
+export function* PersonCount({ count, setCount, loading }: OwnProps) {
   const [state, setState] = yield* useState(count, [count]);
-  const [loading, setLoading] = yield* useState(false);
-  const onClick = yield* useStable(async () => {
-    void setLoading(true);
-    await updateCount(state);
-    void setLoading(false);
+  const onClick = yield* useStable(() => {
+    setCount(state);
   });
   return (
     <Field>

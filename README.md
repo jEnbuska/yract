@@ -65,9 +65,9 @@ function* Timer() {
 }
 ```
 
-`useState`, `useEffect`, `useMemo`, `useRef`, `useId`, `useStable`, `useContext`, `useElementRef` and `useDefer`.
+`useState`, `useEffect`, `useMemo`, `useRef`, `useId`, `useStable`, `useContext`, `useElementRef`, `useDefer` and `useDeferredValue`.
 
-### Context
+### Types
 
 A context is itself the provider component:
 
@@ -120,9 +120,11 @@ function* Search() {
 }
 ```
 
+`useDeferredValue(value)` does the same for a single value: it hands back the previous value until the deferred render has caught up.
+
 ### Capabilities
 
-`withReturn`, `withRerender` and `withContext` are hook-like helpers that take no hook slot, so they can be called conditionally.
+`withReturn`, `withRerender`, `withContext` and `withDeferred` are hook-like helpers that take no hook slot, so they can be called conditionally.
 
 ---
 

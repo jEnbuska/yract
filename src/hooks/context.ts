@@ -1,4 +1,4 @@
-import type { Context } from "../context";
+import type { Context } from "../contexts/types";
 import type { ComponentFiber } from "../instances/component-fiber";
 import type { ContextHookDescriptor } from "./hook-descriptors";
 import { depsChanged } from "../general";
@@ -87,8 +87,9 @@ export function processContext(
     lastRenderedDepsSelected: [],
     currentSelected: [],
     callback: () => {
-      state.currentSelected = state.depsSelector(handle!.ref.current);
-      scheduler.scheduleRender(fiber, handle?.fiber?.deferred);
+      const current = (state.currentSelected = state.depsSelector(handle!.ref.current));
+      if (!depsChanged(state.lastRenderedDepsSelected, current)) return;
+      scheduler.scheduleRender(fiber);
     },
   };
 
