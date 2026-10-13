@@ -15,7 +15,7 @@ import type { ComponentSlotType, ContextSlotType, Slot } from "../slots/types";
 export class ComponentFiber<TProps extends Record<string, unknown> = Record<string, any>> {
   readonly ns: TagNamespace;
   confidentIteration: number;
-  unmounted: boolean | undefined = undefined;
+  unmounted: boolean = false;
   readonly component: Component<any>;
   readonly depth: number;
   readonly parent: Fiber | null;
@@ -98,7 +98,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
   }
 
   isUnmounted(): boolean {
-    const {renderIteration} = this.scheduler
+    const { renderIteration } = this.scheduler;
     if (this.unmounted) return true;
     if (this.confidentIteration === renderIteration) return false;
     let parent = this.parent;
