@@ -1,6 +1,5 @@
 import type { Fiber } from "../instances/types";
 
-/** @internal */
 export class FiberWork {
   #members = new Set<Fiber>();
   #cancelled = new Set<Fiber>();

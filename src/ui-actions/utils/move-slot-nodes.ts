@@ -1,12 +1,12 @@
-import type { Slot } from "../../slots/slot";
+import { getMapValuesReversed } from "../../general";
 import {
   componentSlotType,
   contextSlotType,
   elementSlotType,
   fragmentSlotType,
   textSlotType,
-} from "../../slots/slot";
-import { getMapValuesReversed } from "../../general";
+} from "../../slots/constants";
+import type { Slot } from "../../slots/types";
 
 type WithMoveBefore = Node & { moveBefore: (node: Node, child: Node | null) => void };
 
@@ -19,7 +19,6 @@ function moveBefore(parent: Node, node: Node, beforeNode: Node | null) {
   }
 }
 
-/** @internal */
 export function moveSlotNodes(slot: Slot, parentDom: Node, beforeNode: Node | null): void {
   switch (slot.type) {
     case componentSlotType:

@@ -1,13 +1,12 @@
 import { ComponentFiber } from "./component-fiber";
 import type { ContextMap } from "../render/types";
 import type { TagNamespace } from "../render/elements/namespaces";
-import type { ComponentSlotType, ContextSlotType, Slot } from "../slots/slot";
-import { contextSlotType } from "../slots/slot";
 import type { DraftBy } from "../general-types";
 import { ContextFiber } from "./context-fiber";
 import type { Fiber } from "./types";
+import { contextSlotType } from "../slots/constants";
+import type { ComponentSlotType, ContextSlotType, Slot } from "../slots/types";
 
-/** @internal */
 export function createFiber(
   intent: DraftBy<Slot<ComponentSlotType | ContextSlotType>, "instance" | "prevProps">,
   parentCtx: ContextMap,

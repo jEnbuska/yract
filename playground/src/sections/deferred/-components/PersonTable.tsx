@@ -84,7 +84,7 @@ export default function* PersonTable({ rows }: PersonTableProps) {
         </TableRow>
       </TableHead>
       {!sortedRows ? (
-        <LoaderTrain label={"Deferred rendering…"} />
+        <LoaderTrain label={"Loading rows…"} />
       ) : (
         <PersonTableBody rows={sortedRows} />
       )}

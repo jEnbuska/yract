@@ -2,38 +2,30 @@
 
 > How a state change becomes a DOM update. Internal documentation; none of this is public API.
 
+Rendering is synchronous: one render pass renders every component that needs it, commits the DOM and runs effects, without yielding to the browser in between.
+
 ## Pieces
 
-| File                                  | Role                                                                       |
-| :------------------------------------ | :------------------------------------------------------------------------- |
-| `scheduler/Scheduler.ts`              | One per root. Owns both lifecycle groups and the run loop                  |
-| `scheduler/SyncLifecycleGroup.ts`     | Urgent work: rendered and committed in one synchronous pass                |
-| `scheduler/DeferredLifecycleGroup.ts` | Deferred renders: rendered in time slices, committed when caught up        |
-| `scheduler/SyncFiberGroup.ts`         | Fibers bucketed by tree depth, so parents render before children           |
-| `scheduler/DeferredFiberGroup.ts`     | The same, with a direction so deferred work can pop parent- or child-first |
-| `scheduler/RenderClock.ts`            | 20 ms work budget; yields to the browser through a `MessageChannel`        |
-
-A fiber goes to the deferred group in two cases:
-
-- **Under a mounted `Defer`.** `fiber.isDeferred()` reads `DeferContext`, which `DeferFiber` provides as `true` once it has mounted (its first render mounts with the parent). Every render, commit and unmount of that subtree is routed to the deferred group.
-- **In a deferred pass.** `useDeferredValue` schedules a deferred render of its own fiber when its value changes during an urgent render. While the deferred group renders a fiber, `fiber.deferred` is `true`; `useDeferredValue` and `withDeferred()` read it, and children scheduled during that render stay in the deferred group.
+| File                               | Role                                                                            |
+| :--------------------------------- | :------------------------------------------------------------------------------ |
+| `scheduler/Scheduler.ts`           | One per root. Queues work, runs the render pass, blocks during controlled input |
+| `scheduler/FiberLifecycleGroup.ts` | The four queues of a pass and the code that drains each one                     |
+| `scheduler/FiberWork.ts`           | A set of fibers bucketed by tree depth, so parents are handled before children  |
 
 ## Phases
 
-Each group moves fibers through four queues:
+A pass drains four queues in order:
 
-1. **render** — run the component, reconcile its output, and record DOM work as `UIAction`s on the fiber. No DOM is touched.
+1. **render** — run each scheduled component, parents before children, reconcile its output and record DOM work as `UIAction`s on the fiber. No DOM is touched. Children scheduled while their parent renders are picked up later in the same loop, since they sit deeper.
 2. **prepareChunk** — newly mounted subtrees are folded into their parent's staging `DocumentFragment`, so a whole new subtree is inserted with one DOM operation.
 3. **commit** — apply the recorded `UIAction`s (insert, move, remove, text, props) and promote `pendingSlot` to `slot`.
 4. **postCommit** — run effects, or unmount hook cleanups for fibers that disappeared.
 
 ## Run loop
 
-`Scheduler.run` wakes whenever something is scheduled:
+`scheduleRender` adds the fiber to the render queue and, unless a pass is already running or the scheduler is blocked, queues `#run` as a microtask. Several updates in one tick therefore share one pass.
 
-1. While there is sync work: render → commit → postCommit, all synchronously. The user never sees a half-applied sync update.
-2. If only deferred work is left, render it in slices. After each fiber the clock checks its budget; when spent it yields to the browser, and the loop drops back to step 1 if sync work arrived meanwhile.
-3. When the deferred queue is empty, commit it in one go and run its effects. Then the pending state is resolved: each `useDeferredValue` promotes its deferred value to its current one, and the promises returned by `useState` setters resolve.
+`#run` handles any leftover post-commit work, increments `renderIteration`, then renders, commits and runs post-commit in one go. A `#running` flag keeps a render that schedules more work from starting a nested pass.
 
 ## Controlled inputs
 

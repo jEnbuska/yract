@@ -9,7 +9,6 @@ export function* withRerender(): Generator<RerenderAcquirementDescriptor, () => 
 }
 
 const cache = new WeakMap<ComponentFiber, () => void>();
-/** @internal */
 export function getRerender(fiber: ComponentFiber) {
   const { scheduler } = fiber;
   return getOrInsert(cache, fiber, () => scheduler.scheduleRender(fiber));

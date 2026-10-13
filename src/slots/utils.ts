@@ -1,11 +1,18 @@
-import type { ElementSlotType, FragmentSlotType, Slot, TextSlotType } from "./slot";
 import type { TagNamespace } from "../render/elements/namespaces";
 import { createElement } from "../render/elements/create";
 import type { Intent } from "./intent";
 import type { DraftBy } from "../general-types";
 import { applyElementInitialProps } from "../render/element-props/set-props";
+import type {
+  ComponentSlotType,
+  ContextSlotType,
+  ElementSlotType,
+  FragmentSlotType,
+  Slot,
+  TextSlotType,
+} from "./types";
+import type { Fiber } from "../instances/types";
 
-/** @internal */
 export function toTextSlot(intent: Intent<TextSlotType>): Slot<TextSlotType> {
   const text = intent.text;
   intent.headNode = document.createTextNode(text);
@@ -15,7 +22,6 @@ export function toTextSlot(intent: Intent<TextSlotType>): Slot<TextSlotType> {
   > as Slot<TextSlotType>;
 }
 
-/** @internal */
 export function toElementSlot(
   intent: Intent<ElementSlotType>,
   ns: TagNamespace,
@@ -27,7 +33,6 @@ export function toElementSlot(
   return intent as Slot<ElementSlotType>;
 }
 
-/** @internal */
 export function toFragmentSlot(intent: Intent<FragmentSlotType>): Slot<FragmentSlotType> {
   intent.headNode = document.createComment("<Fragment>");
   intent.tailNode = document.createComment("</Fragment>");
@@ -35,4 +40,26 @@ export function toFragmentSlot(intent: Intent<FragmentSlotType>): Slot<FragmentS
     Intent<FragmentSlotType>,
     "headNode" | "tailNode"
   > as Slot<FragmentSlotType>;
+}
+export function extendIntentWithInstance(
+  intent: Intent<ComponentSlotType | ContextSlotType>,
+  fiber: Fiber,
+): asserts intent is Slot<ComponentSlotType> {
+  const { headNode, tailNode } = fiber;
+  intent.headNode = headNode;
+  intent.tailNode = tailNode;
+  intent.instance = fiber;
+}
+
+export function extendIntentNodes(
+  intent: Intent<ComponentSlotType | ContextSlotType>,
+): DraftBy<Slot<ComponentSlotType>, "instance"> {
+  const { name } = intent.component;
+  intent.headNode = document.createComment(`<${name}>`);
+  intent.tailNode = document.createComment(`</${name}>`);
+  return intent as DraftBy<Slot<ComponentSlotType>, "instance">;
+}
+
+export function createSlotPath(key: string, parentPath: string) {
+  return `${parentPath}/${key}`;
 }

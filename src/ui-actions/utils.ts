@@ -15,7 +15,6 @@ import {
   updateElementProps,
 } from "../render/element-props/set-props";
 
-/** @internal */
 export function applyDomAction(
   action: UIAction,
   valueMap: FieldValueMap,

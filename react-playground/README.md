@@ -1,6 +1,6 @@
 # react-playground
 
-The `playground/` deferred-table demo, rebuilt in React so the two can be put
+The `playground/` person-table demo, rebuilt in React so the two can be put
 side by side. Same DOS kit, same CSS, same files, same row count, same
 interactions, and the same Playwright specs. When the yract demo changes, change
 this one with it.
@@ -24,7 +24,7 @@ npm test           # Playwright, the single-worker *-deferred projects
 
 | yract                                          | React                                                              |
 | ---------------------------------------------- | ------------------------------------------------------------------ |
-| `useDeferredValue(filtered, [filtered])`       | `useDeferredValue(filtered)`; deferring is `deferred !== filtered` |
+| sync rendering (no deferral)                   | `useDeferredValue(filtered)`; deferring is `deferred !== filtered` |
 | `useStable(fn)`                                | `useCallback(fn, deps)`                                            |
 | `useMemo(fn, [a, b])` (deps forwarded as args) | `useMemo(() => fn(a, b), [a, b])`                                  |
 | `useRef`, `useState`, `useEffect`, `useId`     | the same hooks                                                     |
@@ -35,9 +35,10 @@ npm test           # Playwright, the single-worker *-deferred projects
 | `onInput` on controlled fields                 | `onChange`, which React fires on every `input` event               |
 | `onChange` on the `RadioGroup` `<fieldset>`    | `onChange` on each `<input type="radio">`                          |
 
-The rows live in `useState` in `DeferredDemo`, loaded by an effect on mount and
-reloaded by `updateCount` (which aborts a load still in flight), exactly as in
-the yract version.
+yract now renders synchronously, so the table there updates in the same pass as
+the controls. This port still defers the table with `useDeferredValue`, and it
+still loads rows in `updateCount`, where the yract demo now reloads them in an
+effect keyed on `count`. Bring it back in step before comparing the two.
 
 ## The one thing this port cannot match
 

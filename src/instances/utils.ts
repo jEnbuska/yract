@@ -1,13 +1,12 @@
 import type { Fiber } from "./types";
 import type { DraftBy } from "../general-types";
-import type { ComponentSlotType, Slot } from "../slots/slot";
 import type { ContextMap } from "../render/types";
 import type { TagNamespace } from "../render/elements/namespaces";
 import type { ComponentFiber } from "./component-fiber";
 import type { InsertAction, UIAction } from "../ui-actions/types";
 import { INSERT_UI_ACTION } from "../ui-actions/constants";
+import type { ComponentSlotType, Slot } from "../slots/types";
 
-/** @internal */
 export function stack(fiber: Fiber): string {
   const { parent } = fiber;
   let str = parent ? stack(parent) : "";
@@ -24,10 +23,8 @@ type CreateFiber = (
   parentDom: Node,
   ns: TagNamespace,
 ) => ComponentFiber;
-/** @internal */
 export let createFiber: CreateFiber;
 
-/** @internal */
 export function registerCreateInstance(callback: CreateFiber): void {
   createFiber = callback;
 }
@@ -38,7 +35,6 @@ export function registerCreateInstance(callback: CreateFiber): void {
  * one for slot 7 points at a marker sitting in the fragment of the one for
  * slot 8. Whenever that holds the later fragment absorbs the earlier one and
  * the action disappears — new slots at 3..8 collapse to a single insert.
- * @internal
  */
 export function chunkInserts(uiActions: UIAction[] | undefined): undefined | UIAction[] {
   const actions = uiActions;
@@ -67,7 +63,6 @@ export function chunkInserts(uiActions: UIAction[] | undefined): undefined | UIA
   return uiActions;
 }
 
-/** @internal */
 export function foldSubtreeIntoStaging(fiber: Fiber): void {
   const { instances } = fiber;
   if (instances) {

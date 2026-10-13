@@ -1,13 +1,4 @@
 import type { Child, Children } from "../jsx";
-import type { ComponentSlotType, ContextSlotType, Slot, SlotType } from "../slots/slot";
-import { extendIntentNodes, extendIntentWithInstance } from "../slots/slot";
-import {
-  componentSlotType,
-  contextSlotType,
-  elementSlotType,
-  fragmentSlotType,
-  textSlotType,
-} from "../slots/slot";
 import type { TagNamespace } from "../render/elements/namespaces";
 import { type AnyElement, nodeNameSpace } from "../render/elements/namespaces";
 import { getMapValues, getMapValuesReversed } from "../general";
@@ -28,11 +19,25 @@ import { prepareMove } from "../ui-actions/prepare/prepare-move";
 import type { RequiredBy } from "../general-types";
 import type { Fiber } from "../instances/types";
 import type { Scheduler } from "../scheduler/Scheduler";
-import { toElementSlot, toFragmentSlot, toTextSlot } from "../slots/utils";
+import {
+  extendIntentNodes,
+  extendIntentWithInstance,
+  toElementSlot,
+  toFragmentSlot,
+  toTextSlot,
+} from "../slots/utils";
 import { createFiber } from "../instances/utils";
 import { diffElementProps } from "../render/element-props/diff-element-props";
 
 import { getReservedExtraProp } from "../render/element-props/prop-key";
+import {
+  componentSlotType,
+  contextSlotType,
+  elementSlotType,
+  fragmentSlotType,
+  textSlotType,
+} from "../slots/constants";
+import type { ComponentSlotType, ContextSlotType, Slot, SlotType } from "../slots/types";
 
 type ReconcileFiber = RequiredBy<Fiber, "uiActions">;
 function prepareFiber(fiber: Fiber): asserts fiber is ReconcileFiber {
@@ -43,7 +48,6 @@ function prepareFiber(fiber: Fiber): asserts fiber is ReconcileFiber {
   fiber.uiActions = [];
 }
 
-/** @internal */
 export function mountFiber(fiber: Fiber, child: Child): Slot {
   prepareFiber(fiber);
   const { parentDom, ns, ctx, uiActions } = fiber;
@@ -54,7 +58,6 @@ export function mountFiber(fiber: Fiber, child: Child): Slot {
   return intent as Slot;
 }
 
-/** @internal */
 export function reconcilerFiber(fiber: Fiber, child: Child): Slot {
   prepareFiber(fiber);
   const { parentDom, slot, ns, tailNode, ctx, uiActions } = fiber;

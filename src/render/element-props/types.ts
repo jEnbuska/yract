@@ -5,7 +5,6 @@ import type { TagNamespace } from "../elements/namespaces";
 
 /**
  * Props of any intrinsic element, HTML or SVG. Every field is optional.
- * @internal
  */
 export type ElementProps = Partial<IntrinsicElements[keyof IntrinsicElements]>;
 
@@ -20,7 +19,6 @@ export type ElementProps = Partial<IntrinsicElements[keyof IntrinsicElements]>;
  * - `removeEvents` / `setEvents` are keyed by DOM event name (`click`).
  * - `style: null` clears all inline styles; an object sets per-property
  *   values, where `""` clears one property.
- * @internal
  */
 export interface ElementPatch {
   /** Namespace of the element the patch is for; attribute names are already translated for it. */
@@ -36,7 +34,6 @@ export interface ElementPatch {
 /**
  * The `ref` prop's runtime shape, as returned by `useElementRef`. The element
  * is tagged with `identifier` and looked up on each `current` read.
- * @internal
  */
 export type ElementRef<T extends AnyElement = AnyElement> = {
   get current(): undefined | T;

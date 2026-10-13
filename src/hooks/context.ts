@@ -54,7 +54,6 @@ export function* useContext<T, D extends unknown[], R>(
  *
  * Re-run: freezes `lastRenderedDepsSelected := currentSelected` and
  * refreshes the selector/transform references (they rarely change, but may).
- * @internal
  */
 export function processContext(
   fiber: ComponentFiber,
@@ -113,7 +112,6 @@ export function processContext(
  * Value to return to the generator for a `context` yield. The transform
  * cache (`lastTransformResult`) is maintained by `processContext` — by the
  * time we reach here it's already up to date for the current `currentSelected`.
- * @internal
  */
 export function getContextValue(state: ContextHookState, instance: ComponentFiber): unknown {
   const { ctx } = state;

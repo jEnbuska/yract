@@ -1,9 +1,8 @@
-import type { ElementSlotType, Slot } from "../../slots/slot";
 import type { ElementUpdateAction } from "../types";
 import { UPDATE_UI_ACTION } from "../constants";
 import type { ElementPatch } from "../../render/element-props/types";
+import type { ElementSlotType, Slot } from "../../slots/types";
 
-/** @internal */
 export function prepareUpdate(
   slot: Slot<ElementSlotType>,
   patch: ElementPatch,

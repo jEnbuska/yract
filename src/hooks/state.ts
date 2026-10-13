@@ -35,7 +35,6 @@ export function* useState(
   return [value, setState] as const;
 }
 
-/** @internal */
 export function processState(
   descriptor: StateHookDescriptor,
   prev: StateHookState | undefined,
@@ -66,7 +65,6 @@ function resolveValue<T>(initialValue: T | (() => T)): T {
 }
 
 const cache = new WeakMap<Omit<StateHookState, "setState">, (newValue: unknown) => void>();
-/** @internal */
 function createStateSetter(fiber: Fiber, state: Omit<StateHookState, "setState">): SetState {
   const { scheduler } = fiber;
   const cached = cache.get(state);

@@ -13,7 +13,6 @@ export type Context<T = any> = ContextProperties<T> & {
   (props: ContextProps<T>): ComponentGenerator;
 };
 
-/** @internal */
 export type ContextProperties<T> = {
   ref: { current: T };
   version: number;

@@ -1,7 +1,7 @@
 /**
  * App — the playground shell, built from the DOS kit.
  *
- * Only the deferred-rendering demo is left. `Screen` supplies the palette and
+ * Only the person-table demo is left. `Screen` supplies the palette and
  * the skip link; `ShellMain` is the single content pane it targets.
  */
 import { Screen, ShellMain } from "./dos";

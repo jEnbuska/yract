@@ -25,7 +25,6 @@ import { createPatch, propsRecord } from "./utils";
  * getReservedExtraProp` decides, exactly as the initial mount does, whether the
  * element controls `value` or `checked`. A controlled prop is left out of the
  * attribute diff and carried in `setControlled` instead.
- * @internal
  */
 export function diffElementProps(
   ns: TagNamespace,
@@ -62,7 +61,6 @@ export function diffElementProps(
 /**
  * Removals: keys set in `prevProps` that are unset (`undefined`, `null`,
  * `false`) in `nextProps`, and handlers that are no longer functions.
- * @internal
  */
 export function diffUnsetProps(
   ns: TagNamespace,
@@ -106,7 +104,6 @@ export function diffUnsetProps(
 /**
  * Writes: keys set in `nextProps` with a value that differs from `prevProps`.
  * Adds to `patch` (from `diffUnsetProps`) or starts a new one.
- * @internal
  */
 export function diffSetProps(
   ns: TagNamespace,

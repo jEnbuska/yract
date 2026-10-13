@@ -6,7 +6,6 @@ import { unmountHookCleanup } from "../hooks/process-hook";
 import { stack } from "../instances/utils";
 import { applyDomAction } from "../ui-actions/utils";
 
-/** @internal */
 export class FiberLifecycleGroup {
   readonly renderWork = new FiberWork();
   readonly prepareChunkWork = new FiberWork();

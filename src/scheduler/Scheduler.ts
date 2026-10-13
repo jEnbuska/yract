@@ -2,7 +2,6 @@ import { FiberLifecycleGroup } from "./FiberLifecycleGroup";
 import type { Fiber, FieldSelectionMap, FieldValueMap } from "../instances/types";
 import type { AnyElement } from "../render/elements/namespaces";
 
-/** @internal */
 export class Scheduler {
   readonly #lifecycleGroup: FiberLifecycleGroup;
   readonly #selectionMap: FieldSelectionMap;

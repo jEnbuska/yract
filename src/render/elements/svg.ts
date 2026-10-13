@@ -10,7 +10,6 @@
  *
  * Sourced from the SVG 2 spec; see also React's DOMProperty tables.
  */
-/** @internal */
 export const SVG_CASED_ATTRS: ReadonlySet<string> = new Set([
   "attributeName",
   "attributeType",
@@ -71,6 +70,5 @@ export const SVG_CASED_ATTRS: ReadonlySet<string> = new Set([
   "zoomAndPan",
 ]);
 
-/** @internal */
 export const camelToKebab = (s: string): string =>
   s.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase());

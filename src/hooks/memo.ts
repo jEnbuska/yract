@@ -29,7 +29,6 @@ export function* useMemo(
   return result.value;
 }
 
-/** @internal */
 export function processMemo(descriptor: MemoHookDescriptor, prev?: MemoHookState): MemoHookState {
   if (prev !== undefined && !depsChanged(prev.deps, descriptor.deps)) return prev;
   return {

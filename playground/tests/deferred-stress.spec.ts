@@ -11,7 +11,7 @@ import {
 } from "./helpers";
 
 /**
- * Tries to break the deferred demo: input faster than it can render, changes
+ * Tries to break the table demo: input faster than it can render, changes
  * that race a load in flight, and filters stacked in awkward orders. After each
  * attack the page must settle into a state that agrees with its own controls.
  */
@@ -75,10 +75,6 @@ async function pickDepartment(page: Page, department: string) {
 }
 
 test.describe("Deferred table under stress", () => {
-  // BUG (intermittent, Chromium): keystrokes typed while a filter render is still
-  // pending are lost ("alice berlin" → "a berlin"). The input restore writes the
-  // last *committed* value back, so the next keystroke lands on stale text.
-  // `fixme` rather than `fail` because it does not reproduce on every run.
   test("typing faster than the table renders ends on the final query", async ({ page }) => {
     const errors = await goToDemo(page);
     const search = page.getByPlaceholder("Name, city, department, id...");
@@ -92,7 +88,6 @@ test.describe("Deferred table under stress", () => {
     expect(errors).toEqual([]);
   });
 
-  // BUG (intermittent): same lost-keystroke race as above.
   test("typing while the rows are still loading", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));

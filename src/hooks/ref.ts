@@ -14,7 +14,6 @@ export function* useRef<T>(initialValue: T): Generator<RefHookDescriptor<T>, Ref
   return result.ref;
 }
 
-/** @internal */
 export function processRef(descriptor: RefHookDescriptor, prev?: RefHookState): RefHookState {
   if (prev !== undefined) return prev;
   return { type: $REF, ref: { current: descriptor.initialValue } };

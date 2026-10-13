@@ -1,11 +1,7 @@
-/** @internal */
 export const HTML_NS = "http://www.w3.org/1999/xhtml" as const;
-/** @internal */
 export const SVG_NS = "http://www.w3.org/2000/svg" as const;
-/** @internal */
 export const MATHML_NS = "http://www.w3.org/1998/Math/MathML" as const;
 
-/** @internal */
 export type TagNamespace = typeof HTML_NS | typeof SVG_NS | typeof MATHML_NS;
 
 /**
@@ -22,7 +18,6 @@ export type TagNamespace = typeof HTML_NS | typeof SVG_NS | typeof MATHML_NS;
  * NOTE: foreignObject re-entry is checked against `parentNs`, not the tag's
  * own namespace — so the *children* of foreignObject are HTML; foreignObject
  * itself is still SVG.
- * @internal
  */
 export function childNamespace(parentNs: TagNamespace, tag: string): TagNamespace {
   if (tag === "svg") return SVG_NS;
@@ -31,10 +26,8 @@ export function childNamespace(parentNs: TagNamespace, tag: string): TagNamespac
   return parentNs;
 }
 
-/** @internal */
 export function nodeNameSpace(element: Element) {
   return element.namespaceURI as TagNamespace;
 }
 
-/** @internal */
 export type AnyElement = HTMLElement | SVGElement | MathMLElement;

@@ -1,4 +1,4 @@
-/** Public surface of the DOS text-mode kit — trimmed to what the deferred demo uses. */
+/** Public surface of the DOS text-mode kit — trimmed to what the person-table demo uses. */
 export { Screen, ShellMain } from "./Screen";
 export { Window, WindowBar, WindowBody } from "./Window";
 export { Checkbox, Field, FieldDescription, FieldLabel, Range, Select, TextInput } from "./Field";

@@ -1,4 +1,27 @@
 import type { Child, Children } from "../jsx";
+import type { Draft } from "./types";
+import {
+  ensureFreshComponentDraft,
+  ensureFreshContextDraft,
+  ensureFreshElementDraft,
+  ensureFreshFragmentDraft,
+} from "./draft";
+import { emptyMap, isArrayChildren } from "../general";
+import {
+  getArrayFragmentSlotKey,
+  getComponentSlotKey,
+  getContextSlotKey,
+  getElementSlotKey,
+  getFragmentSlotKey,
+  getTextSlotKey,
+} from "./slot-keys";
+import {
+  componentSlotType,
+  contextSlotType,
+  elementSlotType,
+  fragmentSlotType,
+  textSlotType,
+} from "./constants";
 import type {
   ComponentSlotType,
   ContextSlotType,
@@ -16,32 +39,9 @@ import type {
   SlotTailNode,
   SlotText,
   SlotType,
-} from "./slot";
-import {
-  componentSlotType,
-  contextSlotType,
-  createSlotPath,
-  elementSlotType,
-  fragmentSlotType,
-  textSlotType,
-  type TextSlotType,
-} from "./slot";
-import type { Draft } from "./draft";
-import {
-  ensureFreshComponentDraft,
-  ensureFreshContextDraft,
-  ensureFreshElementDraft,
-  ensureFreshFragmentDraft,
-} from "./draft";
-import { emptyMap, isArrayChildren } from "../general";
-import {
-  getArrayFragmentSlotKey,
-  getComponentSlotKey,
-  getContextSlotKey,
-  getElementSlotKey,
-  getFragmentSlotKey,
-  getTextSlotKey,
-} from "./slot-keys";
+  TextSlotType,
+} from "./types";
+import { createSlotPath } from "./utils";
 
 /** @internal */
 export type Intent<T extends SlotType = SlotType> = T extends SlotType

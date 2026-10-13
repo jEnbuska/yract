@@ -4,12 +4,12 @@ import type { Child } from "../jsx";
 import { ComponentFiber } from "./component-fiber";
 import { nodeNameSpace } from "../render/elements/namespaces";
 import type { DraftBy } from "../general-types";
-import type { ComponentSlotType, Slot } from "../slots/slot";
-import { componentSlotType } from "../slots/slot";
 import { emptyMap } from "../general";
 
 import { registerCreateInstance } from "./utils";
 import type { FieldSelectionMap, FieldValueMap } from "./types";
+import { componentSlotType } from "../slots/constants";
+import type { ComponentSlotType, Slot } from "../slots/types";
 
 // Just a hack to fix circular imports
 registerCreateInstance(createFiber);

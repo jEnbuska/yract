@@ -1,6 +1,5 @@
 import type { TagNamespace } from "../render/elements/namespaces";
 import type { Intent } from "../slots/intent";
-import type { ElementSlotType, Slot, TextSlotType } from "../slots/slot";
 import type {
   INSERT_UI_ACTION,
   MOVE_UI_ACTION,
@@ -9,6 +8,7 @@ import type {
   UPDATE_UI_ACTION,
 } from "./constants";
 import type { ElementPatch } from "../render/element-props/types";
+import type { ElementSlotType, Slot, TextSlotType } from "../slots/types";
 
 type UIActionShape = {
   before: Node | null;
@@ -20,7 +20,6 @@ type UIActionShape = {
   type: string;
 };
 type Delegated<T extends UIActionShape> = Pick<T, keyof UIActionShape>;
-/** @internal */
 export type MoveAction = Delegated<{
   before: Node | null;
   node: undefined;
@@ -30,7 +29,6 @@ export type MoveAction = Delegated<{
   slot: Slot;
   type: typeof MOVE_UI_ACTION;
 }>;
-/** @internal */
 export type InsertAction = Delegated<{
   before: Node | null;
   node: Node;
@@ -40,7 +38,6 @@ export type InsertAction = Delegated<{
   slot: undefined;
   type: typeof INSERT_UI_ACTION;
 }>;
-/** @internal */
 export type ElementUpdateAction = Delegated<{
   before: null;
   node: undefined;
@@ -50,7 +47,6 @@ export type ElementUpdateAction = Delegated<{
   slot: Slot<ElementSlotType>;
   type: typeof UPDATE_UI_ACTION;
 }>;
-/** @internal */
 export type TextChangeAction = Delegated<{
   before: null;
   node: undefined;
@@ -60,7 +56,6 @@ export type TextChangeAction = Delegated<{
   slot: Slot<TextSlotType>;
   type: typeof TEXT_UI_ACTION;
 }>;
-/** @internal */
 export type RemoveSlotAction = Delegated<{
   before: null;
   node: undefined;
@@ -71,7 +66,6 @@ export type RemoveSlotAction = Delegated<{
   type: typeof REMOVE_UI_ACTION;
 }>;
 
-/** @internal */
 export type UIAction =
   | InsertAction
   | MoveAction

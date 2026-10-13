@@ -52,6 +52,8 @@ root.render(<App />);
 
 Returns a `Root`. Each root has its own scheduler and context.
 
+Rendering is synchronous. Updates scheduled during a tick (state setters, context changes) are batched; one render pass then renders every affected component, commits the DOM and runs effects, all in a single microtask.
+
 ### `render(child, container)`
 
 Shorthand for `createRoot(container)` followed by `root.render(child)`. Returns the `Root`.
@@ -68,7 +70,7 @@ await setValue((prev) => prev + 1);
 ```
 
 - `initial` may be a function; it is called once.
-- The setter accepts a value or an updater and returns a promise that resolves once the update is committed. Setting the current value is a no-op.
+- The setter accepts a value or an updater. The new value is stored straight away, so a second update in the same tick builds on it; the component rerenders in the next render pass. Setting the current value is a no-op.
 - `deps`: when they change, the state resets to `initial`.
 
 ### `useEffect(fn, deps = [])`
@@ -122,34 +124,6 @@ return <input ref={input} />;
 
 `ref.current` looks the element up on access, so it is `undefined` until the element is mounted.
 
-### `useDefer(config?)`
-
-```tsx
-const [Defer, deferring] = yield * useDefer();
-return (
-  <>
-    <SearchBox />
-    <Defer>
-      <HugeTable faded={deferring} />
-    </Defer>
-  </>
-);
-```
-
-- Children of `Defer` mount normally, then **update** at low priority: urgent updates (typing, clicks) commit first, and the deferred subtree commits once it has caught up.
-- `deferring` is `true` while a deferred update is pending.
-- `config.disabled` turns deferral off.
-
-### `useDeferredValue(value, deps?)`
-
-```tsx
-const [deferredRows, deferring] = yield * useDeferredValue(filteredRows, [filteredRows]);
-return <HugeTable rows={deferredRows} faded={deferring} />;
-```
-
-- Returns `[value, deferring]`. When `value` changes, the urgent render keeps returning the **previous** value with `deferring: true`; the component then renders again at low priority with the new value, and that render commits once all deferred work has caught up.
-- `deps`: the deferred render only picks up a new `value` when `deps` change. Without `deps`, every new `value` is picked up.
-
 ---
 
 ## Capabilities
@@ -161,7 +135,6 @@ Hook-like helpers that take **no hook slot**, so they may be called conditionall
 | `withReturn(child)` | Ends the render immediately with `child`, skipping the rest of the body |
 | `withRerender()`    | A stable callback that rerenders the component                          |
 | `withContext(ctx)`  | The context's current value, without subscribing to changes             |
-| `withDeferred()`    | `true` while the component is rendering in a deferred pass              |
 
 ```tsx
 function* Gate(props: { open: boolean }) {

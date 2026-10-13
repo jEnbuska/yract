@@ -1,15 +1,7 @@
-import type { Slot } from "../../slots/slot";
-import {
-  type ComponentSlotType,
-  type ContextSlotType,
-  elementSlotType,
-  type FragmentSlotType,
-  fragmentSlotType,
-  textSlotType,
-} from "../../slots/slot";
 import { getMapValuesReversed } from "../../general";
+import { elementSlotType, fragmentSlotType, textSlotType } from "../../slots/constants";
+import type { ComponentSlotType, ContextSlotType, FragmentSlotType, Slot } from "../../slots/types";
 
-/** @internal */
 export function removeSlotNodes(slot: Slot) {
   switch (slot.type) {
     case textSlotType:

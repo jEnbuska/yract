@@ -46,16 +46,4 @@ describe("scheduler", () => {
     await flush();
     expect(byTestId(c, "n").textContent).toBe("50");
   });
-
-  it("resolves the setter's promise once the update is committed", async () => {
-    let set!: (n: number) => void;
-    function* Counter() {
-      const [n, s] = yield* useState(0);
-      set = s;
-      return <b data-testid="n">{n}</b>;
-    }
-    const c = await mount(<Counter />);
-    set(3);
-    expect(byTestId(c, "n").textContent).toBe("3");
-  });
 });

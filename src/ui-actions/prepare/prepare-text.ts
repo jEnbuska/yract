@@ -1,8 +1,7 @@
-import type { Slot, TextSlotType } from "../../slots/slot";
 import type { TextChangeAction } from "../types";
 import { TEXT_UI_ACTION } from "../constants";
+import type { Slot, TextSlotType } from "../../slots/types";
 
-/** @internal */
 export function prepareText(slot: Slot<TextSlotType>): TextChangeAction {
   return {
     type: TEXT_UI_ACTION,

@@ -9,7 +9,6 @@ import type { ElementReservedExtraProp } from "./types";
 
 /**
  * The attribute an element carries while a `ref` from `useElementRef` points at it.
- * @internal
  */
 export const REF_ATTR = "data-yract-element-ref-id";
 
@@ -54,7 +53,6 @@ function translateJsxToSvgPropKey(jsxName: string): string {
 /**
  * The key translator for elements in `ns`. MathML attribute names are plain
  * lowercase, so it shares the HTML rules.
- * @internal
  */
 export function propKeyTranslator(ns: TagNamespace): (jsxName: string) => string {
   switch (ns) {
@@ -73,7 +71,6 @@ export function propKeyTranslator(ns: TagNamespace): (jsxName: string) => string
  * but aren't event handlers.
  *
  * Charcode test to avoid regex allocation on a hot reconcile path.
- * @internal
  */
 export function isEventKey(key: string): boolean {
   if (key.length < 3) return false;
@@ -85,7 +82,6 @@ export function isEventKey(key: string): boolean {
 
 /**
  * Props that are never attributes on any element.
- * @internal
  */
 export function isReservedElementProp(key: string): boolean {
   switch (key) {
@@ -98,9 +94,6 @@ export function isReservedElementProp(key: string): boolean {
   }
 }
 
-/**
- * @internal
- */
 export function getReservedExtraProp(
   ns: TagNamespace,
   element: { localName: string; type?: string },

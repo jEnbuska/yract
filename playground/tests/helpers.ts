@@ -19,7 +19,7 @@ export type DemoRow = {
 };
 
 /**
- * Open the deferred demo and wait until it is usable: the controls and the
+ * Open the demo and wait until it is usable: the controls and the
  * table element are there. The rows may still be rendering. Collects page errors.
  */
 export async function goToDemo(page: Page) {
@@ -69,7 +69,7 @@ export function readRows(page: Page): Promise<DemoRow[]> {
   );
 }
 
-/** "123/6000 matches" → { shown: 123, total: 6000 }; `undefined` while deferring ("?"). */
+/** "123/6000 matches" → { shown: 123, total: 6000 }; `undefined` while the rows load ("?"). */
 export async function readMatches(page: Page) {
   const text = await page.getByText(/\d+\/\d+ matches|\?\/\d+ matches/).textContent();
   const match = /^(\d+)\/(\d+)/.exec(text ?? "");
@@ -78,8 +78,8 @@ export async function readMatches(page: Page) {
 }
 
 /**
- * Wait until the deferred table has caught up: the matches label is numeric,
- * the table is no longer deferring, and it shows exactly that many rows.
+ * Wait until the table has caught up with the controls: the matches label is
+ * numeric and the table shows exactly that many rows.
  */
 export async function settled(page: Page) {
   await expect
@@ -87,10 +87,6 @@ export async function settled(page: Page) {
       async () => {
         const matches = await readMatches(page);
         if (!matches) return false;
-        // The table carries data-deferring="true" while a deferred render is pending;
-        // false removes the attribute.
-        const deferring = await page.getByTestId("Defer-table").getAttribute("data-deferring");
-        if (deferring === "true") return false;
         return (await dataRowCount(page)) === matches.shown;
       },
       { timeout: READY },

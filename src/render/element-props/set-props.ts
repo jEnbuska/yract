@@ -18,7 +18,6 @@ import { diffSetProps } from "./diff-element-props";
  *
  * `value` goes last: it is clamped against `min`/`max`/`step`, which have to
  * be written first.
- * @internal
  */
 export function applyElementInitialProps(element: AnyElement, props: ElementProps): void {
   const record = propsRecord(props);
@@ -46,7 +45,6 @@ export function applyElementInitialProps(element: AnyElement, props: ElementProp
  * Apply a pre-computed `ElementPatch` to `el`. No diffing, no `Object.is`,
  * no access to the previous props — the caller has already decided what
  * needs to happen.
- * @internal
  */
 export function updateElementProps(el: AnyElement, patch: ElementPatch) {
   const { removeAttrs, setAttrs } = patch;
@@ -73,7 +71,6 @@ export function updateElementProps(el: AnyElement, patch: ElementPatch) {
   }
 }
 
-/** @internal */
 export function updateElementControlledProps(
   node: AnyElement,
   change: boolean | string,

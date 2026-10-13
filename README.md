@@ -65,7 +65,7 @@ function* Timer() {
 }
 ```
 
-`useState`, `useEffect`, `useMemo`, `useRef`, `useId`, `useStable`, `useContext`, `useElementRef`, `useDefer` and `useDeferredValue`.
+`useState`, `useEffect`, `useMemo`, `useRef`, `useId`, `useStable`, `useContext` and `useElementRef`.
 
 ### Types
 
@@ -101,30 +101,9 @@ function* Digits() {
 }
 ```
 
-### Deferred rendering
-
-`useDefer` renders a subtree after the urgent work, so typing stays responsive while a large table catches up:
-
-```tsx
-function* Search() {
-  const [query, setQuery] = yield* useState("");
-  const [Defer, deferring] = yield* useDefer();
-  return (
-    <>
-      <input value={query} onInput={(e) => setQuery(e.currentTarget.value)} />
-      <Defer>
-        <Results query={query} faded={deferring} />
-      </Defer>
-    </>
-  );
-}
-```
-
-`useDeferredValue(value)` does the same for a single value: it hands back the previous value until the deferred render has caught up.
-
 ### Capabilities
 
-`withReturn`, `withRerender`, `withContext` and `withDeferred` are hook-like helpers that take no hook slot, so they can be called conditionally.
+`withReturn`, `withRerender` and `withContext` are hook-like helpers that take no hook slot, so they can be called conditionally.
 
 ---
 

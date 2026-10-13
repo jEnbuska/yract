@@ -18,7 +18,6 @@ export function* useEffect(
   yield { type: $EFFECT, fn, deps } satisfies EffectHookDescriptor;
 }
 
-/** @internal */
 export function processEffect(
   fiber: ComponentFiber,
   descriptor: EffectHookDescriptor,
@@ -43,7 +42,6 @@ export function processEffect(
   return state;
 }
 
-/** @internal */
 export function effectResolver(state: EffectHookState) {
   if (!state.controller) {
     const controller = new AbortController();

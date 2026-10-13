@@ -20,7 +20,6 @@ function nextId(): string {
   return `:element-ref-${idCounter++}:`;
 }
 
-/** @internal */
 export function processElementRef(prev?: ElementRefHookState): ElementRefHookState {
   if (prev !== undefined) return prev;
   const identifier = nextId();

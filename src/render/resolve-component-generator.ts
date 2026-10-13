@@ -4,7 +4,6 @@ import { processHook, setupSkippedHookCleanups } from "../hooks/process-hook";
 import { getRerender } from "../capabilities/rerender";
 import { $$CONTEXT, $$RERENDER, $$RETURN } from "../capabilities/constants";
 
-/** @internal */
 export function resolveComponentGenerator(
   gen: ComponentGenerator<any>,
   instance: ComponentFiber,

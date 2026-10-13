@@ -1,7 +1,6 @@
 import type { Component } from "../jsx";
 import type { ContextMap } from "../render/types";
 import { mountFiber, reconcilerFiber } from "../reconciler/reconciler";
-import type { ComponentSlotType, ContextSlotType, Slot } from "../slots/slot";
 import type { TagNamespace } from "../render/elements/namespaces";
 import type { DependencyList, DraftBy } from "../general-types";
 import { depsChanged, shallowEqual, stripFrameworkProps } from "../general";
@@ -11,8 +10,8 @@ import type { Fiber } from "./types";
 import type { Scheduler } from "../scheduler/Scheduler";
 import { chunkInserts, foldSubtreeIntoStaging } from "./utils";
 import type { HookState } from "../hooks/hook-states";
+import type { ComponentSlotType, ContextSlotType, Slot } from "../slots/types";
 
-/** @internal */
 export class ComponentFiber<TProps extends Record<string, unknown> = Record<string, any>> {
   public readonly ns: TagNamespace;
   public confidentIteration: number;

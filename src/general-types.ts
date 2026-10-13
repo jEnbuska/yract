@@ -2,7 +2,6 @@ import type { Child } from "./jsx";
 import type { HookDescriptor } from "./hooks/hook-descriptors";
 import type { CapabilityDescriptor } from "./capabilities/types";
 
-/** @internal */
 export type DraftBy<T extends Record<PropertyKey, any>, K extends keyof T> = Omit<T, K> & {
   [key in K]: undefined | T[key];
 };
@@ -28,14 +27,10 @@ export type ComponentGenerator<
   TYield = HookDescriptor | CapabilityDescriptor,
 > = Generator<TYield, TReturn, unknown>;
 
-/** @internal */
 export type PartialBy<T extends Record<PropertyKey, any>, K extends keyof T> = Omit<T, K> & {
   [key in K]?: NonNullable<T[K]>;
 };
-/** @internal */
 export type RequiredBy<T, K extends keyof T> = Omit<T, K> & { [P in K]-?: NonNullable<T[P]> };
-/** @internal */
 export type AnyFn = (...args: any[]) => any;
 
-/** @internal */
 export type PublicOf<T> = { [P in keyof T]: T[P] };

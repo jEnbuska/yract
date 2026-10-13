@@ -15,7 +15,6 @@ import type { EffectCallback } from "./hook-descriptors";
 
 export type SetState<T = unknown> = (value: ((prevValue: T) => T) | T) => void;
 
-/** @internal */
 export interface StateHookState<T = unknown> {
   type: typeof $STATE;
   value: T;
@@ -23,39 +22,33 @@ export interface StateHookState<T = unknown> {
   deps: DependencyList;
 }
 
-/** @internal */
 export interface RefHookState<T = unknown> {
   type: typeof $REF;
   ref: { current: T };
 }
 
-/** @internal */
 export interface ElementRefHookState<T extends AnyElement = AnyElement> {
   type: typeof $ELEMENT_REF;
   ref: ElementRef<T>;
 }
 
-/** @internal */
 export interface IdHookState {
   type: typeof $ID;
   id: string;
 }
 
-/** @internal */
 export interface MemoHookState<T = unknown> {
   type: typeof $MEMO;
   value: T;
   deps: DependencyList;
 }
 
-/** @internal */
 export interface StableHookState<T extends (...args: any[]) => any = (...args: any[]) => any> {
   type: typeof $STABLE;
   current: T;
   callback: T;
 }
 
-/** @internal */
 export interface EffectHookState {
   type: typeof $EFFECT;
   deps?: DependencyList;
@@ -64,7 +57,6 @@ export interface EffectHookState {
   dirty?: boolean;
 }
 
-/** @internal */
 export interface ContextHookState<T = unknown, D = T> {
   type: typeof $CONTEXT;
   /** Unique symbol this hook uses when scheduling/unscheduling the instance. */
@@ -81,7 +73,6 @@ export interface ContextHookState<T = unknown, D = T> {
   callback?: () => void;
 }
 
-/** @internal */
 export type HookState =
   | StateHookState
   | RefHookState

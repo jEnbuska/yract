@@ -3,7 +3,6 @@ import type { AnyElement } from "../elements/namespaces";
 /**
  * Per-key style patch when both prev and next are style objects. A key that
  * became `undefined` or disappeared is emitted as `""`, which clears it.
- * @internal
  */
 export function diffStyle(
   prevStyle: Record<string, unknown>,
@@ -38,7 +37,6 @@ export function diffStyle(
  *
  * CSS custom properties (`--x`) are not members of `CSSStyleDeclaration`, so
  * they have to go through `setProperty`; everything else is assigned directly.
- * @internal
  */
 export function assignStyle(el: AnyElement, style: Record<string, unknown>): void {
   for (const key in style) {

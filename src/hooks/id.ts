@@ -16,7 +16,6 @@ export function* useId(): Generator<IdHookDescriptor, string> {
   return result.id;
 }
 
-/** @internal */
 export function processId(prev?: IdHookState): IdHookState {
   if (prev !== undefined) return prev;
   return { type: $ID, id: nextId() };

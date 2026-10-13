@@ -16,7 +16,6 @@ export function* useStable<T extends AnyFn>(fn: T): Generator<StableHookDescript
   return stable.callback;
 }
 
-/** @internal */
 export function processStable(
   descriptor: StableHookDescriptor,
   prev?: StableHookState,
