@@ -127,14 +127,3 @@ export function setupSkippedHookCleanups(fiber: ComponentFiber, hookIndex: numbe
     hookStates.splice(hookIndex);
   };
 }
-
-export function unmountHookCleanup(state: HookState) {
-  switch (state.type) {
-    case $CONTEXT:
-      state.unsubscribe?.();
-      break;
-    case $EFFECT:
-      state.controller?.abort();
-      break;
-  }
-}

@@ -4,6 +4,7 @@ import type { DependencyList, PartialBy } from "../general-types";
 import { $STATE } from "./constants";
 import type { Fiber } from "../instances/types";
 import type { SetState, StateHookState } from "./hook-states";
+import { stack } from "../instances/utils";
 
 /**
  * Persistent state hook.
@@ -70,6 +71,11 @@ function createStateSetter(fiber: Fiber, state: Omit<StateHookState, "setState">
   const cached = cache.get(state);
   if (cached) return cached;
   return (newValue): void => {
+    if (fiber.scheduler.stage === "RENDER") {
+      throw new Error(
+        `Component setState was called during components ${fiber.component.name} render at:${"\n"}${stack(fiber)}`,
+      );
+    }
     const nextValue = resolveNextValue(newValue, state.value);
     // No change: nothing to rerender.
     if (nextValue === state.value) return;

@@ -62,14 +62,13 @@ export class Root {
   }
 
   private setupStoreTextValuesOnBeforeChange() {
-    const { block } = this.scheduler;
-    const { valueMap } = this;
+    const { scheduler, valueMap } = this;
     this.container.addEventListener(
       "beforeinput",
       function onBeforeInputCapture(e) {
         const target = e.target as HTMLInputElement | HTMLTextAreaElement;
         if (!valueMap.has(target)) return;
-        block();
+        scheduler.blockRun();
         valueMap.set(target, target.value ?? "");
       },
       { capture: true },
@@ -94,7 +93,7 @@ export class Root {
         }
         target.value = `${valueMap.get(target) ?? ""}`;
       }
-      scheduler.unBlock();
+      scheduler.unBlockRun();
     });
   }
 

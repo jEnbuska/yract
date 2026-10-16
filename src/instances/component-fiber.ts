@@ -71,7 +71,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
         scheduler.schedulePrepareChunk(this.parent);
       }
     } else {
-      // Is mounted (re-render)
+      // re-render (Is mounted already)
       this.pendingSlot = reconcilerFiber(this, child);
       if (this.uiActions?.length) {
         scheduler.scheduleCommit(this);
