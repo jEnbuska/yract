@@ -8,6 +8,7 @@
 2.  **STRICT EXECUTION POLICY:** Follow the sequence below for every PR.
 3.  **INSTRUCTION MAINTENANCE:** This file must stay current. If you encounter a process issue, add a new feature, or change a public API, you MUST propose an update to this `CLAUDE.md` file in the same PR.
 4.  **NPM ONLY:** Never use `npx`. Use `npm run <script>`.
+5.  **NODE 24 (CURRENT LTS):** Develop and test on Node 24. `engines` and `.nvmrc` declare it and CI runs it. This is a policy floor, not a technical one — the source needs nothing newer than Node 22 (`Array.prototype.toReversed`, `Promise.withResolvers`), so a failing test on an older runtime is a real failure, not a version mismatch.
 
 ## STRICT EXECUTION POLICY
 
@@ -15,9 +16,9 @@
 
 1.  **Branch Sync:** `git fetch origin dev && git rebase origin/dev`
 2.  **Dead Code Check:** `npm run knip`
-3.  **Lint & Format:** `npm run lint:fix`
+3.  **Lint & Format:** `npm run fix`
 4.  **Type Check & Build:** `npm run build`
-5.  **Type Check Examples:** `npm run typecheck:examples`
+5.  **Type Check Playground:** `npm run typecheck:playground`
 6.  **Unit Tests:** `npm test`
 7.  **Visual Tests:** `npm run test:visual`
 8.  **Documentation & CLAUDE.md:** \* Update `docs/api.md` if API changed.
@@ -32,7 +33,7 @@ yract is a minimal JSX UI library using JavaScript generator functions.
 
 - **Components:** Generators using `yield*` for hooks and `return` for JSX.
 - **State:** Local variables managed by hooks.
-- **Core:** ~100 lines. Minimal, educational, transparent.
+- **Core:** Small, educational and transparent, with no runtime dependencies.
 
 ---
 
@@ -49,7 +50,7 @@ Each branch gets its own worktree under `.worktrees/feat/` so multiple Claude Co
    - `<dir_name>` is a **flat directory name** (no slashes) — strip the prefix: e.g. `add-context`, `render-bug`, `cleanup`
    - Example: `git worktree add .worktrees/feat/add-context -b feat/add-context`
    - **Never** create nested directories under `.worktrees/feat/` — all worktrees must be direct children
-4. Install deps in worktree: `cd .worktrees/feat/<dir_name> && npm ci && npm ci --prefix examples`
+4. Install deps in worktree: `cd .worktrees/feat/<dir_name> && npm ci && npm ci --prefix playground`
 5. Copy Claude Code settings: `mkdir -p .claude && cp <main-repo-root>/.claude/settings.local.json .claude/`
 6. Work exclusively within the worktree directory — never edit files in the main repo root
 7. Cleanup after merge: `git worktree remove .worktrees/feat/<dir_name> && git branch -d <branch_name>`
@@ -58,16 +59,17 @@ Each branch gets its own worktree under `.worktrees/feat/` so multiple Claude Co
 
 **Use `npm run <command>` only. No `npx`.**
 
-- `npm run build` — Compile TS to `dist/`
+- `npm run build` — Compile `src/` to `dist/` with declarations (`tsconfig.build.json`)
 - `npm run typecheck` — Type-check including test files (no emit)
-- `npm run typecheck:examples` — Type-check example components (catches `$children`/JSX issues)
+- `npm run typecheck:playground` — Type-check the playground
 - `npm test` — Run Vitest unit tests (jsdom)
-- `npm run test:visual` — Run Playwright visual tests
+- `npm run test:visual` — Run Playwright visual tests (delegates to `playground`)
 - `npm run knip` — Detect dead code, unused exports, and unused dependencies (Knip)
-- `npm run lint` — Check lint & formatting (Biome)
-- `npm run lint:fix` — Auto-fix lint & formatting issues
-- `npm run format` — Auto-fix formatting only (Biome)
-- `npm run format:check` — Check formatting without fixing (Biome)
+- `npm run lint` — Lint (oxlint, type-aware)
+- `npm run lint:fix` — Auto-fix lint issues
+- `npm run fix` — Format, auto-fix lint issues, then format again (`--fix` can leave code needing a reformat). Also removes unused imports: `no-unused-vars` has `fix.imports: "safe-fix"` (side-effect imports like `import "./x"` are kept; unused variables are only reported, never deleted). `lint:fix` runs twice because one pass skips overlapping import removals.
+- `npm run format` — Format (oxfmt)
+- `npm run format:check` — Check formatting without writing
 - `npm test -- <path>` — Run specific test file
 
 ### 3. Creating a Pull Request
@@ -84,9 +86,10 @@ Each branch gets its own worktree under `.worktrees/feat/` so multiple Claude Co
 
 ### 4. CI Workflows
 
-- **`ci.yml`** — Runs on push to `dev`/`main` and all PRs. Steps: dead code check (`knip`), lint, test, build, then visual tests (Playwright).
+- **`ci.yml`** — Runs on push to `dev`/`main` and all PRs. Steps: dead code check (`knip`), lint, `format:check`, `typecheck`, `typecheck:playground`, unit tests, build, then visual tests (Playwright, one job per browser).
 - **`auto-resolve-conflicts.yml`** — Runs on push to `dev`. Finds open PRs targeting `dev` with merge conflicts and uses Claude Code CLI to resolve them automatically. Comments on the PR with the result. Requires `CLAUDE_CODE_OAUTH_TOKEN` secret.
 - **`close-issues.yml`** — Runs when a PR is merged to `dev` or `main`. Parses the PR body for `Closes #N` / `Fixes #N` / `Resolves #N` and closes the linked issues.
+- **`label-issues-on-pr.yml`** — Runs when a PR targeting `dev` or `main` is opened. Adds the `PR Opened` label to every issue the PR body references with `Closes #N` / `Fixes #N` / `Resolves #N`.
 - **`require-issue-link.yml`** — Runs on PR open/edit/sync targeting `dev` or `main`. Fails if the PR body does not contain a `Closes #N` / `Fixes #N` / `Resolves #N` reference.
 
 ---
@@ -104,33 +107,33 @@ function* Counter(_props: object) {
 
 ### Core Module Map
 
-| File                      | Responsibility                                                          |
-| :------------------------ | :---------------------------------------------------------------------- |
-| `jsx.ts`                  | VNode types, `createElement`, `createPortal`, `Portal`, `FrameworkProps`, `SpecialProps`, `Component` |
-| `jsx-types.ts`            | Intrinsic element type definitions (HTML/SVG attribute types)           |
-| `jsx-runtime.ts`          | Automatic JSX transform (`jsx`, `jsxs`, `jsxDEV`)                      |
-| `events.ts`               | `SyntheticEvent` type and proxy-based event wrapper                     |
-| `context.ts`              | `createContext`, `useContext`, context map helpers                       |
-| `index.ts`                | Public API re-exports                                                   |
-| `render/types.ts`         | `RenderContext`, `ComponentInstance`, `Slot`, `HookState`               |
-| `render/state.ts`         | `createRenderContext()`, active context pointer                         |
-| `render/driver.ts`        | Generator driver: context scoping, yield protocol, `drive`, `driveWithContext` |
-| `render/index.ts`         | `render()`, `createRoot()` entry points                                 |
-| `render/initial-mount/`   | Initial root mount: `buildNode`, `mountComponent`, `createComponentInstance` |
-| `render/component/`       | Rerender & resume: `executeComponentRerender`, `resumeInstance`, `rerenderInstance` |
-| `render/reconciler.ts`    | Positional reconciliation (diff + patch)                                |
-| `render/hooks-runtime.ts` | Hook descriptor dispatch, effect flushing, unmount                      |
-| `render/helpers.ts`       | Type guards, shallow equality, props merging, `flattenChildren`         |
-| `render/props.ts`         | `applyProps`, `updateProps`                                             |
-| `render/scheduler.ts`     | Cooperative scheduler                                                   |
-| `render/commit-queue.ts`  | Atomic DOM commit queue                                                 |
-| `render/patch.ts`         | Placeholder — `$patch` feature temporarily removed (#163)               |
-| `render/delegation.ts`    | Handler registry, `DelegationRoot`, prop→event mapping                  |
-| `render/dispatch.ts`      | Delegated event dispatch (capture→bubble phases)                        |
-| `render/events.ts`        | Per-element listeners for non-delegated events                          |
-| `hooks/descriptors.ts`    | Hook type constants (`$USE_STATE`, etc.) and descriptor interfaces      |
-| `hooks/types.ts`          | `ComponentGenerator`, `DependencyList`, `depsChanged()`                 |
-| `hooks/*.ts`              | Individual hook implementations (`useState`, `useEffect`, etc.)         |
+| File                                                   | Responsibility                                                                                                                                                                                                                                                           |
+| :----------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.ts`                                             | Public API re-exports                                                                                                                                                                                                                                                    |
+| `jsx.ts`                                               | `Child`/`Children`, `Component`, `FrameworkProps` (`key`, `deps`), `Fragment`                                                                                                                                                                                            |
+| `jsx-types.ts`                                         | Intrinsic element types (only `IntrinsicElements` is exported)                                                                                                                                                                                                           |
+| `jsx-runtime.ts`                                       | Automatic JSX transform (`jsx`, `jsxs`, `jsxDEV`)                                                                                                                                                                                                                        |
+| `contexts/*.ts`                                        | `createContext`, `resolveContext` and the context types                                                                                                                                                                                                                  |
+| `general.ts` / `general-types.ts`                      | Shared helpers and `ComponentGenerator`, `DependencyList`                                                                                                                                                                                                                |
+| `hooks/*.ts`                                           | One file per hook; `process-hook.ts` dispatches hook descriptors                                                                                                                                                                                                         |
+| `hooks/hook-descriptors.ts` / `hook-states.ts`         | What each hook yields, and the state the renderer keeps for it                                                                                                                                                                                                           |
+| `capabilities/*.ts`                                    | `withReturn`, `withRerender`, `withContext` — no hook slot                                                                                                                                                                                                               |
+| `instances/component-fiber.ts`                         | `ComponentFiber` — per-component state, queued UI actions, rerender                                                                                                                                                                                                      |
+| `instances/context-fiber.ts`                           | `ContextFiber` — the fiber behind a context provider                                                                                                                                                                                                                     |
+| `instances/create-fiber.ts`                            | `createFiber()` — picks the fiber class for a component                                                                                                                                                                                                                  |
+| `instances/root.ts`                                    | `Root`; container listeners that restore controlled `value`/`checked`                                                                                                                                                                                                    |
+| `instances/utils.ts`                                   | `chunkInserts`, `foldSubtreeIntoStaging` (mount staging)                                                                                                                                                                                                                 |
+| `slots/*.ts`                                           | `Slot`/`Intent`/`Draft` types, slot keys, node creation                                                                                                                                                                                                                  |
+| `reconciler/reconciler.ts`                             | Reconciliation — walks intents against previous slots, records `UIAction`s                                                                                                                                                                                               |
+| `reconciler/derive-stable-indexes.ts`                  | Keyed move minimisation                                                                                                                                                                                                                                                  |
+| `ui-actions/`                                          | `UIAction` types, `prepare*` builders, commit-time DOM appliers                                                                                                                                                                                                          |
+| `scheduler/`                                           | `Scheduler` (one synchronous render pass per microtask), `SyncWork` (the pass's queues), `FiberWork` (see docs/scheduler.md)                                                                                                                                             |
+| `render/index.ts`                                      | `createRoot()`, `render()`                                                                                                                                                                                                                                               |
+| `render/resolve-component-generator.ts`                | Drives a component generator: hooks and capabilities                                                                                                                                                                                                                     |
+| `render/element-props/`                                | `diff-element-props.ts` (reconcile: `diffElementProps` → `diffUnsetProps` + `diffSetProps` → `ElementPatch`), `prop-key.ts` (prop names: translation per namespace, event/reserved keys), `utils.ts` (`propsRecord`, `createPatch`), `set-props.ts` (commit), `style.ts` |
+| `render/delegation.ts`                                 | Prop-name → DOM-event mapping (`resolveEventProp`)                                                                                                                                                                                                                       |
+| `render/elements/create.ts`, `namespaces.ts`, `svg.ts` | Element creation in the right namespace (HTML/SVG/MathML), SVG attribute casing                                                                                                                                                                                          |
+| `render/elements/events.ts`                            | Per-element listener registration; one stable listener per element + event                                                                                                                                                                                               |
 
 ---
 
@@ -138,36 +141,43 @@ function* Counter(_props: object) {
 
 - **Self-Updating Documentation:** If you discover a "gotcha" or a more efficient way to run this project, update the "Non-Obvious Rules" or "Execution Policy" in this file immediately.
 - **NPM Script Policy:** Never use `npx`. Always use the existing `npm run` scripts to ensure version consistency.
-- **Linting:** Biome (`biome.json`) handles linting and formatting. Prettier was removed.
-- **TypeScript:** Strictly typed; `any` is forbidden. `noUncheckedIndexedAccess` and `noPropertyAccessFromIndexSignature` are enabled.
+- **Linting:** oxlint (`.oxlintrc.json`) lints; oxfmt (`.oxfmtrc.json`) formats. They are separate tools — `lint` does not check formatting, so run `format:check` too.
+- **TypeScript:** Strictly typed. `noUncheckedIndexedAccess` and `noPropertyAccessFromIndexSignature` are enabled. Do not use `any` in normal code. It is allowed only as a workaround where the type system cannot express a type: the implementation signature behind typed overloads (`useMemo`, `createContext`, `jsx`), generic constraints such as `Record<PropertyKey, any>` and `AnyFn`, and similar variance workarounds. Keep each one local. In public types, `any` may appear only as a generic constraint or default (`Component<P extends Record<string, any>>`, `Context<T = any>`), never as a parameter or return type users see.
 - **Prefer `satisfies` over `as`:** Strongly avoid `as` type assertions. Use `satisfies` to validate that a value conforms to a type without silencing the type checker. Only use `as` where genuine type narrowing is required (e.g., DOM element downcasts, narrowing `T | undefined` to `T`, casting `unknown` from external APIs, generator yield values). Never use `as` when `satisfies` would work.
-- **Special Props:** Always support the `$shown={boolean}` prop.
+- **Framework Props:** `key` (components and elements) and `deps` (components only; see `FrameworkProps` in `jsx.ts`) never reach the DOM. `deps` is not an element prop at all, so `isReservedElementProp` reserves only `key` and `children`.
 - **Dependencies:** Zero-dependency goal.
-- **JSX Config:** The library build uses the classic `react` transform (`jsxFactory: "createElement"`). Consumers (including `examples/`) use `react-jsx` with `jsxImportSource: "yract"`, backed by `src/jsx-runtime.ts`.
-- **Multi-root:** Each `render()`/`createRoot()` creates an independent `RenderContext` with its own state (scheduler queue, context map, DOM ops queue). The global `idCounter` is the only shared state (IDs must be globally unique).
-- **Prefer Destructuring:** Use destructuring when extracting properties from objects (e.g., `const { gen } = instance` instead of `const gen = instance.gen`). For save/restore patterns use destructuring with rename (e.g., `const { activePriority: prevPriority } = rctx`).
+- **JSX Config:** Both the library and consumers (including `playground/`) use the automatic `react-jsx` transform with `jsxImportSource: "yract"`, backed by `src/jsx-runtime.ts`.
+- **Multi-root:** Each `render()`/`createRoot()` creates an independent `Root` with its own `Scheduler` and context map. The id counters in `hooks/id.ts` and `hooks/elementRef.ts` are the only shared state (ids must be globally unique).
+- **Prefer Destructuring:** Use destructuring when extracting properties from objects (e.g., `const { scheduler } = fiber` instead of `const scheduler = fiber.scheduler`). To keep an old value under another name, destructure with rename (e.g., `const { slot: prevSlot } = fiber`).
 - **Shorthand Properties:** Always use shorthand property syntax in object literals when the key matches the variable name (e.g., `{ instance }` instead of `{ instance: instance }`).
 - **Guard Clauses:** Always prefer guard clauses (early returns) over nested conditionals. Return early when a condition short-circuits the rest of the logic.
 - **Flat Code:** Avoid deeply nested blocks (`if` inside `if`, `try` inside `if`, etc.). Extract nested logic into separate functions, use early returns, or restructure to keep indentation shallow. Flat code is easier to read and maintain.
-- **No Floating Promises:** Every call to a function that returns a `Promise` must be handled — use `await`, `void`, `.then()`, or `.catch()`. Biome's `noFloatingPromises` nursery rule catches some cases, but its type inference cannot trace Promise-returning methods through interfaces or the generator `yield*` protocol (e.g., `useState` setters, `instance.executeRerender()`). You must manually prefix these with `void` (or `await` where appropriate). Common Promise-returning calls: `useState` setters, `instance.rerender()`, `instance.executeRerender()`.
-- **Lint Strictness:** Never weaken linting or tsconfig rules. Fix lint issues by improving code, not by adding `biome-ignore` or `@ts-ignore` comments. The only accepted exceptions are `biome-ignore lint/complexity/noExcessiveCognitiveComplexity` on architectural dispatch functions (reconciler, props, mount, dispatch) that inherently require many branches.
-- **Type Safety Tests:** Compile-time type tests live in `src/__tests__/*.typetest.tsx` and are checked by `npm run typecheck`.
+- **No Floating Promises:** Every call to a function that returns a `Promise` must be handled — use `await`, `void`, `.then()`, or `.catch()`. oxlint catches some cases, but its type inference cannot trace Promise-returning methods through interfaces or the generator `yield*` protocol, so prefix those with `void` (or `await` where appropriate) by hand. `useState` setters and `withRerender()` callbacks return `void` and need neither.
+- **Lint Strictness:** Never weaken linting or tsconfig rules. Fix lint issues by improving code, not by adding `oxlint-disable` or `@ts-ignore` comments. The only accepted exceptions are cognitive-complexity suppressions on architectural dispatch functions (reconciler, props, mount, dispatch) that inherently require many branches.
 - **New Feature Checklist:** Every new public API feature must include:
-  1. An example demo component in `examples/src/components/` wired into `main.tsx` as a tab.
-  2. Playwright visual tests in `examples/tests/` covering the demo.
+  1. A demo section in `playground/src/sections/<name>/`, rendered from `playground/src/App.tsx`.
+  2. Playwright visual tests in `playground/tests/` covering the demo.
   3. Documentation in `docs/api.md`.
+- **Type Safety Tests:** Compile-time type tests live in `src/__typetests__/*.typetest.tsx`. They are checked by `npm run typecheck` only — `tsconfig.build.json` excludes them and Vitest does not pick them up (its `include` is `src/__tests__/**/*.test.{ts,tsx}`), so `npm run build` and `npm test` will not catch a regression in one. They are registered as knip entry points in `knip.json`; a typetest outside that folder is reported as an unused file. Assert types with an **invariant** equality helper — a mutual `extends` check silently accepts `any`, which is exactly how a broken overload degrades:
+  ```ts
+  type Expect<A, B> =
+    (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : never;
+  ```
 - **Bug Fix Workflow:** When a bug is discovered, always write unit tests and/or Playwright visual tests that reproduce the bug **before** writing the fix. Verify the tests fail, then fix the bug, then verify the tests pass.
 
-### Examples Structure
+### Playground Structure
 
-Example components live in `examples/src/components/`. The app entry point is `examples/src/main.tsx`, which renders a tabbed view of all demos.
+The playground is a separate package in `playground/`, aliased to the library
+source (no build step between them). Its entry point is `playground/src/main.tsx`,
+which mounts `App.tsx` — the shell that stacks every demo on one page.
 
-**Top-level demos** (each a tab in main.tsx): `Counter`, `TodoList`, `ThemeDemo`, `DataFetcher`/`ResolveRawDemo`, `HooksShowcase`, `ShownDemo`, `ConfirmDialog`, `EffectDemo`, `TransitionDemo` *(disabled — #163)*, `ContextDemo`, `LazyContextDemo`, `AbortSignalEffectDemo`, `KeyShuffleDemo`, `DepsDemo`, `PortalDemo`.
+- `playground/src/sections/<name>/index.tsx` — one folder per demo section.
+- `playground/src/dos/` — the DOS text-mode UI kit used by the shell (`styles.css` plus one file per component).
+- `playground/fixtures/*.html` + `playground/src/fixtures/*.tsx` — standalone pages for Playwright (served by Vite, not linked from the app; registered as knip entries).
+- `playground/tests/` — Playwright specs; `helpers.ts` holds `goToDemo`, `readRows` and `settled` (waits until the table matches the controls).
 
-**Multi-file demos** split one-component-per-file:
+### Testing Notes
 
-- **TransitionDemo:** *(Disabled — `$patch` feature temporarily removed, see #163.)* Root imports `GlobalPatchDemo`, `LocalPatchDemo`, `GlobalVisibilityDemo`, `LocalVisibilityDemo`. Sub-components: `Navigation`, `Clocks` (→ `LiveClock`), `PageStubs`, `VisibilityTarget`.
-- **ContextDemo:** Shared context definitions in `ContextDemo.shared.ts`. Leaf components: `ThemeBadge`, `LocaleBadge`, `BothBadge`, `StatefulConsumer`, `SiblingProvidersDemo`.
-- **LazyContextDemo:** Shared context in `LazyContextDemo.shared.ts`. Consumers: `NoSelectorConsumer`, `SelectorConsumer`, `TransformConsumer`. Shared utility: `RenderBadge`.
-
-**Utilities:** `examples/src/utils.ts` (`sleep`), `examples/src/types.ts` (`Page`).
+- Unit tests mount through `mount()` in `src/__tests__/utils/dom.tsx` and simulate input with its helpers (`typeText`, `autofill`, `selectOption`, `slideTo`); wait with `flush()` from `utils/flush.ts`.
+- Known bugs are pinned with `it.fails` / `test.fail()` plus a `// BUG:` comment. When one starts "failing", the bug is fixed — flip it back to `it`/`test`.
+- The desktop preview entries in the main repo's `.claude/launch.json` are per worktree: each entry runs `npm run dev --prefix .worktrees/feat/<dir>/playground`. Vite moves to the next free port when the configured one is taken, so check its log for the actual URL.
