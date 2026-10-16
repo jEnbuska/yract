@@ -67,7 +67,7 @@ Each branch gets its own worktree under `.worktrees/feat/` so multiple Claude Co
 - `npm run knip` — Detect dead code, unused exports, and unused dependencies (Knip)
 - `npm run lint` — Lint (oxlint, type-aware)
 - `npm run lint:fix` — Auto-fix lint issues
-- `npm run fix` — Auto-fix lint issues, then format (lint first: `--fix` can leave code needing a reformat). Also removes unused imports: `no-unused-vars` has `fix.imports: "safe-fix"` (side-effect imports like `import "./x"` are kept; unused variables are only reported, never deleted). `lint:fix` runs twice because one pass skips overlapping import removals.
+- `npm run fix` — Format, auto-fix lint issues, then format again (`--fix` can leave code needing a reformat). Also removes unused imports: `no-unused-vars` has `fix.imports: "safe-fix"` (side-effect imports like `import "./x"` are kept; unused variables are only reported, never deleted). `lint:fix` runs twice because one pass skips overlapping import removals.
 - `npm run format` — Format (oxfmt)
 - `npm run format:check` — Check formatting without writing
 - `npm test -- <path>` — Run specific test file
@@ -146,15 +146,15 @@ function* Counter(_props: object) {
 - **Framework Props:** `key` and `deps` (see `FrameworkProps` in `jsx.ts`) are never passed to the DOM.
 - **Dependencies:** Zero-dependency goal.
 - **JSX Config:** Both the library and consumers (including `playground/`) use the automatic `react-jsx` transform with `jsxImportSource: "yract"`, backed by `src/jsx-runtime.ts`.
-- **Multi-root:** Each `render()`/`createRoot()` creates an independent `RenderContext` with its own state (scheduler queue, context map, DOM ops queue). The global `idCounter` is the only shared state (IDs must be globally unique).
+- **Multi-root:** Each `render()`/`createRoot()` creates an independent `Root` with its own `Scheduler` and context map. The id counters in `hooks/id.ts` and `hooks/elementRef.ts` are the only shared state (ids must be globally unique).
 - **Prefer Destructuring:** Use destructuring when extracting properties from objects (e.g., `const { gen } = instance` instead of `const gen = instance.gen`). For save/restore patterns use destructuring with rename (e.g., `const { activePriority: prevPriority } = rctx`).
 - **Shorthand Properties:** Always use shorthand property syntax in object literals when the key matches the variable name (e.g., `{ instance }` instead of `{ instance: instance }`).
 - **Guard Clauses:** Always prefer guard clauses (early returns) over nested conditionals. Return early when a condition short-circuits the rest of the logic.
 - **Flat Code:** Avoid deeply nested blocks (`if` inside `if`, `try` inside `if`, etc.). Extract nested logic into separate functions, use early returns, or restructure to keep indentation shallow. Flat code is easier to read and maintain.
-- **No Floating Promises:** Every call to a function that returns a `Promise` must be handled — use `await`, `void`, `.then()`, or `.catch()`. oxlint catches some cases, but its type inference cannot trace Promise-returning methods through interfaces or the generator `yield*` protocol (e.g., `useState` setters, `instance.executeRerender()`). You must manually prefix these with `void` (or `await` where appropriate). Common Promise-returning calls: `useState` setters, `instance.rerender()`, `instance.executeRerender()`.
+- **No Floating Promises:** Every call to a function that returns a `Promise` must be handled — use `await`, `void`, `.then()`, or `.catch()`. oxlint catches some cases, but its type inference cannot trace Promise-returning methods through interfaces or the generator `yield*` protocol, so prefix those with `void` (or `await` where appropriate) by hand. `useState` setters and `withRerender()` callbacks return `void` and need neither.
 - **Lint Strictness:** Never weaken linting or tsconfig rules. Fix lint issues by improving code, not by adding `oxlint-disable` or `@ts-ignore` comments. The only accepted exceptions are cognitive-complexity suppressions on architectural dispatch functions (reconciler, props, mount, dispatch) that inherently require many branches.
 - **New Feature Checklist:** Every new public API feature must include:
-  1. A demo section in `playground/src/sections/<route>/` wired into the router.
+  1. A demo section in `playground/src/sections/<name>/`, rendered from `playground/src/App.tsx`.
   2. Playwright visual tests in `playground/tests/` covering the demo.
   3. Documentation in `docs/api.md`.
 - **Type Safety Tests:** Compile-time type tests live in `src/__typetests__/*.typetest.tsx`. They are checked by `npm run typecheck` only — `tsconfig.build.json` excludes them and Vitest does not pick them up (its `include` is `src/__tests__/**/*.test.{ts,tsx}`), so `npm run build` and `npm test` will not catch a regression in one. They are registered as knip entry points in `knip.json`; a typetest outside that folder is reported as an unused file. Assert types with an **invariant** equality helper — a mutual `extends` check silently accepts `any`, which is exactly how a broken overload degrades:

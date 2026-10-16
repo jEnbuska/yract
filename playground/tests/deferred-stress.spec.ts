@@ -74,7 +74,7 @@ async function pickDepartment(page: Page, department: string) {
   await page.locator(`input[type="radio"][value="${department}"]`).click();
 }
 
-test.describe("Deferred table under stress", () => {
+test.describe("Person table under stress", () => {
   test("typing faster than the table renders ends on the final query", async ({ page }) => {
     const errors = await goToDemo(page);
     const search = page.getByPlaceholder("Name, city, department, id...");

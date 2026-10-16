@@ -8,7 +8,7 @@
 2. [Rendering](#rendering)
 3. [Hooks](#hooks)
 4. [Capabilities](#capabilities)
-5. [Types](#context)
+5. [Context](#context)
 6. [Framework props](#framework-props)
 7. [Elements and events](#elements-and-events)
 8. [Controlled form elements](#controlled-form-elements)
@@ -66,7 +66,7 @@ Shorthand for `createRoot(container)` followed by `root.render(child)`. Returns 
 
 ```ts
 const [value, setValue] = yield * useState(0);
-await setValue((prev) => prev + 1);
+setValue((prev) => prev + 1);
 ```
 
 - `initial` may be a function; it is called once.
@@ -89,6 +89,7 @@ yield *
 - Runs after the DOM is committed, and again whenever `deps` change.
 - `deps` defaults to `[]`, so an effect without deps runs **once** (unlike React).
 - `signal` aborts before the next run and on unmount. `fn` may also return a cleanup function.
+- `fn` may be `async`. Its promise is not awaited, so check `signal.aborted` after each `await`.
 
 ### `useMemo(fn, deps)`
 
@@ -112,7 +113,7 @@ Returns a function with a permanent identity that always calls the latest `fn`. 
 
 ### `useContext(ctx, selector?, transform?)`
 
-See [Types](#context).
+See [Context](#context).
 
 ### `useElementRef()`
 
@@ -146,7 +147,7 @@ function* Gate(props: { open: boolean }) {
 
 ---
 
-## Types
+## Context
 
 ### `createContext(defaultValue, name?)`
 

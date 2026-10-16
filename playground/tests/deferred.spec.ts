@@ -17,7 +17,7 @@ async function highlight(page: Page, city: string) {
   void settled(page);
 }
 
-test.describe("Deferred table", () => {
+test.describe("Person table", () => {
   test("mounts every row exactly once", async ({ page }) => {
     const errors = await goToDemoWithRows(page);
     const rows = await readRows(page);

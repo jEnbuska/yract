@@ -86,7 +86,6 @@ export function isEventKey(key: string): boolean {
 export function isReservedElementProp(key: string): boolean {
   switch (key) {
     case "key":
-    case "deps":
     case "children":
       return true;
     default:

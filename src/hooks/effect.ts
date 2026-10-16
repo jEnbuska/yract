@@ -26,7 +26,7 @@ export function processEffect(
   const { scheduler } = fiber;
   if (!state) {
     scheduler.schedulePostCommit(fiber);
-    // First run — no controller yet; afterRender will create one and run fn.
+    // First run — no controller yet; post-commit creates one and runs fn.
     return {
       type: $EFFECT,
       deps: descriptor.deps,

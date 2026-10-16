@@ -23,7 +23,7 @@ const PROP_TO_DOM_EVENT: Record<string, string> = {
  * suffix here and returning the flag alongside `domEvent`, and it only works
  * together with the two TODOs it pairs with: the `addEventListener` third
  * argument in `ensureListener` (`render/elements/events.ts`) and the
- * `on*Capture` clause in `EventHandlers` (`jsx-hook-descriptors.ts`).
+ * `on*Capture` clause in `EventHandlers` (`jsx-types.ts`).
  */
 export function resolveEventProp(propKey: string): { domEvent: string } {
   const mapped = PROP_TO_DOM_EVENT[propKey];

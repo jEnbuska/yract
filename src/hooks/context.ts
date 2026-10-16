@@ -45,12 +45,8 @@ export function* useContext<T, D extends unknown[], R>(
 /**
  * Build or refresh a ContextHookState for one `context` call.
  *
- * Pure state transition — no subscription side effect. The actual
- * subscribe happens in `BaseInstance.afterRender()` once the DOM has
- * been committed.
- *
- * First run: creates the state and seeds `lastRenderedDepsSelected`
- * from the current handle value.
+ * First run: creates the state, seeds `lastRenderedDepsSelected` from the
+ * current handle value and subscribes to the provider.
  *
  * Re-run: freezes `lastRenderedDepsSelected := currentSelected` and
  * refreshes the selector/transform references (they rarely change, but may).
