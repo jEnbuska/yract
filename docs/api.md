@@ -190,12 +190,12 @@ Low-level lookup used by the renderer; returns the provided value or the default
 
 ## Framework props
 
-Accepted by every component and element; never passed to the DOM.
+Never passed to the DOM. `key` works on components and elements; `deps` only on components.
 
 | Prop   | Effect                                                                                  |
 | :----- | :-------------------------------------------------------------------------------------- |
 | `key`  | Identity among siblings. Keyed children are moved rather than re-created when reordered |
-| `deps` | On a component: rerender from the parent only when `deps` change                        |
+| `deps` | Rerender from the parent only when `deps` change (components only)                      |
 
 ```tsx
 {

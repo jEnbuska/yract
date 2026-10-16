@@ -30,10 +30,11 @@ export function* useMemo(
 }
 
 export function processMemo(descriptor: MemoHookDescriptor, prev?: MemoHookState): MemoHookState {
-  if (prev !== undefined && !depsChanged(prev.deps, descriptor.deps)) return prev;
+  const { deps } = descriptor;
+  if (prev !== undefined && !depsChanged(prev.deps, deps)) return prev;
   return {
     type: $MEMO,
-    value: descriptor.fn(...descriptor.deps),
-    deps: descriptor.deps,
+    value: descriptor.fn(...deps),
+    deps,
   };
 }

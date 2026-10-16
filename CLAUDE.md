@@ -143,7 +143,7 @@ function* Counter(_props: object) {
 - **Linting:** oxlint (`.oxlintrc.json`) lints; oxfmt (`.oxfmtrc.json`) formats. They are separate tools — `lint` does not check formatting, so run `format:check` too.
 - **TypeScript:** Strictly typed; `any` is forbidden. `noUncheckedIndexedAccess` and `noPropertyAccessFromIndexSignature` are enabled.
 - **Prefer `satisfies` over `as`:** Strongly avoid `as` type assertions. Use `satisfies` to validate that a value conforms to a type without silencing the type checker. Only use `as` where genuine type narrowing is required (e.g., DOM element downcasts, narrowing `T | undefined` to `T`, casting `unknown` from external APIs, generator yield values). Never use `as` when `satisfies` would work.
-- **Framework Props:** `key` and `deps` (see `FrameworkProps` in `jsx.ts`) are never passed to the DOM.
+- **Framework Props:** `key` (components and elements) and `deps` (components only; see `FrameworkProps` in `jsx.ts`) never reach the DOM. `deps` is not an element prop at all, so `isReservedElementProp` reserves only `key` and `children`.
 - **Dependencies:** Zero-dependency goal.
 - **JSX Config:** Both the library and consumers (including `playground/`) use the automatic `react-jsx` transform with `jsxImportSource: "yract"`, backed by `src/jsx-runtime.ts`.
 - **Multi-root:** Each `render()`/`createRoot()` creates an independent `Root` with its own `Scheduler` and context map. The id counters in `hooks/id.ts` and `hooks/elementRef.ts` are the only shared state (ids must be globally unique).

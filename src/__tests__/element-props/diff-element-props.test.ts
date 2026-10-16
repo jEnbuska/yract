@@ -344,7 +344,7 @@ describe("diffUnsetProps", () => {
     });
 
     it("ignores reserved props", () => {
-      expect(diffUnset({ key: "k", deps: [1], value: "v" }, {})).toBeUndefined();
+      expect(diffUnset({ key: "k", value: "v" }, {})).toBeUndefined();
     });
   });
 
@@ -514,7 +514,7 @@ describe("diffSetProps", () => {
     });
 
     it("ignores reserved props", () => {
-      expect(diffSet({}, { key: "k", deps: [1], value: "v" })).toBeUndefined();
+      expect(diffSet({}, { key: "k", value: "v" })).toBeUndefined();
     });
   });
 

@@ -2,12 +2,10 @@ import type { Fiber } from "../instances/types";
 
 export class FiberWork {
   #members = new Set<Fiber>();
-  #cancelled = new Set<Fiber>();
   readonly queues: Fiber[][] = [];
 
   clear() {
     this.#members.clear();
-    this.#cancelled.clear();
     const { queues } = this;
     for (let i = 0; i < queues.length; i++) {
       queues[i] = [];
@@ -24,6 +22,10 @@ export class FiberWork {
       queues.push([]);
     }
     queues[depth]!.push(fiber);
+  }
+
+  isEmpty() {
+    return !this.#members.size;
   }
 
   has(fiber: Fiber) {

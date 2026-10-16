@@ -1,12 +1,13 @@
 import type { Fiber, FieldSelectionMap, FieldValueMap } from "../instances/types";
 import type { AnyElement } from "../render/elements/namespaces";
-import {FiberWork} from "./FiberWork";
-import {stack} from "../instances/utils";
-import {$EFFECT} from "../hooks/constants";
-import {effectResolver} from "../hooks/effect";
-import {unmountHookCleanup} from "../hooks/process-hook";
-import {applyDomAction} from "../ui-actions/utils";
+import { FiberWork } from "./FiberWork";
+import { stack } from "../instances/utils";
+import { $EFFECT } from "../hooks/constants";
+import { effectResolver } from "../hooks/effect";
+import { unmountHookCleanup } from "../hooks/process-hook";
+import { applyDomAction } from "../ui-actions/utils";
 
+type SchedulerStage = 'IDLE' | 'RENDERING' | 'COMMITTING' | 'POST_COMMIT';
 export class Scheduler {
   readonly #selectionMap: FieldSelectionMap;
   readonly #valueMap: FieldValueMap;
@@ -16,16 +17,14 @@ export class Scheduler {
   readonly #commitWork = new FiberWork();
   readonly #postCommitWork = new FiberWork();
   #blocked = false;
+  #stage: SchedulerStage = 'IDLE';
 
   public renderIteration = 0;
-
-
 
   constructor(selectionMap: FieldSelectionMap, valueMap: FieldValueMap) {
     this.#selectionMap = selectionMap;
     this.#valueMap = valueMap;
   }
-
 
   /** Method for reconciler to register values given to controlled form element's */
   public registerPropsValue(el: AnyElement, value: boolean | string) {
@@ -38,15 +37,14 @@ export class Scheduler {
 
   public unBlock = () => {
     this.#blocked = false;
-    if (this.#running) return;
+    if (this.#stage !=='IDLE') return;
     queueMicrotask(this.#run);
   };
 
   scheduleRender(fiber: Fiber): void {
     this.#renderWork.add(fiber);
-    if (!this.#blocked && !this.#running) queueMicrotask(this.#run);
+    if (!this.#blocked && this.#stage === 'IDLE') queueMicrotask(this.#run);
   }
-
 
   schedulePrepareChunk(fiber: Fiber): void {
     this.#prepareChunkWork.add(fiber);
@@ -60,23 +58,25 @@ export class Scheduler {
     this.#commitWork.add(fiber);
   }
 
-  #running = false;
+
   #run = async (): Promise<void> => {
-    if (this.#running) return;
-    this.#running = true;
+    if (this.#stage) return;
     try {
-      this.#postCommit()
-      this.renderIteration++;
-      this.#render()
-      this.#commit();
       this.#postCommit();
+      while (!this.#renderWork.isEmpty()) {
+        this.renderIteration++;
+        this.#render();
+        this.#commit();
+        this.#postCommit();
+      }
     } finally {
-      this.#running = false;
+      this.#stage = 'IDLE';
     }
   };
 
   /** Run component renders */
   #render() {
+    this.#stage = 'RENDERING';
     const { queues } = this.#renderWork;
     for (let i = 0; i < queues.length; i++) {
       const fibers = queues[i]!;
@@ -87,8 +87,8 @@ export class Scheduler {
           fiber.render();
         } catch (cause) {
           throw new Error(
-              `Failed to render component ${fiber.component.name} at:${"\n"}${stack(fiber)}`,
-              { cause },
+            `Failed to render component ${fiber.component.name} at:${"\n"}${stack(fiber)}`,
+            { cause },
           );
         }
       }
@@ -96,9 +96,9 @@ export class Scheduler {
     this.#renderWork.clear();
   }
 
-
   /** Apply ui actions caused by component update, mount & unmount*/
   #commit() {
+    this.#stage = 'COMMITTING'
     {
       // Chunks the newly inserted child insert actions to parent to fewer inserts
       const { queues } = this.#prepareChunkWork;
@@ -109,10 +109,10 @@ export class Scheduler {
           fiber.prepareChunk();
         }
       }
-      this.#prepareChunkWork.clear()
+      this.#prepareChunkWork.clear();
     }
     const valueMap = this.#valueMap;
-    const selectionMap = this.#selectionMap
+    const selectionMap = this.#selectionMap;
     const { queues } = this.#commitWork;
     for (let i = 0; i < queues.length; i++) {
       const queue = queues[i]!;
@@ -132,13 +132,14 @@ export class Scheduler {
     this.#commitWork.clear();
   }
 
-
   /**
    * - Effect function callbacks for newly mounted components.
    * - Effect cleanup and function callbacks for previously mounted components with deps changed.
    * - Context subscription abortions and effect cleanups for unmounted components
+   * Note. During post commit new renders might be scheduled due to setState calls
    * */
   #postCommit() {
+    this.#stage = 'POST_COMMIT';
     const { queues } = this.#postCommitWork;
     for (let i = queues.length - 1; i >= 0; i--) {
       const queue = queues[i]!;

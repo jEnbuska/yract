@@ -45,7 +45,7 @@ describe("applyElementInitialProps", () => {
 
   it("does not write reserved props as attributes", () => {
     const div = attached("div");
-    applyElementInitialProps(div, { key: "k", deps: [1] });
+    applyElementInitialProps(div, { key: "k" });
     expect(div.attributes.length).toBe(0);
   });
 
