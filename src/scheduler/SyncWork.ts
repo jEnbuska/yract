@@ -5,7 +5,6 @@ import { $CONTEXT, $EFFECT } from "../hooks/constants";
 import { effectResolver } from "../hooks/effect";
 import { stack } from "../instances/utils";
 
-type SchedulerStage = "IDLE" | "RENDER" | "COMMIT" | "POST_COMMIT";
 export class SyncWork {
   readonly #selectionMap: FieldSelectionMap;
   readonly #valueMap: FieldValueMap;
@@ -13,43 +12,20 @@ export class SyncWork {
   readonly prepareChunkWork = new FiberWork();
   readonly commitWork = new FiberWork();
   readonly postCommitWork = new FiberWork();
-  stage: SchedulerStage = "IDLE";
-  public renderIteration = 0;
 
   constructor(selectionMap: FieldSelectionMap, valueMap: FieldValueMap) {
     this.#valueMap = valueMap;
     this.#selectionMap = selectionMap;
   }
 
-  requestRun() {
-    if (this.stage !== "IDLE") return;
-    this.#run();
-  }
-
-  #run = (): void => {
-    if (this.stage !== "IDLE") return;
-    try {
-      this.#postCommit();
-      while (!this.renderWork.isEmpty()) {
-        this.renderIteration++;
-        this.#render();
-        this.#commit();
-        this.#postCommit();
-      }
-    } finally {
-      this.stage = "IDLE";
-    }
-  };
-
   /** Run component renders */
-  #render() {
-    this.stage = "RENDER";
+  render() {
     const { queues } = this.renderWork;
     for (let i = 0; i < queues.length; i++) {
       const fibers = queues[i]!;
       for (let j = fibers.length - 1; j >= 0; j--) {
         let fiber = fibers[j]!;
-        if ((fiber.unmounted ||= fiber?.isUnmounted())) continue;
+        if ((fiber.unmounted ||= fiber.isUnmounted())) continue;
         try {
           fiber.render();
         } catch (cause) {
@@ -64,8 +40,7 @@ export class SyncWork {
   }
 
   /** Apply ui actions caused by component update, mount & unmount*/
-  #commit() {
-    this.stage = "COMMIT";
+  commit() {
     {
       // Chunks the newly inserted child insert actions to parent to fewer inserts
       const { queues } = this.prepareChunkWork;
@@ -105,8 +80,7 @@ export class SyncWork {
    * - Context subscription abortions and effect cleanups for unmounted components
    * Note. During post commit new renders might be scheduled due to setState calls
    * */
-  #postCommit() {
-    this.stage = "POST_COMMIT";
+  postCommit() {
     const { queues } = this.postCommitWork;
     for (let i = queues.length - 1; i >= 0; i--) {
       const queue = queues[i]!;

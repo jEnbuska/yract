@@ -103,7 +103,7 @@ export class ComponentFiber<TProps extends Record<string, unknown> = Record<stri
     if (this.confidentIteration === renderIteration) return false;
     let parent = this.parent;
     while (parent) {
-      if (parent.unmounted) return true;
+      if (parent.unmounted) return (this.unmounted = true);
       if (parent.confidentIteration === renderIteration) return false;
       parent = parent.parent;
     }

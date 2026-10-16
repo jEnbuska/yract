@@ -71,7 +71,7 @@ function createStateSetter(fiber: Fiber, state: Omit<StateHookState, "setState">
   const cached = cache.get(state);
   if (cached) return cached;
   return (newValue): void => {
-    if (fiber.scheduler.stage === "RENDER") {
+    if (fiber.scheduler.getStage() === "RENDER") {
       throw new Error(
         `Component setState was called during components ${fiber.component.name} render at:${"\n"}${stack(fiber)}`,
       );

@@ -2,10 +2,12 @@ import type { Fiber, FieldSelectionMap, FieldValueMap } from "../instances/types
 import type { AnyElement } from "../render/elements/namespaces";
 import { SyncWork } from "./SyncWork";
 
+type SchedulerStage = "IDLE" | "RENDER" | "COMMIT" | "POST_COMMIT";
 export class Scheduler {
   readonly #valueMap: FieldValueMap;
   readonly #syncWork: SyncWork;
   #blocked = false;
+  #stage: SchedulerStage = "IDLE";
 
   public renderIteration = 0;
 
@@ -19,19 +21,23 @@ export class Scheduler {
     this.#valueMap.set(el, value);
   }
 
-  public blockRun () {
+  public blockRun() {
     this.#blocked = true;
-  };
+  }
 
-  public unBlockRun () {
+  public unBlockRun() {
     this.#blocked = false;
-    this.#syncWork.requestRun();
-  };
+    this.#requestRun();
+  }
+
+  getStage() {
+    return this.#stage;
+  }
 
   scheduleRender(fiber: Fiber): void {
     this.#syncWork.renderWork.add(fiber);
     if (this.#blocked) return;
-    this.#syncWork.requestRun();
+    this.#requestRun();
   }
 
   schedulePrepareChunk(fiber: Fiber): void {
@@ -45,4 +51,28 @@ export class Scheduler {
   scheduleCommit(fiber: Fiber): void {
     this.#syncWork.commitWork.add(fiber);
   }
+
+  #requestRun() {
+    if (this.#stage !== "IDLE") return;
+    queueMicrotask(this.#run);
+  }
+
+  #run = (): void => {
+    if (this.#stage !== "IDLE") return;
+    try {
+      const work = this.#syncWork;
+      work.postCommit();
+      while (!work.renderWork.isEmpty()) {
+        this.renderIteration++;
+        this.#stage = "RENDER";
+        work.render();
+        this.#stage = "COMMIT";
+        work.commit();
+        this.#stage = "POST_COMMIT";
+        work.postCommit();
+      }
+    } finally {
+      this.#stage = "IDLE";
+    }
+  };
 }
