@@ -1,0 +1,26 @@
+import path from "node:path";
+import { defineConfig } from "vite";
+
+/**
+ * Vite config for the yract playground.
+ *
+ * - Tells Vite's JSX transform (oxc) to import the JSX helpers from
+ *   `yract/jsx-runtime`.
+ * - Aliases `yract` to the local `../src` so the playground runs
+ *   directly against the library source — no separate build step.
+ */
+export default defineConfig({
+  oxc: {
+    jsx: {
+      runtime: "automatic",
+      importSource: "yract",
+    },
+  },
+  resolve: {
+    alias: {
+      "yract/jsx-dev-runtime": path.resolve(import.meta.dirname, "../src/jsx-runtime.ts"),
+      "yract/jsx-runtime": path.resolve(import.meta.dirname, "../src/jsx-runtime.ts"),
+      yract: path.resolve(import.meta.dirname, "../src/index.ts"),
+    },
+  },
+});

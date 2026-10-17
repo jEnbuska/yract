@@ -13,23 +13,36 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Node 24 (current LTS) matches `engines` and `.nvmrc`. The source
+      # itself only needs Node 22 — `toReversed` and `Promise.withResolvers`
+      # are the newest APIs it uses — so this is a policy floor, not a
+      # technical one.
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Install examples dependencies
-        run: npm ci --prefix examples
+      - name: Install playground dependencies
+        run: npm ci --prefix playground
 
       - name: Dead code check
         run: npm run knip
 
-      - name: Lint & format check
+      - name: Lint
         run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Type check playground
+        run: npm run typecheck:playground
 
       - name: Test
         run: npm test
@@ -52,30 +65,31 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - name: Install root dependencies
         run: npm ci
 
-      - name: Build library
-        run: npm run build
-
-      - name: Install examples dependencies
-        run: npm ci --prefix examples
+      - name: Install playground dependencies
+        run: npm ci --prefix playground
 
       - name: Install Playwright browser
-        working-directory: examples
-        run: npx playwright install --with-deps ${{ matrix.browser }}
+        run: npm run playwright:install --prefix playground -- ${{ matrix.browser }}
 
+      # Two passes, like `npm test --prefix playground`: the quick specs in
+      # parallel, then the 6000-row person-table specs on one worker.
       - name: Visual tests
-        working-directory: examples
-        run: npx playwright test --project=${{ matrix.browser }}
+        run: npm run playwright --prefix playground -- --project=${{ matrix.browser }}
+
+      - name: Visual tests (person table)
+        if: ${{ !cancelled() }}
+        run: npm run playwright --prefix playground -- --project=${{ matrix.browser }}-table --workers=1
 
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v5
         with:
           name: playwright-report-${{ matrix.browser }}
-          path: examples/playwright-report/
+          path: playground/playwright-report/
           retention-days: 7
