@@ -1,0 +1,59 @@
+import type { EffectCallback } from "./hook-descriptors";
+import { type EffectHookDescriptor } from "./hook-descriptors";
+import type { ComponentFiber } from "../instances/component-fiber";
+import { depsChanged } from "../general";
+import type { DependencyList } from "../general-types";
+import { $EFFECT } from "./constants";
+import type { EffectHookState } from "./hook-states";
+
+/**
+ * Side-effect hook. Runs `fn` after DOM updates, re-runs when deps change.
+ * The `fn` receives an `AbortSignal` that is aborted on cleanup.
+ * If `fn` returns a function, it is called on next run or on unmount.
+ */
+export function* useEffect(
+  fn: EffectCallback,
+  deps?: DependencyList,
+): Generator<EffectHookDescriptor, void> {
+  yield { type: $EFFECT, fn, deps } satisfies EffectHookDescriptor;
+}
+
+export function processEffect(
+  fiber: ComponentFiber,
+  descriptor: EffectHookDescriptor,
+  state: EffectHookState | undefined,
+): EffectHookState {
+  const { scheduler } = fiber;
+  if (!state) {
+    scheduler.schedulePostCommit(fiber);
+    // First run — no controller yet; post-commit creates one and runs fn.
+    return {
+      type: $EFFECT,
+      deps: descriptor.deps,
+      fn: descriptor.fn,
+    };
+  }
+  if (depsChanged(state.deps, descriptor.deps)) {
+    state.dirty = true;
+    state.deps = descriptor.deps;
+    state.fn = descriptor.fn;
+    scheduler.schedulePostCommit(fiber);
+  }
+  return state;
+}
+
+export function effectResolver(state: EffectHookState) {
+  if (!state.controller) {
+    const controller = new AbortController();
+    state.controller = controller;
+    const cleanup = state.fn(controller.signal);
+    if (typeof cleanup === "function") controller.signal.onabort = () => cleanup();
+  } else if (state.dirty) {
+    state.controller.abort();
+    const controller = new AbortController();
+    state.controller = controller;
+    state.dirty = false;
+    const cleanup = state.fn(controller.signal);
+    if (typeof cleanup === "function") controller.signal.onabort = () => cleanup();
+  }
+}

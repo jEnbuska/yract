@@ -7,8 +7,9 @@
  *
  * @module jsx-types
  */
-import type { SyntheticEvent } from "./events";
-import type { SpecialProps } from "./jsx";
+import type { Children, FrameworkProps } from "./jsx";
+
+import type { ElementRef } from "./render/element-props/types";
 
 // ---------------------------------------------------------------------------
 // CSS Properties
@@ -27,14 +28,22 @@ import type { SpecialProps } from "./jsx";
  *
  * Vendor-prefixed properties (e.g. `-webkit-*`, `-moz-*`) are intentionally
  * not supported; use standard CSS properties instead.
+ *
+ * Numbers are accepted only where CSS takes a unitless number (`opacity`,
+ * `zIndex`, `lineHeight`, …). Lengths need their unit as a string:
+ * `width: "10px"`, never `width: 10` — yract does not append `px`.
  */
-export interface CSSProperties {
+interface CSSProperties {
   accentColor?: string;
   alignContent?: string;
   alignItems?: string;
   alignSelf?: string;
+  alignmentBaseline?: string;
   all?: string;
+  anchorName?: string;
+  anchorScope?: string;
   animation?: string;
+  animationComposition?: string;
   animationDelay?: string;
   animationDirection?: string;
   animationDuration?: string;
@@ -42,7 +51,12 @@ export interface CSSProperties {
   animationIterationCount?: string | number;
   animationName?: string;
   animationPlayState?: string;
+  animationRange?: string;
+  animationRangeEnd?: string;
+  animationRangeStart?: string;
+  animationTimeline?: string;
   animationTimingFunction?: string;
+  animationTrigger?: string;
   appearance?: string;
   aspectRatio?: string | number;
   backdropFilter?: string;
@@ -50,121 +64,193 @@ export interface CSSProperties {
   background?: string;
   backgroundAttachment?: string;
   backgroundBlendMode?: string;
-  backgroundColor?: string;
   backgroundClip?: string;
+  backgroundColor?: string;
   backgroundImage?: string;
   backgroundOrigin?: string;
   backgroundPosition?: string;
+  backgroundPositionX?: string;
+  backgroundPositionY?: string;
   backgroundRepeat?: string;
   backgroundSize?: string;
-  blockSize?: string | number;
+  baselineShift?: string;
+  baselineSource?: string;
+  blockSize?: string;
   border?: string;
   borderBlock?: string;
   borderBlockColor?: string;
   borderBlockEnd?: string;
   borderBlockEndColor?: string;
   borderBlockEndStyle?: string;
-  borderBlockEndWidth?: string | number;
+  borderBlockEndWidth?: string;
   borderBlockStart?: string;
   borderBlockStartColor?: string;
   borderBlockStartStyle?: string;
-  borderBlockStartWidth?: string | number;
+  borderBlockStartWidth?: string;
   borderBlockStyle?: string;
-  borderBlockWidth?: string | number;
+  borderBlockWidth?: string;
   borderBottom?: string;
   borderBottomColor?: string;
-  borderBottomLeftRadius?: string | number;
-  borderBottomRightRadius?: string | number;
+  borderBottomLeftRadius?: string;
+  borderBottomRightRadius?: string;
   borderBottomStyle?: string;
-  borderBottomWidth?: string | number;
+  borderBottomWidth?: string;
   borderCollapse?: string;
   borderColor?: string;
+  borderEndEndRadius?: string;
+  borderEndStartRadius?: string;
   borderImage?: string;
+  borderImageOutset?: string | number;
+  borderImageRepeat?: string;
+  borderImageSlice?: string | number;
+  borderImageSource?: string;
+  borderImageWidth?: string | number;
   borderInline?: string;
   borderInlineColor?: string;
   borderInlineEnd?: string;
   borderInlineEndColor?: string;
   borderInlineEndStyle?: string;
-  borderInlineEndWidth?: string | number;
+  borderInlineEndWidth?: string;
   borderInlineStart?: string;
   borderInlineStartColor?: string;
   borderInlineStartStyle?: string;
-  borderInlineStartWidth?: string | number;
+  borderInlineStartWidth?: string;
   borderInlineStyle?: string;
-  borderInlineWidth?: string | number;
+  borderInlineWidth?: string;
   borderLeft?: string;
   borderLeftColor?: string;
   borderLeftStyle?: string;
-  borderLeftWidth?: string | number;
-  borderRadius?: string | number;
+  borderLeftWidth?: string;
+  borderRadius?: string;
   borderRight?: string;
   borderRightColor?: string;
   borderRightStyle?: string;
-  borderRightWidth?: string | number;
-  borderSpacing?: string | number;
+  borderRightWidth?: string;
+  borderShape?: string;
+  borderSpacing?: string;
+  borderStartEndRadius?: string;
+  borderStartStartRadius?: string;
   borderStyle?: string;
   borderTop?: string;
   borderTopColor?: string;
-  borderTopLeftRadius?: string | number;
-  borderTopRightRadius?: string | number;
+  borderTopLeftRadius?: string;
+  borderTopRightRadius?: string;
   borderTopStyle?: string;
-  borderTopWidth?: string | number;
-  borderWidth?: string | number;
-  bottom?: string | number;
+  borderTopWidth?: string;
+  borderWidth?: string;
+  bottom?: string;
+  boxDecorationBreak?: string;
   boxShadow?: string;
   boxSizing?: string;
   breakAfter?: string;
   breakBefore?: string;
   breakInside?: string;
   captionSide?: string;
+  caretAnimation?: string;
   caretColor?: string;
+  caretShape?: string;
   clear?: string;
   clip?: string;
   clipPath?: string;
+  clipRule?: string;
   color?: string;
+  colorInterpolation?: string;
+  colorInterpolationFilters?: string;
   colorScheme?: string;
   columnCount?: string | number;
   columnFill?: string;
-  columnGap?: string | number;
+  columnGap?: string;
+  columnHeight?: string;
   columnRule?: string;
   columnRuleColor?: string;
   columnRuleStyle?: string;
-  columnRuleWidth?: string | number;
+  columnRuleWidth?: string;
   columnSpan?: string;
-  columnWidth?: string | number;
+  columnWidth?: string;
+  columnWrap?: string;
   columns?: string;
   contain?: string;
+  containIntrinsicBlockSize?: string;
+  containIntrinsicHeight?: string;
+  containIntrinsicInlineSize?: string;
+  containIntrinsicSize?: string;
+  containIntrinsicWidth?: string;
+  container?: string;
+  containerName?: string;
+  containerType?: string;
   content?: string;
+  contentVisibility?: string;
+  cornerBlockEndShape?: string;
+  cornerBlockStartShape?: string;
+  cornerBottomLeftShape?: string;
+  cornerBottomRightShape?: string;
+  cornerBottomShape?: string;
+  cornerEndEndShape?: string;
+  cornerEndStartShape?: string;
+  cornerInlineEndShape?: string;
+  cornerInlineStartShape?: string;
+  cornerLeftShape?: string;
+  cornerRightShape?: string;
+  cornerShape?: string;
+  cornerStartEndShape?: string;
+  cornerStartStartShape?: string;
+  cornerTopLeftShape?: string;
+  cornerTopRightShape?: string;
+  cornerTopShape?: string;
   counterIncrement?: string;
   counterReset?: string;
+  counterSet?: string;
   cursor?: string;
+  cx?: string;
+  cy?: string;
+  d?: string;
   direction?: string;
   display?: string;
+  dominantBaseline?: string;
+  dynamicRangeLimit?: string;
   emptyCells?: string;
+  fieldSizing?: string;
+  fill?: string;
+  fillOpacity?: string | number;
+  fillRule?: string;
   filter?: string;
   flex?: string | number;
-  flexBasis?: string | number;
+  flexBasis?: string;
   flexDirection?: string;
   flexFlow?: string;
   flexGrow?: number;
   flexShrink?: number;
   flexWrap?: string;
   float?: string;
+  floodColor?: string;
+  floodOpacity?: string | number;
   font?: string;
   fontFamily?: string;
   fontFeatureSettings?: string;
   fontKerning?: string;
-  fontSize?: string | number;
+  fontLanguageOverride?: string;
+  fontOpticalSizing?: string;
+  fontPalette?: string;
+  fontSize?: string;
   fontSizeAdjust?: string | number;
   fontStretch?: string;
   fontStyle?: string;
   fontSynthesis?: string;
+  fontSynthesisSmallCaps?: string;
+  fontSynthesisStyle?: string;
+  fontSynthesisWeight?: string;
   fontVariant?: string;
+  fontVariantAlternates?: string;
   fontVariantCaps?: string;
+  fontVariantEastAsian?: string;
+  fontVariantEmoji?: string;
+  fontVariantLigatures?: string;
   fontVariantNumeric?: string;
+  fontVariantPosition?: string;
   fontVariationSettings?: string;
   fontWeight?: string | number;
-  gap?: string | number;
+  forcedColorAdjust?: string;
+  gap?: string;
   grid?: string;
   gridArea?: string;
   gridAutoColumns?: string;
@@ -172,144 +258,291 @@ export interface CSSProperties {
   gridAutoRows?: string;
   gridColumn?: string;
   gridColumnEnd?: string | number;
+  gridColumnGap?: string;
   gridColumnStart?: string | number;
+  gridGap?: string;
   gridRow?: string;
   gridRowEnd?: string | number;
+  gridRowGap?: string;
   gridRowStart?: string | number;
   gridTemplate?: string;
   gridTemplateAreas?: string;
   gridTemplateColumns?: string;
   gridTemplateRows?: string;
-  height?: string | number;
+  height?: string;
+  hyphenateCharacter?: string;
+  hyphenateLimitChars?: string | number;
   hyphens?: string;
+  imageOrientation?: string;
   imageRendering?: string;
-  inlineSize?: string | number;
-  inset?: string | number;
-  insetBlock?: string | number;
-  insetBlockEnd?: string | number;
-  insetBlockStart?: string | number;
-  insetInline?: string | number;
-  insetInlineEnd?: string | number;
-  insetInlineStart?: string | number;
+  initialLetter?: string | number;
+  inlineSize?: string;
+  inset?: string;
+  insetBlock?: string;
+  insetBlockEnd?: string;
+  insetBlockStart?: string;
+  insetInline?: string;
+  insetInlineEnd?: string;
+  insetInlineStart?: string;
+  interactivity?: string;
+  interestDelay?: string;
+  interestDelayEnd?: string;
+  interestDelayStart?: string;
+  interpolateSize?: string;
   isolation?: string;
   justifyContent?: string;
   justifyItems?: string;
   justifySelf?: string;
-  left?: string | number;
-  letterSpacing?: string | number;
+  left?: string;
+  letterSpacing?: string;
+  lightingColor?: string;
   lineBreak?: string;
   lineHeight?: string | number;
   listStyle?: string;
   listStyleImage?: string;
   listStylePosition?: string;
   listStyleType?: string;
-  margin?: string | number;
-  marginBlock?: string | number;
-  marginBlockEnd?: string | number;
-  marginBlockStart?: string | number;
-  marginBottom?: string | number;
-  marginInline?: string | number;
-  marginInlineEnd?: string | number;
-  marginInlineStart?: string | number;
-  marginLeft?: string | number;
-  marginRight?: string | number;
-  marginTop?: string | number;
-  maxHeight?: string | number;
-  maxWidth?: string | number;
-  minHeight?: string | number;
-  minWidth?: string | number;
+  margin?: string;
+  marginBlock?: string;
+  marginBlockEnd?: string;
+  marginBlockStart?: string;
+  marginBottom?: string;
+  marginInline?: string;
+  marginInlineEnd?: string;
+  marginInlineStart?: string;
+  marginLeft?: string;
+  marginRight?: string;
+  marginTop?: string;
+  marker?: string;
+  markerEnd?: string;
+  markerMid?: string;
+  markerStart?: string;
+  mask?: string;
+  maskClip?: string;
+  maskComposite?: string;
+  maskImage?: string;
+  maskMode?: string;
+  maskOrigin?: string;
+  maskPosition?: string;
+  maskRepeat?: string;
+  maskSize?: string;
+  maskType?: string;
+  mathDepth?: string | number;
+  mathShift?: string;
+  mathStyle?: string;
+  maxBlockSize?: string;
+  maxHeight?: string;
+  maxInlineSize?: string;
+  maxWidth?: string;
+  minBlockSize?: string;
+  minHeight?: string;
+  minInlineSize?: string;
+  minWidth?: string;
   mixBlendMode?: string;
   objectFit?: string;
   objectPosition?: string;
+  offset?: string;
+  offsetAnchor?: string;
+  offsetDistance?: string;
+  offsetPath?: string;
+  offsetPosition?: string;
+  offsetRotate?: string;
   opacity?: number | string;
   order?: number;
+  orphans?: string | number;
   outline?: string;
   outlineColor?: string;
-  outlineOffset?: string | number;
+  outlineOffset?: string;
   outlineStyle?: string;
-  outlineWidth?: string | number;
+  outlineWidth?: string;
   overflow?: string;
+  overflowAnchor?: string;
+  overflowBlock?: string;
+  overflowClipMargin?: string;
+  overflowInline?: string;
   overflowWrap?: string;
   overflowX?: string;
   overflowY?: string;
+  overlay?: string;
   overscrollBehavior?: string;
+  overscrollBehaviorBlock?: string;
+  overscrollBehaviorInline?: string;
   overscrollBehaviorX?: string;
   overscrollBehaviorY?: string;
-  padding?: string | number;
-  paddingBlock?: string | number;
-  paddingBlockEnd?: string | number;
-  paddingBlockStart?: string | number;
-  paddingBottom?: string | number;
-  paddingInline?: string | number;
-  paddingInlineEnd?: string | number;
-  paddingInlineStart?: string | number;
-  paddingLeft?: string | number;
-  paddingRight?: string | number;
-  paddingTop?: string | number;
-  perspective?: string | number;
+  padding?: string;
+  paddingBlock?: string;
+  paddingBlockEnd?: string;
+  paddingBlockStart?: string;
+  paddingBottom?: string;
+  paddingInline?: string;
+  paddingInlineEnd?: string;
+  paddingInlineStart?: string;
+  paddingLeft?: string;
+  paddingRight?: string;
+  paddingTop?: string;
+  page?: string;
+  pageBreakAfter?: string;
+  pageBreakBefore?: string;
+  pageBreakInside?: string;
+  paintOrder?: string;
+  perspective?: string;
   perspectiveOrigin?: string;
   placeContent?: string;
   placeItems?: string;
   placeSelf?: string;
   pointerEvents?: string;
   position?: string;
+  positionAnchor?: string;
+  positionArea?: string;
+  positionTry?: string;
+  positionTryFallbacks?: string;
+  positionTryOrder?: string;
+  positionVisibility?: string;
+  printColorAdjust?: string;
   quotes?: string;
+  r?: string;
+  readingFlow?: string;
+  readingOrder?: string;
   resize?: string;
-  right?: string | number;
+  right?: string;
   rotate?: string;
-  rowGap?: string | number;
+  rowGap?: string;
+  rubyAlign?: string;
+  rubyPosition?: string;
+  rx?: string;
+  ry?: string;
   scale?: string | number;
   scrollBehavior?: string;
-  scrollMargin?: string | number;
-  scrollMarginBottom?: string | number;
-  scrollMarginLeft?: string | number;
-  scrollMarginRight?: string | number;
-  scrollMarginTop?: string | number;
-  scrollPadding?: string | number;
-  scrollPaddingBottom?: string | number;
-  scrollPaddingLeft?: string | number;
-  scrollPaddingRight?: string | number;
-  scrollPaddingTop?: string | number;
+  scrollInitialTarget?: string;
+  scrollMargin?: string;
+  scrollMarginBlock?: string;
+  scrollMarginBlockEnd?: string;
+  scrollMarginBlockStart?: string;
+  scrollMarginBottom?: string;
+  scrollMarginInline?: string;
+  scrollMarginInlineEnd?: string;
+  scrollMarginInlineStart?: string;
+  scrollMarginLeft?: string;
+  scrollMarginRight?: string;
+  scrollMarginTop?: string;
+  scrollMarkerGroup?: string;
+  scrollPadding?: string;
+  scrollPaddingBlock?: string;
+  scrollPaddingBlockEnd?: string;
+  scrollPaddingBlockStart?: string;
+  scrollPaddingBottom?: string;
+  scrollPaddingInline?: string;
+  scrollPaddingInlineEnd?: string;
+  scrollPaddingInlineStart?: string;
+  scrollPaddingLeft?: string;
+  scrollPaddingRight?: string;
+  scrollPaddingTop?: string;
   scrollSnapAlign?: string;
   scrollSnapStop?: string;
   scrollSnapType?: string;
+  scrollTargetGroup?: string;
+  scrollTimeline?: string;
+  scrollTimelineAxis?: string;
+  scrollTimelineName?: string;
+  scrollbarColor?: string;
+  scrollbarGutter?: string;
+  scrollbarWidth?: string;
+  shapeImageThreshold?: string | number;
+  shapeMargin?: string;
   shapeOutside?: string;
+  shapeRendering?: string;
+  stopColor?: string;
+  stopOpacity?: string | number;
+  stroke?: string;
+  strokeDasharray?: string;
+  strokeDashoffset?: string | number;
+  strokeLinecap?: string;
+  strokeLinejoin?: string;
+  strokeMiterlimit?: string | number;
+  strokeOpacity?: string | number;
+  strokeWidth?: string | number;
   tabSize?: string | number;
   tableLayout?: string;
   textAlign?: string;
   textAlignLast?: string;
+  textAnchor?: string;
+  textAutospace?: string;
+  textBox?: string;
+  textBoxEdge?: string;
+  textBoxTrim?: string;
+  textCombineUpright?: string;
   textDecoration?: string;
   textDecorationColor?: string;
   textDecorationLine?: string;
+  textDecorationSkipInk?: string;
   textDecorationStyle?: string;
-  textDecorationThickness?: string | number;
-  textIndent?: string | number;
+  textDecorationThickness?: string;
+  textEmphasis?: string;
+  textEmphasisColor?: string;
+  textEmphasisPosition?: string;
+  textEmphasisStyle?: string;
+  textIndent?: string;
+  textJustify?: string;
+  textOrientation?: string;
   textOverflow?: string;
   textRendering?: string;
   textShadow?: string;
+  textSizeAdjust?: string;
+  textSpacingTrim?: string;
   textTransform?: string;
-  textUnderlineOffset?: string | number;
-  top?: string | number;
+  textUnderlineOffset?: string;
+  textUnderlinePosition?: string;
+  textWrap?: string;
+  textWrapMode?: string;
+  textWrapStyle?: string;
+  timelineScope?: string;
+  timelineTrigger?: string;
+  timelineTriggerActivationRange?: string;
+  timelineTriggerActivationRangeEnd?: string;
+  timelineTriggerActivationRangeStart?: string;
+  timelineTriggerActiveRange?: string;
+  timelineTriggerActiveRangeEnd?: string;
+  timelineTriggerActiveRangeStart?: string;
+  timelineTriggerName?: string;
+  timelineTriggerSource?: string;
+  top?: string;
   touchAction?: string;
   transform?: string;
   transformBox?: string;
   transformOrigin?: string;
   transformStyle?: string;
   transition?: string;
+  transitionBehavior?: string;
   transitionDelay?: string;
   transitionDuration?: string;
   transitionProperty?: string;
   transitionTimingFunction?: string;
+  translate?: string;
+  triggerScope?: string;
   unicodeBidi?: string;
   userSelect?: string;
-  verticalAlign?: string | number;
+  vectorEffect?: string;
+  verticalAlign?: string;
+  viewTimeline?: string;
+  viewTimelineAxis?: string;
+  viewTimelineInset?: string;
+  viewTimelineName?: string;
+  viewTransitionClass?: string;
+  viewTransitionGroup?: string;
+  viewTransitionName?: string;
+  viewTransitionScope?: string;
   visibility?: string;
   whiteSpace?: string;
-  width?: string | number;
+  whiteSpaceCollapse?: string;
+  widows?: string | number;
+  width?: string;
   willChange?: string;
   wordBreak?: string;
-  wordSpacing?: string | number;
+  wordSpacing?: string;
+  wordWrap?: string;
   writingMode?: string;
+  x?: string;
+  y?: string;
   zIndex?: string | number;
   zoom?: string | number;
   /** CSS custom properties (variables), e.g. `'--primary-color': '#3498db'`. */
@@ -331,9 +564,15 @@ export interface CSSProperties {
  *  - `input`       → `onInput`
  *  - `mouseenter`  → `onMouseenter`
  */
-export type EventHandlers<T extends EventTarget = EventTarget> = {
+/**
+ * TODO: no `on*Capture` variants. Adding a second mapped clause keyed
+ * `on${Capitalize<string & K>}Capture` is the type half of capture support;
+ * the runtime half is the TODO on `ensureListener` in `render/elements/events.ts`.
+ * Both are needed — either alone leaves handlers silently in the wrong phase.
+ */
+type EventHandlers<T extends EventTarget = EventTarget> = {
   [K in keyof HTMLElementEventMap as `on${Capitalize<string & K>}`]?: (
-    event: SyntheticEvent<HTMLElementEventMap[K], T>,
+    event: HTMLElementEventMap[K] & { readonly currentTarget: T },
   ) => void;
 };
 
@@ -342,54 +581,55 @@ export type EventHandlers<T extends EventTarget = EventTarget> = {
 // ---------------------------------------------------------------------------
 
 /** WAI-ARIA attributes applicable to any HTML element. */
-export interface AriaAttributes {
+interface AriaAttributes {
   "aria-activedescendant"?: string;
-  "aria-atomic"?: boolean | "false" | "true";
+  "aria-atomic"?: "false" | "true";
   "aria-autocomplete"?: "none" | "inline" | "list" | "both";
-  "aria-busy"?: boolean | "false" | "true";
-  "aria-checked"?: boolean | "false" | "mixed" | "true";
-  "aria-colcount"?: number;
-  "aria-colindex"?: number;
-  "aria-colspan"?: number;
+  "aria-busy"?: "false" | "true";
+  "aria-checked"?: "false" | "mixed" | "true";
+  "aria-colcount"?: string | number;
+  "aria-colindex"?: string | number;
+  "aria-colspan"?: string | number;
   "aria-controls"?: string;
-  "aria-current"?: boolean | "false" | "true" | "page" | "step" | "location" | "date" | "time";
+  "aria-current"?: "false" | "true" | "page" | "step" | "location" | "date" | "time";
   "aria-describedby"?: string;
   "aria-details"?: string;
-  "aria-disabled"?: boolean | "false" | "true";
+  "aria-disabled"?: "false" | "true";
   "aria-dropeffect"?: "none" | "copy" | "execute" | "link" | "move" | "popup";
   "aria-errormessage"?: string;
-  "aria-expanded"?: boolean | "false" | "true";
+  "aria-expanded"?: "false" | "true";
   "aria-flowto"?: string;
-  "aria-grabbed"?: boolean | "false" | "true";
-  "aria-haspopup"?: boolean | "false" | "true" | "menu" | "listbox" | "tree" | "grid" | "dialog";
-  "aria-hidden"?: boolean | "false" | "true";
-  "aria-invalid"?: boolean | "false" | "true" | "grammar" | "spelling";
+  "aria-grabbed"?: "false" | "true";
+  "aria-haspopup"?: "false" | "true" | "menu" | "listbox" | "tree" | "grid" | "dialog";
+  "aria-hidden"?: "false" | "true";
+  "aria-invalid"?: "false" | "true" | "grammar" | "spelling";
   "aria-keyshortcuts"?: string;
   "aria-label"?: string;
   "aria-labelledby"?: string;
-  "aria-level"?: number;
+  "aria-level"?: string | number;
   "aria-live"?: "off" | "assertive" | "polite";
-  "aria-modal"?: boolean | "false" | "true";
-  "aria-multiline"?: boolean | "false" | "true";
-  "aria-multiselectable"?: boolean | "false" | "true";
+  "aria-modal"?: "false" | "true";
+  "aria-multiline"?: "false" | "true";
+  "aria-multiselectable"?: "false" | "true";
   "aria-orientation"?: "horizontal" | "vertical";
   "aria-owns"?: string;
   "aria-placeholder"?: string;
-  "aria-posinset"?: number;
-  "aria-pressed"?: boolean | "false" | "mixed" | "true";
-  "aria-readonly"?: boolean | "false" | "true";
-  "aria-required"?: boolean | "false" | "true";
+  "aria-posinset"?: string | number;
+  "aria-pressed"?: "false" | "mixed" | "true";
+  "aria-readonly"?: "false" | "true";
+  "aria-required"?: "false" | "true";
   "aria-roledescription"?: string;
-  "aria-rowcount"?: number;
-  "aria-rowindex"?: number;
-  "aria-rowspan"?: number;
-  "aria-selected"?: boolean | "false" | "true";
-  "aria-setsize"?: number;
+  "aria-rowcount"?: string | number;
+  "aria-rowindex"?: string | number;
+  "aria-rowspan"?: string | number;
+  "aria-selected"?: "false" | "true";
+  "aria-setsize"?: string | number;
   "aria-sort"?: "none" | "ascending" | "descending" | "other";
-  "aria-valuemax"?: number;
-  "aria-valuemin"?: number;
-  "aria-valuenow"?: number;
+  "aria-valuemax"?: string | number;
+  "aria-valuemin"?: string | number;
+  "aria-valuenow"?: string | number;
   "aria-valuetext"?: string;
+  role?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -405,17 +645,26 @@ export interface AriaAttributes {
  * The type parameter `T` is the concrete `HTMLElement` subtype for this
  * element, used to narrow `event.currentTarget` in event handlers.
  */
-export interface HTMLAttributes<T extends HTMLElement = HTMLElement>
-  extends SpecialProps<T>,
-    AriaAttributes,
-    EventHandlers<T> {
+interface HTMLAttributes<T extends HTMLElement = HTMLElement>
+  extends FrameworkProps, AriaAttributes, EventHandlers<T> {
+  /** Ref object — set to the DOM element on mount, undefined on unmount. */
+  ref?: ElementRef<T>;
+  /**
+   * JSX children. Uses the unprefixed `children` name (not `children`)
+   * because TypeScript's automatic JSX runtime hardcodes `children` as the
+   * synthesized children prop name when validating intrinsic elements.
+   * `LibraryManagedAttributes` only bridges this for components, so HTML
+   * elements have to expose `children` directly. Optional on every HTML
+   * element; void elements are not yet enforced.
+   */
+  children?: Children;
   // ── Global HTML attributes ───────────────────────────────────────────────
   autoCapitalize?: string;
   autoFocus?: boolean;
   className?: string;
-  contentEditable?: boolean | "true" | "false" | "inherit" | "plaintext-only";
+  contentEditable?: "true" | "false" | "inherit" | "plaintext-only";
   dir?: "ltr" | "rtl" | "auto";
-  draggable?: boolean;
+  draggable?: "true" | "false";
   enterKeyHint?: "enter" | "done" | "go" | "next" | "previous" | "search" | "send";
   hidden?: boolean;
   id?: string;
@@ -425,16 +674,15 @@ export interface HTMLAttributes<T extends HTMLElement = HTMLElement>
   lang?: string;
   nonce?: string;
   popover?: string;
-  role?: string;
   slot?: string;
-  spellCheck?: boolean;
+  spellCheck?: "true" | "false";
   style?: CSSProperties;
-  tabIndex?: number;
+  tabIndex?: string | number;
   title?: string;
   translate?: "yes" | "no";
 
   /** Any `data-*` attribute. */
-  [key: `data-${string}`]: string | number | boolean | undefined;
+  [key: `data-${string}`]: string | number | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -442,8 +690,8 @@ export interface HTMLAttributes<T extends HTMLElement = HTMLElement>
 // ---------------------------------------------------------------------------
 
 /** `<a>` – hyperlink */
-export interface AnchorHTMLAttributes extends HTMLAttributes<HTMLAnchorElement> {
-  download?: string | boolean;
+interface AnchorHTMLAttributes extends HTMLAttributes<HTMLAnchorElement> {
+  download?: string;
   href?: string;
   hrefLang?: string;
   media?: string;
@@ -456,10 +704,10 @@ export interface AnchorHTMLAttributes extends HTMLAttributes<HTMLAnchorElement> 
 }
 
 /** `<area>` */
-export interface AreaHTMLAttributes extends HTMLAttributes<HTMLAreaElement> {
+interface AreaHTMLAttributes extends HTMLAttributes<HTMLAreaElement> {
   alt?: string;
   coords?: string;
-  download?: string | boolean;
+  download?: string;
   href?: string;
   ping?: string;
   referrerPolicy?: ReferrerPolicy;
@@ -469,7 +717,7 @@ export interface AreaHTMLAttributes extends HTMLAttributes<HTMLAreaElement> {
 }
 
 /** `<audio>` */
-export interface AudioHTMLAttributes extends HTMLAttributes<HTMLAudioElement> {
+interface AudioHTMLAttributes extends HTMLAttributes<HTMLAudioElement> {
   autoPlay?: boolean;
   controls?: boolean;
   crossOrigin?: "anonymous" | "use-credentials";
@@ -481,18 +729,18 @@ export interface AudioHTMLAttributes extends HTMLAttributes<HTMLAudioElement> {
 }
 
 /** `<base>` */
-export interface BaseHTMLAttributes extends HTMLAttributes<HTMLBaseElement> {
+interface BaseHTMLAttributes extends HTMLAttributes<HTMLBaseElement> {
   href?: string;
   target?: string;
 }
 
 /** `<blockquote>` / `<q>` */
-export interface BlockquoteHTMLAttributes extends HTMLAttributes<HTMLQuoteElement> {
+interface BlockquoteHTMLAttributes extends HTMLAttributes<HTMLQuoteElement> {
   cite?: string;
 }
 
 /** `<button>` */
-export interface ButtonHTMLAttributes extends HTMLAttributes<HTMLButtonElement> {
+interface ButtonHTMLAttributes extends HTMLAttributes<HTMLButtonElement> {
   autoFocus?: boolean;
   disabled?: boolean;
   form?: string;
@@ -507,40 +755,40 @@ export interface ButtonHTMLAttributes extends HTMLAttributes<HTMLButtonElement> 
 }
 
 /** `<canvas>` */
-export interface CanvasHTMLAttributes extends HTMLAttributes<HTMLCanvasElement> {
+interface CanvasHTMLAttributes extends HTMLAttributes<HTMLCanvasElement> {
   height?: string | number;
   width?: string | number;
 }
 
 /** `<col>` / `<colgroup>` */
-export interface ColHTMLAttributes extends HTMLAttributes<HTMLTableColElement> {
-  span?: number;
+interface ColHTMLAttributes extends HTMLAttributes<HTMLTableColElement> {
+  span?: string | number;
   width?: string | number;
 }
 
 /** `<data>` */
-export interface DataHTMLAttributes extends HTMLAttributes<HTMLDataElement> {
+interface DataHTMLAttributes extends HTMLAttributes<HTMLDataElement> {
   value?: string | number;
 }
 
 /** `<del>` / `<ins>` */
-export interface ModHTMLAttributes extends HTMLAttributes<HTMLModElement> {
+interface ModHTMLAttributes extends HTMLAttributes<HTMLModElement> {
   cite?: string;
   dateTime?: string;
 }
 
 /** `<details>` */
-export interface DetailsHTMLAttributes extends HTMLAttributes<HTMLDetailsElement> {
+interface DetailsHTMLAttributes extends HTMLAttributes<HTMLDetailsElement> {
   open?: boolean;
 }
 
 /** `<dialog>` */
-export interface DialogHTMLAttributes extends HTMLAttributes<HTMLDialogElement> {
+interface DialogHTMLAttributes extends HTMLAttributes<HTMLDialogElement> {
   open?: boolean;
 }
 
 /** `<embed>` */
-export interface EmbedHTMLAttributes extends HTMLAttributes<HTMLEmbedElement> {
+interface EmbedHTMLAttributes extends HTMLAttributes<HTMLEmbedElement> {
   height?: string | number;
   src?: string;
   type?: string;
@@ -548,14 +796,14 @@ export interface EmbedHTMLAttributes extends HTMLAttributes<HTMLEmbedElement> {
 }
 
 /** `<fieldset>` */
-export interface FieldsetHTMLAttributes extends HTMLAttributes<HTMLFieldSetElement> {
+interface FieldsetHTMLAttributes extends HTMLAttributes<HTMLFieldSetElement> {
   disabled?: boolean;
   form?: string;
   name?: string;
 }
 
 /** `<form>` */
-export interface FormHTMLAttributes extends HTMLAttributes<HTMLFormElement> {
+interface FormHTMLAttributes extends HTMLAttributes<HTMLFormElement> {
   acceptCharset?: string;
   action?: string;
   autoComplete?: string;
@@ -568,12 +816,12 @@ export interface FormHTMLAttributes extends HTMLAttributes<HTMLFormElement> {
 }
 
 /** `<html>` */
-export interface HtmlHTMLAttributes extends HTMLAttributes<HTMLHtmlElement> {
+interface HtmlHTMLAttributes extends HTMLAttributes<HTMLHtmlElement> {
   manifest?: string;
 }
 
 /** `<iframe>` */
-export interface IframeHTMLAttributes extends HTMLAttributes<HTMLIFrameElement> {
+interface IframeHTMLAttributes extends HTMLAttributes<HTMLIFrameElement> {
   allow?: string;
   allowFullScreen?: boolean;
   allowTransparency?: boolean;
@@ -592,7 +840,7 @@ export interface IframeHTMLAttributes extends HTMLAttributes<HTMLIFrameElement> 
 }
 
 /** `<img>` */
-export interface ImgHTMLAttributes extends HTMLAttributes<HTMLImageElement> {
+interface ImgHTMLAttributes extends HTMLAttributes<HTMLImageElement> {
   alt?: string;
   crossOrigin?: "anonymous" | "use-credentials";
   decoding?: "async" | "auto" | "sync";
@@ -608,14 +856,12 @@ export interface ImgHTMLAttributes extends HTMLAttributes<HTMLImageElement> {
 }
 
 /** `<input>` */
-export interface InputHTMLAttributes extends HTMLAttributes<HTMLInputElement> {
+interface InputHTMLAttributes extends HTMLAttributes<HTMLInputElement> {
   accept?: string;
   alt?: string;
   autoComplete?: string;
-  capture?: boolean | "user" | "environment";
+  capture?: true | "user" | "environment";
   checked?: boolean;
-  defaultChecked?: boolean;
-  defaultValue?: string | number;
   dirName?: string;
   disabled?: boolean;
   form?: string;
@@ -627,16 +873,16 @@ export interface InputHTMLAttributes extends HTMLAttributes<HTMLInputElement> {
   height?: string | number;
   list?: string;
   max?: string | number;
-  maxLength?: number;
+  maxLength?: string | number;
   min?: string | number;
-  minLength?: number;
+  minLength?: string | number;
   multiple?: boolean;
   name?: string;
   pattern?: string;
   placeholder?: string;
   readOnly?: boolean;
   required?: boolean;
-  size?: number;
+  size?: string | number;
   src?: string;
   step?: string | number;
   type?:
@@ -667,19 +913,19 @@ export interface InputHTMLAttributes extends HTMLAttributes<HTMLInputElement> {
 }
 
 /** `<label>` */
-export interface LabelHTMLAttributes extends HTMLAttributes<HTMLLabelElement> {
+interface LabelHTMLAttributes extends HTMLAttributes<HTMLLabelElement> {
   form?: string;
   /** Maps to the `for` HTML attribute. */
   htmlFor?: string;
 }
 
 /** `<li>` */
-export interface LiHTMLAttributes extends HTMLAttributes<HTMLLIElement> {
-  value?: number;
+interface LiHTMLAttributes extends HTMLAttributes<HTMLLIElement> {
+  value?: string | number;
 }
 
 /** `<link>` */
-export interface LinkHTMLAttributes extends HTMLAttributes<HTMLLinkElement> {
+interface LinkHTMLAttributes extends HTMLAttributes<HTMLLinkElement> {
   as?: string;
   crossOrigin?: "anonymous" | "use-credentials";
   fetchPriority?: "high" | "low" | "auto";
@@ -696,12 +942,12 @@ export interface LinkHTMLAttributes extends HTMLAttributes<HTMLLinkElement> {
 }
 
 /** `<map>` */
-export interface MapHTMLAttributes extends HTMLAttributes<HTMLMapElement> {
+interface MapHTMLAttributes extends HTMLAttributes<HTMLMapElement> {
   name?: string;
 }
 
 /** `<meta>` */
-export interface MetaHTMLAttributes extends HTMLAttributes<HTMLMetaElement> {
+interface MetaHTMLAttributes extends HTMLAttributes<HTMLMetaElement> {
   charSet?: string;
   content?: string;
   httpEquiv?: string;
@@ -710,18 +956,18 @@ export interface MetaHTMLAttributes extends HTMLAttributes<HTMLMetaElement> {
 }
 
 /** `<meter>` */
-export interface MeterHTMLAttributes extends HTMLAttributes<HTMLMeterElement> {
+interface MeterHTMLAttributes extends HTMLAttributes<HTMLMeterElement> {
   form?: string;
-  high?: number;
-  low?: number;
-  max?: number;
-  min?: number;
-  optimum?: number;
+  high?: string | number;
+  low?: string | number;
+  max?: string | number;
+  min?: string | number;
+  optimum?: string | number;
   value?: string | number;
 }
 
 /** `<object>` */
-export interface ObjectHTMLAttributes extends HTMLAttributes<HTMLObjectElement> {
+interface ObjectHTMLAttributes extends HTMLAttributes<HTMLObjectElement> {
   classID?: string;
   data?: string;
   form?: string;
@@ -733,20 +979,20 @@ export interface ObjectHTMLAttributes extends HTMLAttributes<HTMLObjectElement> 
 }
 
 /** `<ol>` */
-export interface OlHTMLAttributes extends HTMLAttributes<HTMLOListElement> {
+interface OlHTMLAttributes extends HTMLAttributes<HTMLOListElement> {
   reversed?: boolean;
-  start?: number;
+  start?: string | number;
   type?: "1" | "a" | "A" | "i" | "I";
 }
 
 /** `<optgroup>` */
-export interface OptgroupHTMLAttributes extends HTMLAttributes<HTMLOptGroupElement> {
+interface OptgroupHTMLAttributes extends HTMLAttributes<HTMLOptGroupElement> {
   disabled?: boolean;
   label?: string;
 }
 
 /** `<option>` */
-export interface OptionHTMLAttributes extends HTMLAttributes<HTMLOptionElement> {
+interface OptionHTMLAttributes extends HTMLAttributes<HTMLOptionElement> {
   disabled?: boolean;
   label?: string;
   selected?: boolean;
@@ -754,26 +1000,26 @@ export interface OptionHTMLAttributes extends HTMLAttributes<HTMLOptionElement> 
 }
 
 /** `<output>` */
-export interface OutputHTMLAttributes extends HTMLAttributes<HTMLOutputElement> {
+interface OutputHTMLAttributes extends HTMLAttributes<HTMLOutputElement> {
   form?: string;
   htmlFor?: string;
   name?: string;
 }
 
 /** `<param>` */
-export interface ParamHTMLAttributes extends HTMLAttributes<HTMLParamElement> {
+interface ParamHTMLAttributes extends HTMLAttributes<HTMLParamElement> {
   name?: string;
   value?: string;
 }
 
 /** `<progress>` */
-export interface ProgressHTMLAttributes extends HTMLAttributes<HTMLProgressElement> {
-  max?: number;
+interface ProgressHTMLAttributes extends HTMLAttributes<HTMLProgressElement> {
+  max?: string | number;
   value?: string | number;
 }
 
 /** `<script>` */
-export interface ScriptHTMLAttributes extends HTMLAttributes<HTMLScriptElement> {
+interface ScriptHTMLAttributes extends HTMLAttributes<HTMLScriptElement> {
   async?: boolean;
   charSet?: string;
   crossOrigin?: string;
@@ -786,24 +1032,24 @@ export interface ScriptHTMLAttributes extends HTMLAttributes<HTMLScriptElement> 
 }
 
 /** `<select>` */
-export interface SelectHTMLAttributes extends HTMLAttributes<HTMLSelectElement> {
+interface SelectHTMLAttributes extends HTMLAttributes<HTMLSelectElement> {
   autoComplete?: string;
   disabled?: boolean;
   form?: string;
   multiple?: boolean;
   name?: string;
   required?: boolean;
-  size?: number;
+  size?: string | number;
   value?: string | number;
 }
 
 /** `<slot>` */
-export interface SlotHTMLAttributes extends HTMLAttributes<HTMLSlotElement> {
+interface SlotHTMLAttributes extends HTMLAttributes<HTMLSlotElement> {
   name?: string;
 }
 
 /** `<source>` */
-export interface SourceHTMLAttributes extends HTMLAttributes<HTMLSourceElement> {
+interface SourceHTMLAttributes extends HTMLAttributes<HTMLSourceElement> {
   height?: string | number;
   media?: string;
   sizes?: string;
@@ -814,14 +1060,14 @@ export interface SourceHTMLAttributes extends HTMLAttributes<HTMLSourceElement> 
 }
 
 /** `<style>` */
-export interface StyleHTMLAttributes extends HTMLAttributes<HTMLStyleElement> {
+interface StyleHTMLAttributes extends HTMLAttributes<HTMLStyleElement> {
   media?: string;
   scoped?: boolean;
   type?: string;
 }
 
 /** `<table>` */
-export interface TableHTMLAttributes extends HTMLAttributes<HTMLTableElement> {
+interface TableHTMLAttributes extends HTMLAttributes<HTMLTableElement> {
   cellPadding?: string | number;
   cellSpacing?: string | number;
   summary?: string;
@@ -829,53 +1075,53 @@ export interface TableHTMLAttributes extends HTMLAttributes<HTMLTableElement> {
 }
 
 /** `<td>` */
-export interface TdHTMLAttributes extends HTMLAttributes<HTMLTableCellElement> {
+interface TdHTMLAttributes extends HTMLAttributes<HTMLTableCellElement> {
   abbr?: string;
   align?: "left" | "center" | "right" | "justify" | "char";
-  colSpan?: number;
+  colSpan?: string | number;
   headers?: string;
   height?: string | number;
-  rowSpan?: number;
+  rowSpan?: string | number;
   scope?: string;
   valign?: "top" | "middle" | "bottom" | "baseline";
   width?: string | number;
 }
 
 /** `<textarea>` */
-export interface TextareaHTMLAttributes extends HTMLAttributes<HTMLTextAreaElement> {
+interface TextareaHTMLAttributes extends HTMLAttributes<HTMLTextAreaElement> {
   autoComplete?: string;
-  cols?: number;
+  cols?: string | number;
   dirName?: string;
   disabled?: boolean;
   form?: string;
-  maxLength?: number;
-  minLength?: number;
+  maxLength?: string | number;
+  minLength?: string | number;
   name?: string;
   placeholder?: string;
   readOnly?: boolean;
   required?: boolean;
-  rows?: number;
+  rows?: string | number;
   value?: string;
   wrap?: string;
 }
 
 /** `<th>` */
-export interface ThHTMLAttributes extends HTMLAttributes<HTMLTableCellElement> {
+interface ThHTMLAttributes extends HTMLAttributes<HTMLTableCellElement> {
   abbr?: string;
   align?: "left" | "center" | "right" | "justify" | "char";
-  colSpan?: number;
+  colSpan?: string | number;
   headers?: string;
-  rowSpan?: number;
+  rowSpan?: string | number;
   scope?: "col" | "row" | "colgroup" | "rowgroup";
 }
 
 /** `<time>` */
-export interface TimeHTMLAttributes extends HTMLAttributes<HTMLTimeElement> {
+interface TimeHTMLAttributes extends HTMLAttributes<HTMLTimeElement> {
   dateTime?: string;
 }
 
 /** `<track>` */
-export interface TrackHTMLAttributes extends HTMLAttributes<HTMLTrackElement> {
+interface TrackHTMLAttributes extends HTMLAttributes<HTMLTrackElement> {
   default?: boolean;
   kind?: "subtitles" | "captions" | "descriptions" | "chapters" | "metadata";
   label?: string;
@@ -884,7 +1130,7 @@ export interface TrackHTMLAttributes extends HTMLAttributes<HTMLTrackElement> {
 }
 
 /** `<video>` */
-export interface VideoHTMLAttributes extends HTMLAttributes<HTMLVideoElement> {
+interface VideoHTMLAttributes extends HTMLAttributes<HTMLVideoElement> {
   autoPlay?: boolean;
   controls?: boolean;
   crossOrigin?: "anonymous" | "use-credentials";
@@ -905,14 +1151,16 @@ export interface VideoHTMLAttributes extends HTMLAttributes<HTMLVideoElement> {
 // ---------------------------------------------------------------------------
 
 /** Presentation attributes shared by all SVG elements. */
-export interface SVGAttributes<T extends SVGElement = SVGElement>
-  extends SpecialProps<T>,
-    AriaAttributes,
-    EventHandlers<T> {
+interface SVGAttributes<T extends SVGElement = SVGElement>
+  extends FrameworkProps, AriaAttributes, EventHandlers<T> {
+  /** Ref object — set to the SVG element on mount, undefined on unmount. */
+  ref?: ElementRef<T>;
+  /** JSX children. See `HTMLAttributes.children` for why this isn't `children`. */
+  children?: Children;
   className?: string;
   id?: string;
   style?: CSSProperties;
-  tabIndex?: number;
+  tabIndex?: string | number;
 
   // Core SVG attributes
   color?: string;
@@ -961,11 +1209,11 @@ export interface SVGAttributes<T extends SVGElement = SVGElement>
   wordSpacing?: string | number;
   writingMode?: string;
 
-  [key: `data-${string}`]: string | number | boolean | undefined;
+  [key: `data-${string}`]: string | number | undefined;
 }
 
 /** `<svg>` root element */
-export interface SvgHTMLAttributes extends SVGAttributes<SVGSVGElement> {
+interface SvgHTMLAttributes extends SVGAttributes<SVGSVGElement> {
   height?: string | number;
   preserveAspectRatio?: string;
   viewBox?: string;
@@ -976,32 +1224,32 @@ export interface SvgHTMLAttributes extends SVGAttributes<SVGSVGElement> {
 }
 
 /** `<path>` */
-export interface PathSVGAttributes extends SVGAttributes<SVGPathElement> {
+interface PathSVGAttributes extends SVGAttributes<SVGPathElement> {
   d?: string;
-  pathLength?: number;
+  pathLength?: string | number;
 }
 
 /** `<circle>` */
-export interface CircleSVGAttributes extends SVGAttributes<SVGCircleElement> {
+interface CircleSVGAttributes extends SVGAttributes<SVGCircleElement> {
   cx?: string | number;
   cy?: string | number;
   r?: string | number;
-  pathLength?: number;
+  pathLength?: string | number;
 }
 
 /** `<ellipse>` */
-export interface EllipseSVGAttributes extends SVGAttributes<SVGEllipseElement> {
+interface EllipseSVGAttributes extends SVGAttributes<SVGEllipseElement> {
   cx?: string | number;
   cy?: string | number;
   rx?: string | number;
   ry?: string | number;
-  pathLength?: number;
+  pathLength?: string | number;
 }
 
 /** `<rect>` */
-export interface RectSVGAttributes extends SVGAttributes<SVGRectElement> {
+interface RectSVGAttributes extends SVGAttributes<SVGRectElement> {
   height?: string | number;
-  pathLength?: number;
+  pathLength?: string | number;
   rx?: string | number;
   ry?: string | number;
   width?: string | number;
@@ -1010,8 +1258,8 @@ export interface RectSVGAttributes extends SVGAttributes<SVGRectElement> {
 }
 
 /** `<line>` */
-export interface LineSVGAttributes extends SVGAttributes<SVGLineElement> {
-  pathLength?: number;
+interface LineSVGAttributes extends SVGAttributes<SVGLineElement> {
+  pathLength?: string | number;
   x1?: string | number;
   x2?: string | number;
   y1?: string | number;
@@ -1019,13 +1267,13 @@ export interface LineSVGAttributes extends SVGAttributes<SVGLineElement> {
 }
 
 /** `<polyline>` / `<polygon>` */
-export interface PolylineSVGAttributes extends SVGAttributes<SVGPolylineElement> {
-  pathLength?: number;
+interface PolylineSVGAttributes extends SVGAttributes<SVGPolylineElement> {
+  pathLength?: string | number;
   points?: string;
 }
 
 /** `<text>` */
-export interface TextSVGAttributes extends SVGAttributes<SVGTextElement> {
+interface TextSVGAttributes extends SVGAttributes<SVGTextElement> {
   dx?: string | number;
   dy?: string | number;
   lengthAdjust?: "spacing" | "spacingAndGlyphs";
@@ -1036,7 +1284,7 @@ export interface TextSVGAttributes extends SVGAttributes<SVGTextElement> {
 }
 
 /** `<tspan>` */
-export interface TSpanSVGAttributes extends SVGAttributes<SVGTSpanElement> {
+interface TSpanSVGAttributes extends SVGAttributes<SVGTSpanElement> {
   dx?: string | number;
   dy?: string | number;
   lengthAdjust?: "spacing" | "spacingAndGlyphs";
@@ -1047,7 +1295,7 @@ export interface TSpanSVGAttributes extends SVGAttributes<SVGTSpanElement> {
 }
 
 /** `<use>` */
-export interface UseSVGAttributes extends SVGAttributes<SVGUseElement> {
+interface UseSVGAttributes extends SVGAttributes<SVGUseElement> {
   href?: string;
   height?: string | number;
   width?: string | number;
@@ -1056,7 +1304,7 @@ export interface UseSVGAttributes extends SVGAttributes<SVGUseElement> {
 }
 
 /** `<symbol>` */
-export interface SymbolSVGAttributes extends SVGAttributes<SVGSymbolElement> {
+interface SymbolSVGAttributes extends SVGAttributes<SVGSymbolElement> {
   height?: string | number;
   preserveAspectRatio?: string;
   refX?: string | number;
@@ -1068,7 +1316,7 @@ export interface SymbolSVGAttributes extends SVGAttributes<SVGSymbolElement> {
 }
 
 /** `<pattern>` */
-export interface PatternSVGAttributes extends SVGAttributes<SVGPatternElement> {
+interface PatternSVGAttributes extends SVGAttributes<SVGPatternElement> {
   height?: string | number;
   href?: string;
   patternContentUnits?: string;
@@ -1082,7 +1330,7 @@ export interface PatternSVGAttributes extends SVGAttributes<SVGPatternElement> {
 }
 
 /** `<linearGradient>` */
-export interface LinearGradientSVGAttributes extends SVGAttributes<SVGLinearGradientElement> {
+interface LinearGradientSVGAttributes extends SVGAttributes<SVGLinearGradientElement> {
   gradientTransform?: string;
   gradientUnits?: string;
   href?: string;
@@ -1094,7 +1342,7 @@ export interface LinearGradientSVGAttributes extends SVGAttributes<SVGLinearGrad
 }
 
 /** `<radialGradient>` */
-export interface RadialGradientSVGAttributes extends SVGAttributes<SVGRadialGradientElement> {
+interface RadialGradientSVGAttributes extends SVGAttributes<SVGRadialGradientElement> {
   cx?: string | number;
   cy?: string | number;
   fr?: string | number;
@@ -1108,17 +1356,17 @@ export interface RadialGradientSVGAttributes extends SVGAttributes<SVGRadialGrad
 }
 
 /** `<stop>` */
-export interface StopSVGAttributes extends SVGAttributes<SVGStopElement> {
+interface StopSVGAttributes extends SVGAttributes<SVGStopElement> {
   offset?: string | number;
 }
 
 /** `<clipPath>` */
-export interface ClipPathSVGAttributes extends SVGAttributes<SVGClipPathElement> {
+interface ClipPathSVGAttributes extends SVGAttributes<SVGClipPathElement> {
   clipPathUnits?: "userSpaceOnUse" | "objectBoundingBox";
 }
 
 /** `<mask>` */
-export interface MaskSVGAttributes extends SVGAttributes<SVGMaskElement> {
+interface MaskSVGAttributes extends SVGAttributes<SVGMaskElement> {
   height?: string | number;
   maskContentUnits?: string;
   maskUnits?: string;
@@ -1128,7 +1376,7 @@ export interface MaskSVGAttributes extends SVGAttributes<SVGMaskElement> {
 }
 
 /** `<filter>` */
-export interface FilterSVGAttributes extends SVGAttributes<SVGFilterElement> {
+interface FilterSVGAttributes extends SVGAttributes<SVGFilterElement> {
   filterUnits?: string;
   height?: string | number;
   primitiveUnits?: string;
@@ -1138,7 +1386,7 @@ export interface FilterSVGAttributes extends SVGAttributes<SVGFilterElement> {
 }
 
 /** `<image>` (SVG) */
-export interface ImageSVGAttributes extends SVGAttributes<SVGImageElement> {
+interface ImageSVGAttributes extends SVGAttributes<SVGImageElement> {
   crossOrigin?: "anonymous" | "use-credentials";
   decoding?: "async" | "auto" | "sync";
   height?: string | number;
