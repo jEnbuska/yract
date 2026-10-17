@@ -1,0 +1,171 @@
+import type { PersonRow } from "../../../types";
+import { useContext, useMemo, useRef, useStable, useState } from "yract";
+import {
+  LoaderTrain,
+  Select,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeadCell,
+  TableRow,
+} from "../../../dos";
+import { DEPARTMENTS } from "./utils/row-store";
+import type { SortDir } from "../../../dos/Table";
+import { PersonTableContext } from "./PersonTable.shared";
+
+const formatter = new Intl.DateTimeFormat("fi", {
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+});
+
+function sortRows(rows: PersonRow[] | undefined, sortDir: SortDir, sortProperty: "name" | "city") {
+  return rows?.toSorted((a, b) => {
+    let cmp: number;
+    const aValue = a[sortProperty];
+    const bValue = b[sortProperty];
+    if (aValue == bValue) {
+      cmp = Number(a.id) - Number(b.id);
+    } else {
+      cmp = aValue.localeCompare(bValue);
+    }
+    return sortDir === "ascending" ? cmp : -cmp;
+  });
+}
+
+type PersonTableProps = {
+  rows: PersonRow[] | undefined;
+};
+
+export default function* PersonTable({ rows }: PersonTableProps) {
+  const [sortProperty, setSortProperty] = yield* useState<"name" | "city">("name");
+  const [sortDir, setSortDir] = yield* useState<SortDir>("ascending");
+  const sortLabel = sortDir === "ascending" ? " ▲" : sortDir === "descending" ? " ▼" : "-";
+  const sortedRows = yield* useMemo(sortRows, [rows, sortDir, sortProperty]);
+  const updateSortByName = yield* useStable(() => {
+    setSortProperty("name");
+    if (sortProperty === "city") setSortDir("ascending");
+    else setSortDir(sortDir === "ascending" ? "descending" : "ascending");
+  });
+  const updateSortByCity = yield* useStable(() => {
+    setSortProperty("city");
+    if (sortProperty === "name") setSortDir("ascending");
+    else setSortDir(sortDir === "ascending" ? "descending" : "ascending");
+  });
+
+  return (
+    <Table
+      caption="People by name, department and city"
+      columns="1fr 1fr 1fr 1fr 1fr 1fr"
+      rowHeight="18.5px"
+      data-testid="person-table"
+      style={{ maxHeight: "500px", overflowY: "auto" }}
+    >
+      <TableHead sticky>
+        <TableRow>
+          <TableHeadCell
+            onClick={updateSortByName}
+            sort={sortProperty === "name" ? sortDir : "none"}
+            data-testid="sort-name"
+          >
+            Name {sortProperty === "name" ? sortLabel : "-"}
+          </TableHeadCell>
+          <TableHeadCell>Department</TableHeadCell>
+          <TableHeadCell
+            sort={sortProperty === "city" ? sortDir : "none"}
+            onClick={updateSortByCity}
+          >
+            City {sortProperty === "city" ? sortLabel : "-"}
+          </TableHeadCell>
+          <TableHeadCell align="center">Mounted at</TableHeadCell>
+          <TableHeadCell align="center">Updated at</TableHeadCell>
+          <TableHeadCell align="center">Re-renders</TableHeadCell>
+        </TableRow>
+      </TableHead>
+      {!sortedRows ? (
+        <LoaderTrain label={"Loading rows…"} />
+      ) : (
+        <PersonTableBody rows={sortedRows} />
+      )}
+    </Table>
+  );
+}
+
+type PersonTableBodyProps = {
+  rows: PersonRow[];
+};
+function* PersonTableBody({ rows }: PersonTableBodyProps) {
+  const mounted = yield* useRef(new Date());
+  const renders = yield* useRef(0);
+  renders.current++;
+  const updatedAt = new Date();
+  return (
+    <TableBody>
+      <TableRow style={{ fontWeight: "bold" }}>
+        <TableCell>{rows.length} rows</TableCell>
+        <TableCell>{"-"}</TableCell>
+        <TableCell align="center">
+          {formatter.format(mounted.current)},<i>{mounted.current.getMilliseconds()}</i>
+        </TableCell>
+        <TableCell align="center">
+          {formatter.format(updatedAt)},<i>{updatedAt.getMilliseconds()}</i>
+        </TableCell>
+        <TableCell align="center">-</TableCell>
+        <TableCell align="center">{renders.current}</TableCell>
+      </TableRow>
+      {rows.map((row) => (
+        <PersonTableRow key={row.id} row={row} deps={[row]} />
+      ))}
+    </TableBody>
+  );
+}
+
+function* PersonTableRow(props: { row: PersonRow }) {
+  const { row } = props;
+  // `deps={[row]}` means props alone will not rerender this row. The selector
+  // below collapses the settings object to "is my city highlighted", so this
+  // row only rerenders when that answer changes — not when some other city is
+  // picked.
+  const { updatePerson, highlight } = yield* useContext(PersonTableContext, (settings) => [
+    settings.highlight === row.city,
+    settings.updatePerson,
+  ]);
+  const highlighted = highlight === row.city;
+  const mounted = yield* useRef(new Date());
+  const renders = yield* useRef(0);
+  renders.current++;
+  const updatedAt = new Date();
+  return (
+    <TableRow
+      data-highlighted={highlighted ? "true" : undefined}
+      style={highlighted ? { textDecoration: "underline" } : undefined}
+    >
+      <TableCell id={`${row.id}-name`}>
+        {row.name} - {row.id}
+      </TableCell>
+      <TableCell>
+        <Select
+          value={row.department}
+          name="personDepartment"
+          aria-labelledby={`${row.id}-name person-department`}
+          onInput={(e) => {
+            updatePerson({ ...row, department: e.currentTarget.value });
+          }}
+        >
+          {DEPARTMENTS.map((d) => (
+            <option value={d}>{d}</option>
+          ))}
+        </Select>
+      </TableCell>
+      <TableCell>{row.city}</TableCell>
+      <TableCell align="center">
+        {formatter.format(mounted.current)},<i>{mounted.current.getMilliseconds()}</i>
+      </TableCell>
+      <TableCell align="center">
+        {formatter.format(updatedAt)},<i>{updatedAt.getMilliseconds()}</i>
+      </TableCell>
+      <TableCell align="center">{renders.current}</TableCell>
+    </TableRow>
+  );
+}
