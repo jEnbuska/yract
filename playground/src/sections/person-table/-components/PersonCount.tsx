@@ -1,5 +1,5 @@
 import { Field, FieldDescription, FieldLabel, Range, Spinner } from "../../../dos";
-import { useStable, useState } from "yract";
+import { useCallback, useState } from "yract";
 
 type OwnProps = {
   count: number;
@@ -9,7 +9,7 @@ type OwnProps = {
 
 export function* PersonCount({ count, setCount, loading }: OwnProps) {
   const [state, setState] = yield* useState(count, [count]);
-  const onClick = yield* useStable(() => {
+  const onClick = yield* useCallback(() => {
     setCount(state);
   });
   return (

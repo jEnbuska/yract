@@ -4,5 +4,5 @@ export { useId } from "./id";
 export { useMemo } from "./memo";
 export { useRef, type RefObject } from "./ref";
 export { useElementRef } from "./elementRef";
-export { useStable } from "./stable";
+export { useCallback } from "./callback";
 export { useState } from "./state";

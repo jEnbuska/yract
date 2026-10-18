@@ -5,7 +5,7 @@ import type {
   $ID,
   $MEMO,
   $REF,
-  $STABLE,
+  $CALLBACK,
   $STATE,
 } from "./constants";
 import type { Context, DependencyList } from "yract";
@@ -43,8 +43,8 @@ export interface MemoHookState<T = unknown> {
   deps: DependencyList;
 }
 
-export interface StableHookState<T extends (...args: any[]) => any = (...args: any[]) => any> {
-  type: typeof $STABLE;
+export interface CallbackHookState<T extends (...args: any[]) => any = (...args: any[]) => any> {
+  type: typeof $CALLBACK;
   current: T;
   callback: T;
 }
@@ -78,7 +78,7 @@ export type HookState =
   | RefHookState
   | IdHookState
   | MemoHookState
-  | StableHookState
+  | CallbackHookState
   | EffectHookState
   | ContextHookState
   | ElementRefHookState;

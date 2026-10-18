@@ -6,7 +6,7 @@ export {
   useId,
   useMemo,
   useRef,
-  useStable,
+  useCallback,
   useState,
   useElementRef,
   type RefObject,
