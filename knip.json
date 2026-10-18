@@ -1,18 +1,16 @@
 {
-  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "$schema": "https://unpkg.com/knip@6/schema.json",
   "exclude": ["duplicates"],
   "workspaces": {
     ".": {
-      "entry": ["src/index.ts", "src/jsx-runtime.ts"],
-      "project": ["src/**/*.ts", "src/**/*.tsx"],
-      "ignore": ["src/__tests__/**"]
+      "entry": ["src/index.ts", "src/jsx-runtime.ts", "src/__typetests__/**/*.typetest.tsx"],
+      "project": ["src/**/*.ts", "src/**/*.tsx"]
     },
-    "examples": {
-      "entry": ["src/main.tsx"],
+    "playground": {
+      "entry": ["src/main.tsx", "src/fixtures/*.tsx"],
       "project": ["src/**/*.ts", "src/**/*.tsx"],
       "playwright": false,
-      "vite": false,
-      "ignoreDependencies": ["yract"]
+      "vite": false
     }
   }
 }

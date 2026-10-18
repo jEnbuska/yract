@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": ["node_modules/**", "dist/**"],
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "typescript/no-floating-promises": "warn",
+    "typescript/no-explicit-any": "off",
+    "typescript/no-non-null-assertion": "off",
+    "typescript/unbound-method": "off",
+    "typescript/consistent-type-imports": "warn",
+    "typescript/no-namespace": "off",
+    "typescript/no-empty-object-type": "off",
+    "eslint/require-yield": "off",
+    "eslint/no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "fix": { "imports": "safe-fix", "variables": "off" }
+      }
+    ],
+    "typescript/no-base-to-string": "off",
+    "typescript/restrict-template-expressions": "off",
+    "typescript/no-redundant-type-constituents": "off",
+    "unicorn/no-new-array": "off",
+    "eslint/curly": ["error", "multi-line"]
+  }
+}

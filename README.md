@@ -4,108 +4,27 @@
 
 # Y'ract
 
-> JSX UI library focused on ease of use and easy to understanding the internals of the library itself
+> A minimal JSX UI library powered by JavaScript generator functions
 
-**yract** is a tiny, transparent JSX UI library that uses plain JavaScript
-[generator functions](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function*)
-as components. Each `yield` statement produces the JSX for the current render.
-State lives in ordinary local variables — no magic, no hidden framework machinery.
+**yract** uses plain JavaScript [generator functions](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function*) as components. Hooks are called with `yield*`, JSX is produced by `return`, and state lives in local variables managed by the framework.
 
 ---
 
-## How it works (in ~100 lines)
+## Status
 
-The whole library consists of three small modules:
+yract is a learning project, not a library to build on. It is not published to npm, and there are big gaps: no server rendering or hydration, no Suspense or lazy loading, no error boundaries, no portals and no devtools. The API still changes.
 
-| File                                       | What it does                                                  |
-| ------------------------------------------ | ------------------------------------------------------------- |
-| [`src/jsx.ts`](src/jsx.ts)                 | Defines the `VNode` type and the `createElement` JSX factory  |
-| [`src/render.ts`](src/render.ts)           | Turns VNodes into real DOM nodes; mounts components          |
-| [`src/jsx-runtime.ts`](src/jsx-runtime.ts) | Automatic JSX transform support (`jsxImportSource`)           |
-
-### Components
-
-```tsx
-import { createElement, render } from 'yract';
-
-// A generator function IS a component.
-// `rerender` – passed as the second argument – repaints the component
-// by advancing the generator to its next `yield`.
-function* Counter(_props: {}, rerender: () => void) {
-  let count = 0;
-  while (true) {
-    yield (
-      <button
-        onClick={() => {
-          count++;
-          rerender();
-        }}
-      >
-        Clicked {count} times
-      </button>
-    );
-  }
-}
-
-render(<Counter />, document.getElementById('root')!);
-```
-
-### Lifecycle in plain English
-
-1. `render(<Counter />, container)` creates a generator instance and calls
-   `gen.next()` to get the **initial JSX**.
-2. The resulting DOM node is placed inside a `<span style="display:contents">`
-   host element (transparent to layout) and added to the container.
-3. When `rerender()` is called (e.g. from an `onClick` handler), the library
-   calls `gen.next()` again. The generator resumes, updates its local
-   variables, and `yield`s new JSX.
-4. The host element is cleared and repopulated with the new DOM nodes.
-5. When the generator returns (`done: true`) it stops rerendering.
-
-### Fragments
-
-```tsx
-import { createElement, Fragment, render } from 'yract';
-
-function* List() {
-  yield (
-    <>
-      <li>One</li>
-      <li>Two</li>
-    </>
-  );
-}
-```
-
----
-
-## Installation
+To try it, clone the repository and run the playground:
 
 ```bash
-npm install yract
+git clone https://github.com/jEnbuska/yract.git
+cd yract
+npm ci
+npm ci --prefix playground
+npm run dev --prefix playground
 ```
 
-## TypeScript / JSX setup
-
-Add to your `tsconfig.json`:
-
-```json
-{
-  "compilerOptions": {
-    "jsx": "react",
-    "jsxFactory": "createElement",
-    "jsxFragmentFactory": "Fragment"
-  }
-}
-```
-
-…and import at the top of every JSX file:
-
-```ts
-import { createElement, Fragment } from 'yract';
-```
-
-Or use the automatic JSX transform:
+The playground (and any project using yract) configures the automatic JSX transform in `tsconfig.json`:
 
 ```json
 {
@@ -116,40 +35,91 @@ Or use the automatic JSX transform:
 }
 ```
 
-Either configuration provides full JSX type checking out of the box —
-including `JSX.IntrinsicElements` support for all HTML / SVG tags.
-No additional `/// <reference>` directives or manual type imports are needed.
-
-> **Local / monorepo usage (pre-publish)**
->
-> If you are running yract directly from source (e.g. inside the
-> `examples/` folder of this repo) and your editor shows
-> _"Cannot find module 'yract'"_, add the following to your
-> project's `tsconfig.json` so the TypeScript language server resolves
-> the package from source:
->
-> ```json
-> {
->   "compilerOptions": {
->     "baseUrl": ".",
->     "paths": {
->       "yract": ["../src/index.ts"],
->       "yract/jsx-runtime": ["../src/jsx-runtime.ts"],
->       "yract/jsx-dev-runtime": ["../src/jsx-runtime.ts"]
->     }
->   }
-> }
-> ```
+No JSX imports are needed, and every HTML/SVG tag is type-checked.
 
 ---
 
-## Running the tests
+## Quick start
 
-```bash
-npm test
+```tsx
+import { createRoot, useState } from "yract";
+
+function* Counter() {
+  const [count, setCount] = yield* useState(0);
+  return <button onClick={() => setCount((c) => c + 1)}>Clicked {count} times</button>;
+}
+
+createRoot(document.getElementById("root")!).render(<Counter />);
 ```
 
+The component body re-runs from the top on every render, so handlers always see the current values.
+
 ---
+
+## Features
+
+### Hooks
+
+All hooks are generators called with `yield*`.
+
+```tsx
+function* Timer() {
+  const [tick, setTick] = yield* useState(0);
+  yield* useEffect((signal) => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    signal.onabort = () => clearInterval(id);
+  }, []);
+  return <p>Seconds: {tick}</p>;
+}
+```
+
+`useState`, `useEffect`, `useMemo`, `useRef`, `useId`, `useCallback`, `useContext` and `useElementRef`.
+
+### Context
+
+A context is itself the provider component:
+
+```tsx
+const Theme = createContext<"light" | "dark">("light", "Theme");
+
+function* Badge() {
+  const theme = yield* useContext(Theme);
+  return <span className={theme}>{theme}</span>;
+}
+
+function* App() {
+  return (
+    <Theme value="dark">
+      <Badge />
+    </Theme>
+  );
+}
+```
+
+`useContext` takes an optional selector, so a consumer only rerenders when the part it reads changes.
+
+### Controlled form elements
+
+`value` and `checked` always win. Whatever the user types, pastes, autofills or clicks, the element ends up showing what the component rendered — including radio buttons the browser unchecked as a side effect.
+
+```tsx
+function* Digits() {
+  const [text, setText] = yield* useState("");
+  return <input value={text} onInput={(e) => setText(e.currentTarget.value.replace(/\D/g, ""))} />;
+}
+```
+
+### Capabilities
+
+`withRerender` and `withContext` are hook-like helpers that take no hook slot, so they can be called conditionally. To end a render early, `return yield child` from a component or a custom hook.
+
+---
+
+## Documentation
+
+- [API reference](docs/api.md)
+- [Scheduler internals](docs/scheduler.md)
+- [Contributing](CONTRIBUTING.md)
 
 ## License
 

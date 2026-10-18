@@ -1,106 +1,31 @@
-/**
- * yract – JSX UI library powered by JavaScript generators.
- *
- * Components are generator functions that **return** their JSX.
- * Hooks are called with `yield*` and may pause rendering until async
- * operations complete.
- *
- * Quick-start:
- *
- * ```tsx
- * import { render, useState } from 'yract';
- *
- * function* Counter(_props: object) {
- *   const [count, setCount] = yield* useState(0);
- *   return (
- *     <button onClick={() => setCount(count + 1)}>
- *       Clicked {count} times
- *     </button>
- *   );
- * }
- *
- * render(<Counter />, document.getElementById('root')!);
- * ```
- */
+export { type Context, type ContextProps } from "./contexts/types";
 
-export type { Context } from "./context";
-export { createContext, useContext } from "./context";
-export type { SEvent, SyntheticEvent } from "./events";
-export type {
-  ComponentGenerator,
-  DependencyList,
-  HookDescriptor,
-  RefObject,
-  Renderable,
-  ResolveRawResult,
-  UseRenderFn,
-  UseResolveOptions,
-} from "./hooks";
 export {
+  useContext,
   useEffect,
   useId,
   useMemo,
   useRef,
-  useRender,
-  useResolve,
-  useResolveRaw,
-  useResume,
+  useCallback,
   useState,
-  useUIPatch,
+  useElementRef,
+  type RefObject,
 } from "./hooks";
-export type {
-  Child,
-  Component,
-  FrameworkProps,
-  InternalProps,
-  SpecialProps,
-  VNode,
+export { withRerender, withContext } from "./capabilities";
+export {
+  type Child,
+  type Children,
+  type Component,
+  type ComponentProps,
+  Fragment,
+  type FrameworkProps,
+  type PropsWithChildren,
 } from "./jsx";
-export { createElement, createPortal, Fragment, Portal } from "./jsx";
-export type {
-  AnchorHTMLAttributes,
-  AreaHTMLAttributes,
-  AriaAttributes,
-  AudioHTMLAttributes,
-  ButtonHTMLAttributes,
-  CanvasHTMLAttributes,
-  ColHTMLAttributes,
-  CSSProperties,
-  DetailsHTMLAttributes,
-  DialogHTMLAttributes,
-  EmbedHTMLAttributes,
-  EventHandlers,
-  FieldsetHTMLAttributes,
-  FormHTMLAttributes,
-  HTMLAttributes,
-  IframeHTMLAttributes,
-  ImgHTMLAttributes,
-  InputHTMLAttributes,
-  LabelHTMLAttributes,
-  LiHTMLAttributes,
-  LinkHTMLAttributes,
-  MetaHTMLAttributes,
-  MeterHTMLAttributes,
-  ObjectHTMLAttributes,
-  OlHTMLAttributes,
-  OptgroupHTMLAttributes,
-  OptionHTMLAttributes,
-  OutputHTMLAttributes,
-  ProgressHTMLAttributes,
-  ScriptHTMLAttributes,
-  SelectHTMLAttributes,
-  SlotHTMLAttributes,
-  SourceHTMLAttributes,
-  StyleHTMLAttributes,
-  SVGAttributes,
-  SvgHTMLAttributes,
-  TableHTMLAttributes,
-  TdHTMLAttributes,
-  TextareaHTMLAttributes,
-  ThHTMLAttributes,
-  TimeHTMLAttributes,
-  TrackHTMLAttributes,
-  VideoHTMLAttributes,
-} from "./jsx-types";
-export type { Root } from "./render";
-export { commitUIPatch, createRoot, flushSync, render, startUIPatch } from "./render";
+
+export { createRoot, render } from "./render";
+export { Root } from "./instances/root";
+
+export type { ComponentGenerator } from "./general-types";
+export type { DependencyList } from "./general-types";
+export { createContext } from "./contexts/create-context";
+export { resolveContext } from "./contexts/resolve-context";
