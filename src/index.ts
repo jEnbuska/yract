@@ -11,7 +11,7 @@ export {
   useElementRef,
   type RefObject,
 } from "./hooks";
-export { withRerender, withReturn, withContext } from "./capabilities";
+export { withRerender, withContext } from "./capabilities";
 export {
   type Child,
   type Children,

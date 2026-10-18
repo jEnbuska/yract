@@ -7,5 +7,4 @@
  * conditionally, or in a different order from one render to the next.
  */
 export { withRerender } from "./rerender";
-export { withReturn } from "./return";
 export { withContext } from "./context";

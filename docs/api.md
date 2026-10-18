@@ -33,6 +33,27 @@ function* Greeting(props: { name: string }) {
 - The body re-runs from the top on every render. Hook state persists, keyed by call order, so hooks must run in the same order every render.
 - `<>…</>` (`Fragment`) groups children without a wrapper element.
 
+### Returning early: `return yield child`
+
+```tsx
+function* useUser(id: string): ComponentGenerator<User> {
+  const { data, loading, error } = yield* useUserQuery(id);
+  if (error) return yield <UserLoadError error={error} />;
+  if (loading) return yield <Loading />;
+  return data;
+}
+
+function* UserPage({ id }: { id: string }): ComponentGenerator {
+  const user = yield* useUser(id); // only reached once the user has loaded
+  return <UserForm user={user} />;
+}
+```
+
+- `return yield child` ends the render on the spot and renders `child` instead. Any child works: an element, a fragment, a string, a number, `null`, and so on.
+- It also works inside a custom hook: the hook's `yield` reaches the renderer through the component's `yield*`, so the whole component's render ends there.
+- Hooks after the early return are skipped and treated as unmounted: their effects clean up and their state is dropped.
+- A component or hook that returns early this way needs a return-type annotation (`ComponentGenerator`, or `ComponentGenerator<Result>` for a hook). Without one, TypeScript reports TS7057 for `return yield`.
+
 JSX setup (`tsconfig.json`):
 
 ```json
@@ -137,17 +158,19 @@ return <input ref={input} />;
 
 Hook-like helpers that take **no hook slot**, so they may be called conditionally or in any order.
 
-| Capability          | Returns                                                                 |
-| :------------------ | :---------------------------------------------------------------------- |
-| `withReturn(child)` | Ends the render immediately with `child`, skipping the rest of the body |
-| `withRerender()`    | A stable callback that rerenders the component                          |
-| `withContext(ctx)`  | The context's current value, without subscribing to changes             |
+| Capability         | Returns                                                     |
+| :----------------- | :---------------------------------------------------------- |
+| `withRerender()`   | A stable callback that rerenders the component              |
+| `withContext(ctx)` | The context's current value, without subscribing to changes |
 
 ```tsx
-function* Gate(props: { open: boolean }) {
-  if (!props.open) yield* withReturn(<p>Closed</p>);
-  const [n] = yield* useState(0);
-  return <p>Open {n}</p>;
+function* Clock(): ComponentGenerator {
+  const rerender = yield* withRerender();
+  yield* useEffect((signal) => {
+    const id = setInterval(rerender, 1000);
+    signal.onabort = () => clearInterval(id);
+  }, []);
+  return <p>{new Date().toLocaleTimeString()}</p>;
 }
 ```
 
