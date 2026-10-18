@@ -10,13 +10,21 @@
 
 ---
 
-## Installation
+## Status
+
+yract is a learning project, not a library to build on. It is not published to npm, and there are big gaps: no server rendering or hydration, no Suspense or lazy loading, no error boundaries, no portals and no devtools. The API still changes.
+
+To try it, clone the repository and run the playground:
 
 ```bash
-npm install yract
+git clone https://github.com/jEnbuska/yract.git
+cd yract
+npm ci
+npm ci --prefix playground
+npm run dev --prefix playground
 ```
 
-Configure the automatic JSX transform in `tsconfig.json`:
+The playground (and any project using yract) configures the automatic JSX transform in `tsconfig.json`:
 
 ```json
 {
@@ -67,7 +75,7 @@ function* Timer() {
 
 `useState`, `useEffect`, `useMemo`, `useRef`, `useId`, `useCallback`, `useContext` and `useElementRef`.
 
-### Types
+### Context
 
 A context is itself the provider component:
 
