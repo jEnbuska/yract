@@ -514,7 +514,8 @@ export default function* LagSpinner() {
       handle = requestAnimationFrame(animate);
     });
     return () => cancelAnimationFrame(handle);
-  });
+    // Start the frame loop once; it reschedules itself.
+  }, []);
 
   return (
     // The dial rides in the chart's top-right corner, clear of the y axis and

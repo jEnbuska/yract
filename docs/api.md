@@ -73,7 +73,7 @@ setValue((prev) => prev + 1);
 - The setter accepts a value or an updater. The new value is stored straight away, so a second update in the same tick builds on it; the component rerenders in the next render pass. Setting the current value is a no-op.
 - `deps`: when they change, the state resets to `initial`.
 
-### `useEffect(fn, deps = [])`
+### `useEffect(fn, deps?)`
 
 ```ts
 yield *
@@ -87,7 +87,7 @@ yield *
 ```
 
 - Runs after the DOM is committed, and again whenever `deps` change.
-- `deps` defaults to `[]`, so an effect without deps runs **once** (unlike React).
+- `deps` is optional. Without it, the effect runs after every render, as in React. Pass `[]` to run it once.
 - `signal` aborts before the next run and on unmount. `fn` may also return a cleanup function.
 - `fn` may be `async`. Its promise is not awaited, so check `signal.aborted` after each `await`.
 

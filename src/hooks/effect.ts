@@ -8,6 +8,7 @@ import type { EffectHookState } from "./hook-states";
 
 /**
  * Side-effect hook. Runs `fn` after DOM updates, re-runs when deps change.
+ * Without `deps` it runs after every render; pass `[]` to run it once.
  * The `fn` receives an `AbortSignal` that is aborted on cleanup.
  * If `fn` returns a function, it is called on next run or on unmount.
  */
