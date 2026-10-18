@@ -1,13 +1,13 @@
 import type { ComponentFiber } from "../instances/component-fiber";
 import { HookRuleError } from "./HookRuleError";
 import type { HookDescriptor } from "./hook-descriptors";
-import { $CONTEXT, $EFFECT, $ID, $MEMO, $REF, $STABLE, $STATE, $ELEMENT_REF } from "./constants";
+import { $CONTEXT, $EFFECT, $ID, $MEMO, $REF, $CALLBACK, $STATE, $ELEMENT_REF } from "./constants";
 import { processState } from "./state";
 import { processRef } from "./ref";
 import { processElementRef } from "./elementRef";
 import { processId } from "./id";
 import { processMemo } from "./memo";
-import { processStable } from "./stable";
+import { processCallback } from "./callback";
 import { processEffect } from "./effect";
 import { getContextValue, processContext } from "./context";
 import type { HookState } from "./hook-states";
@@ -66,9 +66,9 @@ export function processHook(
       hookStates[hookIndex] = state;
       return state;
     }
-    case $STABLE: {
-      const prev = getTypedPrev(hookStates, hookIndex, $STABLE, instance);
-      const state = processStable(descriptor, prev);
+    case $CALLBACK: {
+      const prev = getTypedPrev(hookStates, hookIndex, $CALLBACK, instance);
+      const state = processCallback(descriptor, prev);
       hookStates[hookIndex] = state;
       return state;
     }

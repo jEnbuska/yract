@@ -7,7 +7,7 @@ import type {
   $ID,
   $MEMO,
   $REF,
-  $STABLE,
+  $CALLBACK,
   $STATE,
 } from "./constants";
 import type { AnyFn } from "../general-types";
@@ -37,8 +37,8 @@ export interface MemoHookDescriptor<T = unknown, TArgs extends readonly any[] = 
   deps: TArgs;
 }
 
-export interface StableHookDescriptor<T extends AnyFn = AnyFn> {
-  type: typeof $STABLE;
+export interface CallbackHookDescriptor<T extends AnyFn = AnyFn> {
+  type: typeof $CALLBACK;
   fn: T;
 }
 
@@ -62,6 +62,6 @@ export type HookDescriptor =
   | ElementRefHookDescription
   | IdHookDescriptor
   | MemoHookDescriptor
-  | StableHookDescriptor
+  | CallbackHookDescriptor
   | EffectHookDescriptor
   | ContextHookDescriptor;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useStable, useState } from "yract";
+import { useEffect, useMemo, useCallback, useState } from "yract";
 import { Window, WindowBar, WindowBody } from "../../dos";
 import { getPersonRows } from "./-components/utils/row-store";
 import PersonTable from "./-components/PersonTable";
@@ -48,7 +48,7 @@ export function* PersonTableDemo() {
 
   const filtered = yield* useMemo(filterRowsByDepartment, [filteredByCity, department]);
 
-  const updatePerson = yield* useStable(async (person: PersonRow) => {
+  const updatePerson = yield* useCallback(async (person: PersonRow) => {
     const index = rows!.findIndex((row) => row.id === person.id);
     if (index === -1) return;
     setRows([...rows!.slice(0, index), person, ...rows!.slice(index + 1)]);

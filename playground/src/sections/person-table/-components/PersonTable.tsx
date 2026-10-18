@@ -1,5 +1,5 @@
 import type { PersonRow } from "../../../types";
-import { useContext, useMemo, useRef, useStable, useState } from "yract";
+import { useContext, useMemo, useRef, useCallback, useState } from "yract";
 import {
   LoaderTrain,
   Select,
@@ -43,12 +43,12 @@ export default function* PersonTable({ rows }: PersonTableProps) {
   const [sortDir, setSortDir] = yield* useState<SortDir>("ascending");
   const sortLabel = sortDir === "ascending" ? " ▲" : sortDir === "descending" ? " ▼" : "-";
   const sortedRows = yield* useMemo(sortRows, [rows, sortDir, sortProperty]);
-  const updateSortByName = yield* useStable(() => {
+  const updateSortByName = yield* useCallback(() => {
     setSortProperty("name");
     if (sortProperty === "city") setSortDir("ascending");
     else setSortDir(sortDir === "ascending" ? "descending" : "ascending");
   });
-  const updateSortByCity = yield* useStable(() => {
+  const updateSortByCity = yield* useCallback(() => {
     setSortProperty("city");
     if (sortProperty === "name") setSortDir("ascending");
     else setSortDir(sortDir === "ascending" ? "descending" : "ascending");

@@ -107,9 +107,15 @@ Returns `{ current }`, stable for the component's lifetime.
 
 Returns a string id that is unique and stable for the component's lifetime.
 
-### `useStable(fn)`
+### `useCallback(fn)`
+
+```ts
+const handleSave = yield * useCallback(() => save(draft));
+```
 
 Returns a function with a permanent identity that always calls the latest `fn`. Use it for callbacks passed to children.
+
+Unlike React's `useCallback`, it takes no dependency list: the function never changes identity, and it always sees the current render's values.
 
 ### `useContext(ctx, selector?, transform?)`
 

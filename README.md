@@ -65,7 +65,7 @@ function* Timer() {
 }
 ```
 
-`useState`, `useEffect`, `useMemo`, `useRef`, `useId`, `useStable`, `useContext` and `useElementRef`.
+`useState`, `useEffect`, `useMemo`, `useRef`, `useId`, `useCallback`, `useContext` and `useElementRef`.
 
 ### Types
 

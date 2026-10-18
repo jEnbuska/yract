@@ -14,7 +14,7 @@ import { useRef } from "../hooks/ref";
 import { useElementRef } from "../hooks/elementRef";
 import { useState } from "../hooks/state";
 import { useId } from "../hooks/id";
-import { useStable } from "../hooks/stable";
+import { useCallback } from "../hooks/callback";
 import { useContext } from "../hooks/context";
 import { useMemo } from "../hooks/memo";
 
@@ -33,7 +33,7 @@ function* useComposite<T extends HTMLElement>() {
   const { label } = yield* useContext(Ctx);
   const [n, setN] = yield* useState(0);
   const doubled = yield* useMemo((x) => x * 2, [n]);
-  const onPoke = yield* useStable(() => setN((c) => c + 1));
+  const onPoke = yield* useCallback(() => setN((c) => c + 1));
 
   yield* useEffect(() => {
     box.current = doubled;
