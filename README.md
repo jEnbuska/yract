@@ -111,7 +111,7 @@ function* Digits() {
 
 ### Capabilities
 
-`withReturn`, `withRerender` and `withContext` are hook-like helpers that take no hook slot, so they can be called conditionally.
+`withRerender` and `withContext` are hook-like helpers that take no hook slot, so they can be called conditionally. To end a render early, `return yield child` from a component or a custom hook.
 
 ---
 

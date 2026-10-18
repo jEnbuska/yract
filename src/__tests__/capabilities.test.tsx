@@ -1,18 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createContext, useState, withContext, withRerender, withReturn } from "yract";
+import { createContext, useState, withContext, withRerender } from "yract";
 import { flush } from "./utils/flush";
 import { byTestId, mount } from "./utils/dom";
 
 describe("capabilities", () => {
-  it("withReturn ends the render early with the given child", async () => {
-    function* Gate(props: { open: boolean }) {
-      if (!props.open) yield* withReturn(<i data-testid="out">closed</i>);
-      return <b data-testid="out">open</b>;
-    }
-    const c = await mount(<Gate open={false} />);
-    expect(byTestId(c, "out").textContent).toBe("closed");
-  });
-
   it("withRerender returns a callback that rerenders the component", async () => {
     let rerender!: () => void;
     let renders = 0;

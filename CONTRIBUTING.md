@@ -58,7 +58,7 @@ If any step fails, fix it and run the sequence again.
 | :------------------ | :----------------------------------------------------- |
 | `src/index.ts`      | Public API                                             |
 | `src/hooks/`        | Hooks, one file each                                   |
-| `src/capabilities/` | `withReturn`, `withRerender`, `withContext`            |
+| `src/capabilities/` | `withRerender`, `withContext`                          |
 | `src/instances/`    | Fibers and `Root` (incl. controlled-input restore)     |
 | `src/reconciler/`   | Diffing new output against the previous slots          |
 | `src/scheduler/`    | The synchronous render pass — see `docs/scheduler.md`  |
