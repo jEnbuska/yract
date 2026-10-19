@@ -119,6 +119,7 @@ function* Digits() {
 
 - [API reference](docs/api.md)
 - [Scheduler internals](docs/scheduler.md)
+- [Building yract](https://jenbuska.github.io/yract/article/) — the story behind the project ([source](docs/article/index.html))
 - [Contributing](CONTRIBUTING.md)
 
 ## License
