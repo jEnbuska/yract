@@ -447,12 +447,12 @@ function* CompanyEmployees({ companyId }: OwnProps) {
         <p>
           Most React codebases I've worked on end up with the same handful of helper hooks: a
           callback that never changes identity, an effect that can be cancelled, a context hook with
-          a selector. Teams might write their own versions, each slightly different (with different bugs), and new
-          developers don't always know they exist, so they reach for the built-in hook and get the
-          old pitfalls back. Most of those pitfalls come from dependency lists: a missing dependency
-          leaves stale values, and an extra one makes a callback change identity or an effect run
-          too often. So I tried to make the built-in hooks handle the common case safely, so that
-          the easy way is also the right way.
+          a selector. Teams might write their own versions, each slightly different (with different
+          bugs), and new developers don't always know they exist, so they reach for the built-in
+          hook and get the old pitfalls back. Most of those pitfalls come from dependency lists: a
+          missing dependency leaves stale values, and an extra one makes a callback change identity
+          or an effect run too often. So I tried to make the built-in hooks handle the common case
+          safely, so that the easy way is also the right way.
         </p>
 
         <h3>useMemo: dependencies are passed to the callback</h3>
@@ -516,8 +516,8 @@ function* SearchResults({ query }: OwnProps) {
         <h3>useCallback: no dependency list</h3>
         <p>
           yract's <code>useCallback</code> always returns the same function reference, but when it's
-          called, it runs the latest version of your function, so it always sees the current props
-          and state.
+          called, it runs the latest version of your function, so it always sees the current
+          variables (props, state, etc.).
         </p>
         <figure class="code">
           <figcaption><span>yract</span><button type="button" data-copy>Copy</button></figcaption>
