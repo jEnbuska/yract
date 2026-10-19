@@ -176,6 +176,11 @@ which mounts `App.tsx` — the shell that stacks every demo on one page.
 - `playground/fixtures/*.html` + `playground/src/fixtures/*.tsx` — standalone pages for Playwright (served by Vite, not linked from the app; registered as knip entries).
 - `playground/tests/` — Playwright specs; `helpers.ts` holds `goToDemo`, `readRows` and `settled` (waits until the table matches the controls).
 
+### Docs
+
+- `docs/api.md` and `docs/scheduler.md` are the reference docs.
+- `docs/article/index.html` is a standalone article page served by GitHub Pages (source: `main`, folder `/docs`) at `https://jenbuska.github.io/yract/article/`. It is plain HTML with no build step; code samples are highlighted with Prism from cdnjs.
+
 ### Testing Notes
 
 - Unit tests mount through `mount()` in `src/__tests__/utils/dom.tsx` and simulate input with its helpers (`typeText`, `autofill`, `selectOption`, `slideTo`); wait with `flush()` from `utils/flush.ts`.

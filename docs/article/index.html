@@ -1,0 +1,992 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Building a React-like JSX runtime with generator functions</title>
+    <meta
+      name="description"
+      content="How yract, a JSX runtime built on generator functions, came together."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap"
+    />
+    <style>
+      /* Layout: a single reading column with a slim toolbar above it. */
+      :root {
+        --bg: #fbfcfc;
+        --surface: #eef3f2;
+        --fg: #1b2423;
+        --muted: #5b6866;
+        --accent: #0f766e;
+        --rule: #d6e0de;
+        --code-bg: #f1f5f4;
+        --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+        --font-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+        --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --bg: #121817;
+          --surface: #1a2321;
+          --fg: #e3ebe9;
+          --muted: #9aa9a6;
+          --accent: #4fd1c0;
+          --rule: #2a3633;
+          --code-bg: #182120;
+          color-scheme: dark;
+        }
+      }
+      :root[data-theme="dark"] {
+        --bg: #121817;
+        --surface: #1a2321;
+        --fg: #e3ebe9;
+        --muted: #9aa9a6;
+        --accent: #4fd1c0;
+        --rule: #2a3633;
+        --code-bg: #182120;
+        color-scheme: dark;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--fg);
+        font-family: var(--font-body);
+        font-size: 1.125rem;
+        line-height: 1.65;
+        padding-left: max(16px, env(safe-area-inset-left, 0px));
+        padding-right: max(16px, env(safe-area-inset-right, 0px));
+        padding-block: 0 4rem;
+      }
+      .wrap {
+        max-width: 42rem;
+        margin: 0 auto;
+      }
+
+      .toolbar {
+        position: sticky;
+        top: env(safe-area-inset-top, 0px);
+        z-index: 1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+        justify-content: space-between;
+        padding-block: 0.75rem;
+        background: var(--bg);
+        border-bottom: 1px solid var(--rule);
+        font-family: var(--font-display);
+        font-size: 0.875rem;
+        color: var(--muted);
+      }
+      .toolbar strong {
+        color: var(--fg);
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+
+      button {
+        font: inherit;
+        font-family: var(--font-display);
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--accent);
+        background: transparent;
+        border: 1px solid var(--accent);
+        border-radius: 999px;
+        padding: 0.3rem 0.85rem;
+        cursor: pointer;
+      }
+      button:hover {
+        background: var(--surface);
+      }
+      button:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      article {
+        padding-block: 2.5rem 0;
+      }
+      h1,
+      h2 {
+        font-family: var(--font-display);
+        line-height: 1.2;
+        text-wrap: balance;
+        letter-spacing: -0.01em;
+      }
+      h1 {
+        font-size: clamp(1.9rem, 5vw, 2.6rem);
+        margin: 0 0 0.75rem;
+      }
+      h2 {
+        font-size: 1.45rem;
+        margin: 2.5rem 0 0.5rem;
+      }
+      h3 {
+        font-family: var(--font-display);
+        font-size: 1.1rem;
+        margin: 1.75rem 0 0.25rem;
+      }
+      .standfirst {
+        font-size: 1.25rem;
+        color: var(--muted);
+        margin: 0 0 2rem;
+      }
+      p {
+        margin: 0 0 1.1rem;
+      }
+      ol {
+        padding-left: 1.4rem;
+        margin: 0 0 1.1rem;
+        display: grid;
+        gap: 0.5rem;
+      }
+      a {
+        color: var(--accent);
+        text-underline-offset: 0.15em;
+      }
+      ul.compare {
+        list-style: none;
+        margin: -0.4rem 0 1.1rem;
+        padding: 0.75rem 1rem;
+        display: grid;
+        gap: 0.6rem;
+        background: var(--surface);
+        border-left: 3px solid var(--accent);
+        border-radius: 0 6px 6px 0;
+      }
+      code {
+        font-family: var(--font-mono);
+        font-size: 0.88em;
+        background: var(--code-bg);
+        padding: 0.05em 0.3em;
+        border-radius: 3px;
+      }
+
+      figure.code {
+        margin: 0 0 1.5rem;
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        background: var(--code-bg);
+        min-width: 0;
+      }
+      figure.code figcaption {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 0.6rem 0.4rem 0.9rem;
+        border-bottom: 1px solid var(--rule);
+        font-family: var(--font-display);
+        font-size: 0.8125rem;
+        color: var(--muted);
+      }
+      figure.code pre {
+        margin: 0;
+        padding: 0.9rem;
+        overflow-x: auto;
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        line-height: 1.55;
+      }
+      figure.code pre code {
+        background: none;
+        padding: 0;
+        font-size: inherit;
+      }
+      .c {
+        color: var(--muted);
+      }
+
+      /* Syntax colours from VS Code's Light+ and Dark+ themes. */
+      :root {
+        --syn-bg: #ffffff;
+        --syn-fg: #1f1f1f;
+        --syn-keyword: #0000ff;
+        --syn-control: #af00db;
+        --syn-string: #a31515;
+        --syn-comment: #008000;
+        --syn-function: #795e26;
+        --syn-number: #098658;
+        --syn-type: #267f99;
+        --syn-tag: #800000;
+        --syn-attr: #e50000;
+        --syn-variable: #001080;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --syn-bg: #1e1e1e;
+          --syn-fg: #d4d4d4;
+          --syn-keyword: #569cd6;
+          --syn-control: #c586c0;
+          --syn-string: #ce9178;
+          --syn-comment: #6a9955;
+          --syn-function: #dcdcaa;
+          --syn-number: #b5cea8;
+          --syn-type: #4ec9b0;
+          --syn-tag: #569cd6;
+          --syn-attr: #9cdcfe;
+          --syn-variable: #9cdcfe;
+        }
+      }
+      :root[data-theme="dark"] {
+        --syn-bg: #1e1e1e;
+        --syn-fg: #d4d4d4;
+        --syn-keyword: #569cd6;
+        --syn-control: #c586c0;
+        --syn-string: #ce9178;
+        --syn-comment: #6a9955;
+        --syn-function: #dcdcaa;
+        --syn-number: #b5cea8;
+        --syn-type: #4ec9b0;
+        --syn-tag: #569cd6;
+        --syn-attr: #9cdcfe;
+        --syn-variable: #9cdcfe;
+      }
+      figure.code pre {
+        background: var(--syn-bg);
+        color: var(--syn-fg);
+        border-radius: 0 0 6px 6px;
+      }
+      .token.comment {
+        color: var(--syn-comment);
+        font-style: italic;
+      }
+      .token.keyword,
+      .token.boolean,
+      .token.builtin {
+        color: var(--syn-keyword);
+      }
+      .token.keyword.control-flow,
+      .token.keyword.module {
+        color: var(--syn-control);
+      }
+      .token.string,
+      .token.template-string,
+      .token.attr-value {
+        color: var(--syn-string);
+      }
+      .token.function,
+      .token.generic-function {
+        color: var(--syn-function);
+      }
+      .token.number {
+        color: var(--syn-number);
+      }
+      .token.class-name,
+      .token.maybe-class-name {
+        color: var(--syn-type);
+      }
+      .token.tag {
+        color: var(--syn-tag);
+      }
+      .token.tag .token.class-name {
+        color: var(--syn-type);
+      }
+      .token.attr-name {
+        color: var(--syn-attr);
+      }
+      .token.parameter,
+      .token.property-access {
+        color: var(--syn-variable);
+      }
+      .token.punctuation,
+      .token.operator {
+        color: var(--syn-fg);
+      }
+
+      figure.diagram {
+        margin: 0 0 1.5rem;
+        overflow-x: auto;
+        color: var(--fg);
+      }
+      figure.diagram svg {
+        display: block;
+        width: 100%;
+        min-width: 560px;
+        height: auto;
+      }
+      figure.diagram figcaption {
+        font-family: var(--font-display);
+        font-size: 0.8125rem;
+        color: var(--muted);
+        margin-top: 0.4rem;
+      }
+      .closing {
+        border-top: 1px solid var(--rule);
+        margin-top: 2.5rem;
+        padding-top: 1.5rem;
+      }
+      .status {
+        min-height: 1.2em;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="toolbar">
+        <span
+          ><strong>yract</strong> ·
+          <a href="https://github.com/jEnbuska/yract">source on GitHub</a></span
+        >
+        <span style="display: flex; gap: 0.5rem; align-items: center">
+          <span class="status" id="status" role="status"></span>
+        </span>
+      </div>
+
+      <article id="article">
+        <h1>Building a React-like JSX runtime with generator functions</h1>
+        <p class="standfirst">
+          Six months of evenings, countless rewrites, a shift from vibe coding to writing most of it
+          by hand, one shelved idea, and a lot learned along the way.
+        </p>
+
+        <p>
+          For the last six months I've been building <strong>yract</strong>, a client-side JSX
+          runtime with synchronous rendering, in my free time. It follows React's API closely, but
+          makes some different design decisions and adds a few things I've always wished React could
+          do. It's an experiment, not a library you should use yet; more on that at the end.
+        </p>
+
+        <p>
+          I had two motivations. The first was simply that I wanted to understand how a runtime like
+          React works under the hood: to work through the same problems myself and see whether I'd
+          arrive at React's solution or a different one. The second was practical. Over the years
+          I've worked around the same issues in client-side React in project after project, and I
+          felt some of them could, and should, be solved in the library itself.
+        </p>
+
+        <h2>What yract does differently</h2>
+
+        <h3>1. Components and hooks are generator functions</h3>
+        <p>
+          A component is a generator function: hooks are called with <code>yield*</code>, and the
+          JSX is the <code>return</code> value. Because hooks are generators too, a hook can do more
+          than hand back a value. It can end the component's render and show UI itself, so a custom
+          hook can own its loading and error states and the component only deals with the loaded
+          data.
+          <em
+            >In theory, generators would also let a render resume later instead of re-running the
+            whole component function.</em
+          >
+        </p>
+        <figure class="code">
+          <figcaption>
+            <span>Loading and error states live in the hook</span
+            ><button type="button" data-copy>Copy</button>
+          </figcaption>
+          <pre><code>type OwnProps = { userId: string };
+
+function* User({ userId }: OwnProps) {
+  <span class="c">// The hook handles loading and error states;</span>
+  <span class="c">// the component only deals with the loaded user.</span>
+  const user = yield* useUser(userId);
+  return &lt;UserForm user={user} /&gt;;
+}
+
+function* useUser(userId: string): ComponentGenerator&lt;User&gt; {
+  const promise = getUserPromise(userId);
+  const { data, error, loading } = yield* useCachedPromise(promise);
+  <span class="c">// `return yield` ends the whole component's render here and shows this UI instead</span>
+  if (error) return yield &lt;UserLoadError error={error} /&gt;;
+  if (loading) return yield &lt;Loading message="Loading user…" /&gt;;
+  return data;
+}</code></pre>
+        </figure>
+        <p>
+          Ending the render early is just <code>return yield child</code>. Yielding any child,
+          whether an element, a string or <code>null</code>, ends the component's render on the spot
+          and renders that child instead. It works from deep inside a custom hook like
+          <code>useUser</code> too, because the hook's <code>yield</code> reaches the renderer
+          through the component's <code>yield*</code>. The component never gets past that line, so
+          it only ever deals with the loaded user. The one catch: a generator that returns early
+          this way needs a return-type annotation, like
+          <code>ComponentGenerator&lt;User&gt;</code> here.
+        </p>
+
+        <h3>2. Hooks can be skipped by returning early</h3>
+        <p>
+          Hook order matters just like in React: hooks are matched by the order they're called, so
+          you can't call one conditionally in the middle of a component. What's different is what
+          happens when a render ends early. In React, a render that calls fewer hooks than the
+          previous one throws <em>"Rendered fewer hooks than expected"</em>. In yract, a component
+          can return early, with a plain <code>return</code> (or <code>return yield</code> inside
+          hooks), before it reaches its remaining hooks.
+        </p>
+        <figure class="code">
+          <figcaption>
+            <span>Returning before the remaining hooks</span
+            ><button type="button" data-copy>Copy</button>
+          </figcaption>
+          <pre><code>type OwnProps = { companyId: string };
+
+function* CompanyEmployees({ companyId }: OwnProps) {
+  const { data, loading, error } = yield* useCompanyEmployees(companyId);
+  if (error) return &lt;LoadError error={error} /&gt;;
+  if (loading) return &lt;Loading message="Loading company employees…" /&gt;;
+  <span class="c">// Only reached once the data has loaded</span>
+  const sortedEmployees = yield* useMemo(sortEmployees, [data]);
+  <span class="c">// yract's useMemo works a bit differently from React's; more on that below</span>
+  return &lt;EmployeeList employees={sortedEmployees} /&gt;;
+}</code></pre>
+        </figure>
+        <p>
+          Skipped hooks are treated as unmounted: their effects clean up and their state is dropped.
+          The next time the component reaches them, they start fresh.
+        </p>
+
+        <h3>3. Better defaults for hooks</h3>
+        <p>
+          Most React codebases I've worked on end up with the same handful of helper hooks: a
+          callback that never changes identity, an effect that can be cancelled, a context hook with
+          a selector. Teams might write their own versions, each slightly different (with different
+          bugs), and new developers don't always know they exist, so they reach for the built-in
+          hook and get the old pitfalls back. Most of those pitfalls come from dependency lists: a
+          missing dependency leaves stale values, and an extra one makes a callback change identity
+          or an effect run too often. So I tried to make the built-in hooks handle the common case
+          safely, so that the easy way is also the right way.
+        </p>
+
+        <h3>useMemo: dependencies are passed to the callback</h3>
+        <p>
+          yract's <code>useMemo</code> passes the dependency list to your function as its arguments,
+          and recomputes only when one of them changes. That means the function can live outside the
+          component.
+        </p>
+        <figure class="code">
+          <figcaption><span>yract</span><button type="button" data-copy>Copy</button></figcaption>
+          <pre><code><span class="c">// getUsersSorted(users, sortKey, sortDirection)</span>
+const sortedUsers = yield* useMemo(getUsersSorted, [users, sortKey, sortDirection]);</code></pre>
+        </figure>
+        <p>
+          Why? The classic <code>useMemo</code> bug is a value the function uses but the dependency
+          list doesn't include, so the result silently goes stale. When the function only receives
+          what's in the list, it can't read anything else by accident. As a bonus, the component
+          body gets shorter.
+        </p>
+
+        <h3>useEffect: every effect gets an AbortSignal</h3>
+        <p>
+          yract's <code>useEffect</code> passes each run an <code>AbortSignal</code>. The signal
+          aborts before the effect runs again and when the component unmounts, and the effect itself
+          can be <code>async</code>.
+        </p>
+        <figure class="code">
+          <figcaption><span>yract</span><button type="button" data-copy>Copy</button></figcaption>
+          <pre><code>type OwnProps = { query: string };
+
+function* SearchResults({ query }: OwnProps) {
+  const [results, setResults] = yield* useState&lt;SearchResult[]&gt;([]);
+
+  yield* useEffect(
+    async (signal: AbortSignal) =&gt; {
+      try {
+        <span class="c">// Debounce: a new query aborts this run while it waits…</span>
+        await sleep(300, signal);
+        <span class="c">// …or while the request is still in flight</span>
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, { signal });
+        setResults(await response.json());
+      } catch (error) {
+        <span class="c">// An aborted run is expected; only report real failures</span>
+        if (!signal.aborted) console.error(error);
+      }
+    },
+    [query],
+  );
+
+  return &lt;ResultList results={results} /&gt;;
+}</code></pre>
+        </figure>
+        <p>
+          Why? Effects often do something async, and the rest of the work should be skipped if the
+          dependencies change or the component unmounts before the async part is done. In React that
+          means a hand-rolled <code>aborted</code> flag and a cleanup function in every such effect.
+          An <code>AbortSignal</code> does the same job and plugs straight into
+          <code>fetch</code> and most async APIs.
+        </p>
+
+        <h3>useCallback: no dependency list</h3>
+        <p>
+          yract's <code>useCallback</code> always returns the same function reference, but when it's
+          called, it runs the latest version of your function, so it always sees the current
+          variables (props, state, etc.).
+        </p>
+        <figure class="code">
+          <figcaption><span>yract</span><button type="button" data-copy>Copy</button></figcaption>
+          <pre><code>type OwnProps = { documentId: string };
+
+function* Editor({ documentId }: OwnProps) {
+  const [draft, setDraft] = yield* useState("");
+
+  <span class="c">// The same function on every render, but it always saves the current draft</span>
+  const save = yield* useCallback(() =&gt; saveDocument(documentId, draft));
+
+  <span class="c">// So the Cmd+S shortcut is registered once, not again on every keystroke</span>
+  yield* useEffect(
+    (signal: AbortSignal) =&gt; {
+      window.addEventListener(
+        "keydown",
+        (e) =&gt; {
+          if (e.key === "s" &amp;&amp; (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            save();
+          }
+        },
+        { signal },
+      );
+    },
+    [save],
+  );
+
+  return &lt;textarea value={draft} onInput={(e) =&gt; setDraft(e.currentTarget.value)} /&gt;;
+}</code></pre>
+        </figure>
+        <p>
+          Why no dependency list? In React, the dependency list does two jobs at once, and they pull
+          against each other. List too few dependencies and the callback reads stale values. List
+          all of them and the callback gets a new identity whenever they change, which rerenders
+          memoized children and re-runs effects that depend on it. Most of the time, what you
+          actually want is a function that never changes identity but always does the current thing,
+          so in yract that's the default.
+        </p>
+
+        <h3>useContext: choose when a context change rerenders you</h3>
+        <p>
+          yract's <code>useContext</code> takes an optional selector that picks the parts of the
+          context the component depends on. The component rerenders only when one of those parts
+          changes.
+        </p>
+        <figure class="code">
+          <figcaption><span>yract</span><button type="button" data-copy>Copy</button></figcaption>
+          <pre><code><span class="c">// Rerenders only when ctx[id] changes</span>
+const ctx = yield* useContext(MyContext, (ctx) =&gt; [ctx[id]]);
+const item = ctx[id];</code></pre>
+        </figure>
+        <p>
+          Why? In React, every component that reads a context rerenders whenever the provided value
+          changes, even if the part it uses stayed the same. The usual workarounds are splitting the
+          context into many small ones, or moving the state out of React into an external store with
+          selectors. With a selector built in, one context can serve a large tree. Picture a
+          15,000-row table without pagination, where a context holds the currently selected row.
+          Each row selects only whether it is the selected one, so when the selection changes, just
+          two rows rerender, the old one and the new one, instead of all 15,000.
+        </p>
+
+        <h3>4. Its own scheduler and reconciler</h3>
+        <p>
+          Under the hood, yract doesn't reuse anything from React. The scheduling and reconciliation
+          are written from scratch:
+        </p>
+
+        <figure class="diagram">
+          <svg
+            viewBox="0 -10 720 310"
+            role="img"
+            aria-label="One render pass in yract: a state or context change queues components; the pass renders them level by level, where each render adds its child components to the next level; then all DOM changes are committed at once, then effects run, and an effect that sets state starts another round."
+          >
+            <defs>
+              <marker
+                id="arrow"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="7"
+                markerHeight="7"
+                orient="auto-start-reverse"
+              >
+                <path d="M0,0 L10,5 L0,10 z" fill="currentColor" />
+              </marker>
+            </defs>
+            <g font-family="inherit" font-size="12" fill="currentColor">
+              <!-- Trigger -->
+              <rect
+                x="10"
+                y="125"
+                width="120"
+                height="50"
+                rx="6"
+                fill="none"
+                stroke="currentColor"
+              />
+              <text x="70" y="146" text-anchor="middle">setState /</text>
+              <text x="70" y="162" text-anchor="middle">context change</text>
+              <line
+                x1="130"
+                y1="150"
+                x2="168"
+                y2="150"
+                stroke="currentColor"
+                marker-end="url(#arrow)"
+              />
+              <text x="150" y="141" text-anchor="middle" font-size="10" style="fill: var(--muted)">
+                queues
+              </text>
+
+              <!-- Render: depth-bucketed queue -->
+              <rect
+                x="170"
+                y="30"
+                width="270"
+                height="240"
+                rx="8"
+                fill="none"
+                stroke="currentColor"
+              />
+              <text x="185" y="52" font-weight="600">1. Render, level by level</text>
+              <text x="185" y="94" font-size="11" style="fill: var(--muted)">depth 0</text>
+              <text x="185" y="154" font-size="11" style="fill: var(--muted)">depth 1</text>
+              <text x="185" y="214" font-size="11" style="fill: var(--muted)">depth 2</text>
+
+              <rect
+                x="250"
+                y="76"
+                width="60"
+                height="28"
+                rx="5"
+                style="fill: var(--surface); stroke: var(--accent)"
+              />
+              <text x="280" y="94" text-anchor="middle">App</text>
+
+              <rect
+                x="250"
+                y="136"
+                width="70"
+                height="28"
+                rx="5"
+                style="fill: var(--surface); stroke: var(--accent)"
+              />
+              <text x="285" y="154" text-anchor="middle">Filters</text>
+              <rect
+                x="330"
+                y="136"
+                width="60"
+                height="28"
+                rx="5"
+                style="fill: var(--surface); stroke: var(--accent)"
+              />
+              <text x="360" y="154" text-anchor="middle">Table</text>
+
+              <rect
+                x="250"
+                y="196"
+                width="50"
+                height="28"
+                rx="5"
+                style="fill: var(--surface); stroke: var(--accent)"
+              />
+              <text x="275" y="214" text-anchor="middle">Row</text>
+              <rect
+                x="310"
+                y="196"
+                width="50"
+                height="28"
+                rx="5"
+                style="fill: var(--surface); stroke: var(--accent)"
+              />
+              <text x="335" y="214" text-anchor="middle">Row</text>
+              <rect
+                x="370"
+                y="196"
+                width="50"
+                height="28"
+                rx="5"
+                style="fill: var(--surface); stroke: var(--accent)"
+              />
+              <text x="395" y="214" text-anchor="middle">Row</text>
+
+              <line
+                x1="280"
+                y1="104"
+                x2="285"
+                y2="134"
+                stroke="currentColor"
+                marker-end="url(#arrow)"
+              />
+              <line
+                x1="292"
+                y1="104"
+                x2="350"
+                y2="134"
+                stroke="currentColor"
+                marker-end="url(#arrow)"
+              />
+              <line
+                x1="360"
+                y1="164"
+                x2="280"
+                y2="194"
+                stroke="currentColor"
+                marker-end="url(#arrow)"
+              />
+              <line
+                x1="360"
+                y1="164"
+                x2="335"
+                y2="194"
+                stroke="currentColor"
+                marker-end="url(#arrow)"
+              />
+              <line
+                x1="360"
+                y1="164"
+                x2="392"
+                y2="194"
+                stroke="currentColor"
+                marker-end="url(#arrow)"
+              />
+              <text x="395" y="122" text-anchor="middle" font-size="11" style="fill: var(--muted)">
+                adds children
+              </text>
+              <text x="305" y="255" text-anchor="middle" font-size="11" style="fill: var(--muted)">
+                no DOM touched yet
+              </text>
+
+              <!-- Commit and effects -->
+              <line
+                x1="440"
+                y1="150"
+                x2="478"
+                y2="150"
+                stroke="currentColor"
+                marker-end="url(#arrow)"
+              />
+              <rect
+                x="480"
+                y="120"
+                width="105"
+                height="60"
+                rx="6"
+                fill="none"
+                stroke="currentColor"
+              />
+              <text x="532" y="142" text-anchor="middle" font-weight="600">2. Commit</text>
+              <text x="532" y="158" text-anchor="middle" font-size="11">all DOM changes</text>
+              <text x="532" y="172" text-anchor="middle" font-size="11">at once</text>
+              <line
+                x1="585"
+                y1="150"
+                x2="613"
+                y2="150"
+                stroke="currentColor"
+                marker-end="url(#arrow)"
+              />
+              <rect
+                x="615"
+                y="120"
+                width="95"
+                height="60"
+                rx="6"
+                fill="none"
+                stroke="currentColor"
+              />
+              <text x="662" y="146" text-anchor="middle" font-weight="600">3. Effects</text>
+              <text x="662" y="164" text-anchor="middle" font-size="11">after commit</text>
+
+              <!-- Loop back -->
+              <path
+                d="M662,120 L662,14 L305,14 L305,28"
+                fill="none"
+                stroke="currentColor"
+                stroke-dasharray="4 3"
+                marker-end="url(#arrow)"
+              />
+              <text x="484" y="10" text-anchor="middle" font-size="11" style="fill: var(--muted)">
+                effect sets state → another round in the same pass
+              </text>
+            </g>
+          </svg>
+          <figcaption>
+            One render pass. Changes made in the same tick are batched; queued components render
+            level by level, the DOM is updated in one go, and only then do effects run.
+          </figcaption>
+        </figure>
+        <p>
+          <strong>Scheduling.</strong> The biggest difference from React is the order in which
+          components render:
+        </p>
+        <ul class="compare">
+          <li>
+            <strong>React</strong> walks the tree depth-first: a component's child, then the child's
+            child, before moving on to siblings.
+          </li>
+          <li>
+            <strong>yract</strong> puts components into a queue grouped by depth and renders level
+            by level: every scheduled component at one depth before anything deeper. A parent's
+            render adds its children to the queue instead of rendering them on the spot.
+          </li>
+        </ul>
+        <p>
+          <strong>Reconciliation.</strong> Each render records its DOM work as a list of actions
+          instead of touching the DOM directly. Keyed children are matched so that a reorder moves
+          as few DOM nodes as possible, and a newly mounted subtree is built off-screen and inserted
+          with a single DOM operation.
+        </p>
+
+        <h2>The hardest problem: a <code>&lt;Defer&gt;</code> component</h2>
+
+        <p>
+          The most ambitious thing I tried was combining what <code>&lt;Suspense&gt;</code> and
+          <code>useDeferredValue</code> / <code>startTransition</code> do into a single
+          <code>&lt;Defer&gt;</code> wrapper component. I got a bit lost on what I was actually
+          trying to solve, and ended up focusing too much on keeping the page responsive while
+          rendering large data sets, like a big table that is filtered or sorted on every keystroke:
+        </p>
+        <figure class="code">
+          <figcaption>
+            <span>The shelved idea (not implemented in yract)</span
+            ><button type="button" data-copy>Copy</button>
+          </figcaption>
+          <pre><code><span class="c">// Not implemented: this is the shelved &lt;Defer&gt; idea, not a working yract API.</span>
+<span class="c">// Rendering a table with a lot of data, without pagination</span>
+const [Defer, isDeferring] = yield* useDefer();
+
+return (
+  &lt;Defer&gt;
+    &lt;TableFilters filters={filters} setFilters={setFilters} /&gt;
+    &lt;BigTable data={data} sort={sort} setSort={setSort} /&gt;
+  &lt;/Defer&gt;
+);</code></pre>
+        </figure>
+
+        <p>
+          What I actually wanted was something for transitioning between views. When navigating away
+          from a page, the old page should stay visible but stop re-rendering, since it's on its way
+          out, while the next page's view is being prepared and its data is being loaded. That data
+          could come from the router's loaders, or from the components themselves in a
+          render-as-you-fetch style:
+        </p>
+        <figure class="code">
+          <figcaption>
+            <span>Transitioning between views</span><button type="button" data-copy>Copy</button>
+          </figcaption>
+          <pre><code>async function onSubmit(user: User) {
+  await updateUser(userId, user);
+  <span class="c">// Invalidate cached promises</span>
+  onUserUpdated(userId);
+  <span class="c">// Navigate, and switch to the user page once its data has loaded.</span>
+  <span class="c">// Meanwhile the current page stays on screen but is "frozen": the</span>
+  <span class="c">// components under the route being left stop re-rendering and updating.</span>
+  navigate(`/users/${userId}`);
+}</code></pre>
+        </figure>
+
+        <h2>Narrowing the scope</h2>
+        <p>
+          I worked on this for months, through countless rewrites, learning more with each one. Then
+          life handed me other responsibilities 👶🍼. So I narrowed the scope sharply, shelved the
+          <code>&lt;Defer&gt;</code> idea, and kept just the simpler,
+          <strong>synchronous</strong> JSX runtime described above: smaller in scope, but with the
+          ideas I cared about most.
+        </p>
+
+        <h2>What I learned working with Claude Code</h2>
+        <p>
+          This project also taught me a lot about working with an AI coding agent. I used Claude
+          Code throughout, but I didn't hand it the architecture. The design decisions were mine:
+          components and hooks as generator functions, the hook defaults, and how scheduling and
+          reconciliation work.
+        </p>
+        <p>
+          Where Claude Code helped most was planning. Before any hands-on work, I talked each change
+          through with it: organizing my thoughts, weighing the options and finding the edge cases
+          up front. It was also great at finding the very human bugs I had written myself. In the
+          end I wrote about 98% of the library code myself, and the final code is something I
+          understand line by line. The tests were the exception: Claude Code wrote most of them.
+        </p>
+        <p>
+          The biggest lesson was that the agent is only as good as the direction you give it. Clear
+          intent and small, well-defined steps worked much better than asking for big changes in one
+          go.
+        </p>
+        <p>
+          That lesson applies to me as well. While writing this article, I realized I would probably
+          have gotten further with my original goals if I had first implemented just
+          <code>&lt;Suspense&gt;</code> on its own. I guess I was having too much fun building to
+          stop and think 😅
+        </p>
+
+        <h2>Not ready to use, and that's fine</h2>
+        <p>
+          yract is a learning project, not a production library. There are still big gaps: no server
+          rendering or hydration, no Suspense or lazy loading, no error boundaries, no portals, no
+          devtools, and no capture-phase event props. The API will keep changing as I learn more.
+          Please don't build anything important on it, but do read the code if you're curious how a
+          JSX runtime works underneath.
+        </p>
+
+        <div class="closing">
+          <p>
+            Building this taught me a lot about how UI runtimes work. Many of React's choices that
+            once felt arbitrary make a lot more sense after you've tried to build something similar
+            yourself.
+          </p>
+          <p>
+            The code is on GitHub:
+            <a href="https://github.com/jEnbuska/yract">github.com/jEnbuska/yract</a>. I'd love to
+            hear which of these ideas you'd want in React, and which ones you think are a bad idea.
+          </p>
+        </div>
+      </article>
+    </div>
+
+    <script>
+      // Highlight only the blocks we ask for, after the language files have loaded.
+      window.Prism = { manual: true };
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-jsx.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-tsx.min.js"></script>
+    <script>
+      // Colour every code sample as TSX. If Prism failed to load, the plain text stays readable.
+      if (window.Prism && Prism.languages.tsx) {
+        document.querySelectorAll("figure.code pre code").forEach((code) => {
+          code.textContent = code.textContent; // drop the hand-written comment spans
+          code.classList.add("language-tsx");
+          Prism.highlightElement(code);
+        });
+      }
+
+      const status = document.getElementById("status");
+      let statusTimer;
+      function say(message) {
+        status.textContent = message;
+        clearTimeout(statusTimer);
+        statusTimer = setTimeout(() => (status.textContent = ""), 2500);
+      }
+
+      function selectNode(node) {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+
+      async function copy(text, fallbackNode, label) {
+        try {
+          await navigator.clipboard.writeText(text);
+          say(label);
+        } catch {
+          selectNode(fallbackNode);
+          say("Selected. Press Cmd+C or Ctrl+C to copy.");
+        }
+      }
+
+      document.querySelectorAll("[data-copy]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const code = button.closest("figure").querySelector("pre");
+          copy(code.innerText, code, "Code copied");
+        });
+      });
+    </script>
+  </body>
+</html>
