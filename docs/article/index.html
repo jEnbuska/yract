@@ -150,7 +150,7 @@
       }
       ul.compare {
         list-style: none;
-        margin: 0.75rem 0 0;
+        margin: -0.4rem 0 1.1rem;
         padding: 0.75rem 1rem;
         display: grid;
         gap: 0.6rem;
@@ -418,8 +418,8 @@ function* useUser(userId: string): ComponentGenerator&lt;User&gt; {
           you can't call one conditionally in the middle of a component. What's different is what
           happens when a render ends early. In React, a render that calls fewer hooks than the
           previous one throws <em>"Rendered fewer hooks than expected"</em>. In yract, a component
-          can return early, with a plain <code>return</code> or <code>return yield</code>, before it
-          reaches its remaining hooks.
+          can return early, with a plain <code>return</code> (or <code>return yield</code> inside
+          hooks), before it reaches its remaining hooks.
         </p>
         <figure class="code">
           <figcaption>
@@ -571,12 +571,13 @@ const ctx = yield* useContext(MyContext, (ctx) =&gt; [ctx[id]]);
 const item = ctx[id];</code></pre>
         </figure>
         <p>
-          Why? In React, every consumer of a context rerenders whenever the provided value changes,
-          even if the part it reads stayed the same. The usual workarounds are splitting the context
-          into many small ones, or moving the state out of React into an external store with
-          selectors. With a selector built in, one context can serve a large tree: in the
-          playground's 6000-row table, changing the highlighted city rerenders only the rows whose
-          highlight actually changed.
+          Why? In React, every component that reads a context rerenders whenever the provided value
+          changes, even if the part it uses stayed the same. The usual workarounds are splitting the
+          context into many small ones, or moving the state out of React into an external store with
+          selectors. With a selector built in, one context can serve a large tree. Picture a
+          15,000-row table without pagination, where a context holds the currently selected row.
+          Each row selects only whether it is the selected one, so when the selection changes, just
+          two rows rerender, the old one and the new one, instead of all 15,000.
         </p>
 
         <h3>4. Its own scheduler and reconciler</h3>
@@ -807,30 +808,27 @@ const item = ctx[id];</code></pre>
             level by level, the DOM is updated in one go, and only then do effects run.
           </figcaption>
         </figure>
-        <ol>
+        <p>
+          <strong>Scheduling.</strong> The biggest difference from React is the order in which
+          components render:
+        </p>
+        <ul class="compare">
           <li>
-            <strong>Scheduling.</strong> The biggest difference from React is the order in which
-            components render:
-            <ul class="compare">
-              <li>
-                <strong>React</strong> walks the tree depth-first: a component's child, then the
-                child's child, before moving on to siblings.
-              </li>
-              <li>
-                <strong>yract</strong> puts components into a queue grouped by depth and renders
-                level by level: every scheduled component at one depth before anything deeper. A
-                parent's render adds its children to the queue instead of rendering them on the
-                spot.
-              </li>
-            </ul>
+            <strong>React</strong> walks the tree depth-first: a component's child, then the child's
+            child, before moving on to siblings.
           </li>
           <li>
-            <strong>Reconciliation.</strong> Each render records its DOM work as a list of actions
-            instead of touching the DOM directly. Keyed children are matched so that a reorder moves
-            as few DOM nodes as possible, and a newly mounted subtree is built off-screen and
-            inserted with a single DOM operation.
+            <strong>yract</strong> puts components into a queue grouped by depth and renders level
+            by level: every scheduled component at one depth before anything deeper. A parent's
+            render adds its children to the queue instead of rendering them on the spot.
           </li>
-        </ol>
+        </ul>
+        <p>
+          <strong>Reconciliation.</strong> Each render records its DOM work as a list of actions
+          instead of touching the DOM directly. Keyed children are matched so that a reorder moves
+          as few DOM nodes as possible, and a newly mounted subtree is built off-screen and inserted
+          with a single DOM operation.
+        </p>
 
         <h2>The hardest problem: a <code>&lt;Defer&gt;</code> component</h2>
 
@@ -838,8 +836,8 @@ const item = ctx[id];</code></pre>
           The most ambitious thing I tried was combining what <code>&lt;Suspense&gt;</code> and
           <code>useDeferredValue</code> / <code>startTransition</code> do into a single
           <code>&lt;Defer&gt;</code> wrapper component. I got a bit lost on what I was actually
-          trying to solve, and ended up focusing too much on non-blocking rendering of large data
-          sets, like a big table that is filtered or sorted on every keystroke:
+          trying to solve, and ended up focusing too much on keeping the page responsive while
+          rendering large data sets, like a big table that is filtered or sorted on every keystroke:
         </p>
         <figure class="code">
           <figcaption>
@@ -893,15 +891,15 @@ return (
         <p>
           This project also taught me a lot about working with an AI coding agent. I used Claude
           Code throughout, but I didn't hand it the architecture. The design decisions were mine:
-          generator components, the hook defaults, and how scheduling and reconciliation work.
+          components and hooks as generator functions, the hook defaults, and how scheduling and
+          reconciliation work.
         </p>
         <p>
           Where Claude Code helped most was planning. Before any hands-on work, I talked each change
           through with it: organizing my thoughts, weighing the options and finding the edge cases
           up front. It was also great at finding the very human bugs I had written myself. In the
           end I wrote about 98% of the library code myself, and the final code is something I
-          understand line by line. The tests were the exception: Claude Code wrote most of them, so
-          I didn't have to write them by hand.
+          understand line by line. The tests were the exception: Claude Code wrote most of them.
         </p>
         <p>
           The biggest lesson was that the agent is only as good as the direction you give it. Clear
@@ -909,8 +907,8 @@ return (
           go.
         </p>
         <p>
-          That lesson applies to me as well. While writing this article, I realised I would probably
-          have got further with my original goals if I had first implemented just
+          That lesson applies to me as well. While writing this article, I realized I would probably
+          have gotten further with my original goals if I had first implemented just
           <code>&lt;Suspense&gt;</code> on its own. I guess I was having too much fun building to
           stop and think 😅
         </p>
@@ -926,9 +924,9 @@ return (
 
         <div class="closing">
           <p>
-            Working on this project taught me a lot about building systems and about working with
-            AI. Many of React's choices that once felt arbitrary make a lot more sense after you've
-            tried to build something similar yourself.
+            Building this taught me a lot about how UI runtimes work. Many of React's choices that
+            once felt arbitrary make a lot more sense after you've tried to build something similar
+            yourself.
           </p>
           <p>
             The code is on GitHub:
