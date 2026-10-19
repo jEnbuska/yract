@@ -838,8 +838,8 @@ const item = ctx[id];</code></pre>
           The most ambitious thing I tried was combining what <code>&lt;Suspense&gt;</code> and
           <code>useDeferredValue</code> / <code>startTransition</code> do into a single
           <code>&lt;Defer&gt;</code> wrapper component. I got a bit lost on what I was actually
-          trying to solve, and ended up focusing too much on async rendering of large data sets,
-          like a big table that is filtered or sorted on every keystroke:
+          trying to solve, and ended up focusing too much on non-blocking rendering of large data
+          sets, like a big table that is filtered or sorted on every keystroke:
         </p>
         <figure class="code">
           <figcaption>
